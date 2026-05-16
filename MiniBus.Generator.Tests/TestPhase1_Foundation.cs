@@ -30,10 +30,10 @@ public class TestPhase1_Foundation
     }
 
     [Test]
-    public void HandlerAttributePresent_SkeletonStillProducesNoOutput()
+    public void HandlerAttributePresent_GeneratesOutput()
     {
-        // In Phase 1 the generator is a stub — even a properly attributed class
-        // should produce nothing yet.  This test will be updated in Phase 2.
+        // Phase 1 note: the original test checked the skeleton produced nothing.
+        // From Phase 2 onward a valid [Handler] class must produce output.
         const string source = """
             using MiniBus.Convention;
             namespace TestApp;
@@ -50,7 +50,7 @@ public class TestPhase1_Foundation
 
         var (sources, diagnostics) = GeneratorTestHelper.Run(source);
 
-        Assert.That(sources, Is.Empty);
+        Assert.That(sources, Is.Not.Empty);
         Assert.That(diagnostics, Is.Empty);
     }
 }
