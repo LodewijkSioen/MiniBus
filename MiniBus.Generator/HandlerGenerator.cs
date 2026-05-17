@@ -33,6 +33,7 @@ internal sealed record HandlerModel(
 {
     // "global::TestApp.DummyHandler" + "Dispatcher" = "global::TestApp.DummyHandlerDispatcher"
     public string DispatcherFullName => FullClassName + "Dispatcher";
+    public bool IsAnyAsync => HandleIsAsync || (Load?.IsAsync ?? false) || (Validate?.IsAsync ?? false);
 }
 
 [Generator]
@@ -249,7 +250,10 @@ public class HandlerGenerator : IIncrementalGenerator
         sb.AppendLine($"{i}        _handler = handler;");
         sb.AppendLine($"{i}    }}");
         sb.AppendLine();
-        sb.AppendLine($"{i}    public async global::System.Threading.Tasks.Task<");
+        var asyncKeyword = model.IsAnyAsync ? "async " : "";
+        var taskWrap  = model.IsAnyAsync ? "" : "global::System.Threading.Tasks.Task.FromResult(";
+        var taskClose = model.IsAnyAsync ? "" : ")";
+        sb.AppendLine($"{i}    public {asyncKeyword}global::System.Threading.Tasks.Task<");
         sb.AppendLine($"{i}        global::MiniBus.Convention.Result<{model.FullResponseType}>>");
         sb.AppendLine($"{i}        Handle({model.FullRequestType} request)");
         sb.AppendLine($"{i}    {{");
@@ -273,7 +277,7 @@ public class HandlerGenerator : IIncrementalGenerator
             if (nullChecks.Length > 0)
             {
                 sb.AppendLine($"{i}        if ({nullChecks})");
-                sb.AppendLine($"{i}            return global::MiniBus.Convention.Result<{model.FullResponseType}>.NotFound();");
+                sb.AppendLine($"{i}            return {taskWrap}global::MiniBus.Convention.Result<{model.FullResponseType}>.NotFound(){taskClose};");
                 sb.AppendLine();
             }
         }
@@ -284,14 +288,14 @@ public class HandlerGenerator : IIncrementalGenerator
             var validateAwait = validate.IsAsync ? "await " : "";
             sb.AppendLine($"{i}        var validationResult = {validateAwait}_handler.Validate({model.ValidateCallArgs});");
             sb.AppendLine($"{i}        if (!validationResult.IsValid())");
-            sb.AppendLine($"{i}            return global::MiniBus.Convention.Result<{model.FullResponseType}>.Invalid(validationResult);");
+            sb.AppendLine($"{i}            return {taskWrap}global::MiniBus.Convention.Result<{model.FullResponseType}>.Invalid(validationResult){taskClose};");
             sb.AppendLine();
         }
 
         // ── Handle phase ──────────────────────────────────────────────────────
         var handleAwait = model.HandleIsAsync ? "await " : "";
         sb.AppendLine($"{i}        var response = {handleAwait}_handler.Handle({model.HandleCallArgs});");
-        sb.AppendLine($"{i}        return global::MiniBus.Convention.Result<{model.FullResponseType}>.Success(response);");
+        sb.AppendLine($"{i}        return {taskWrap}global::MiniBus.Convention.Result<{model.FullResponseType}>.Success(response){taskClose};");
         sb.AppendLine($"{i}    }}");
         sb.AppendLine($"{i}}}");
 

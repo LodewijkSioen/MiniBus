@@ -128,8 +128,10 @@ public class TestPhase2_SimpleDispatch
 
         Assert.That(diagnostics, Is.Empty);
         var dispatcher = sources.Single(s => s.Contains("class SyncHandleHandlerDispatcher"));
+        Assert.That(dispatcher, Does.Not.Contain("async "));
         Assert.That(dispatcher, Does.Not.Contain("await _handler.Handle"));
         Assert.That(dispatcher, Does.Contain("_handler.Handle(request)"));
+        Assert.That(dispatcher, Does.Contain("Task.FromResult"));
     }
 
     // ── Negative cases ─────────────────────────────────────────────────────
