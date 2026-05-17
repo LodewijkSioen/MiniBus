@@ -219,4 +219,47 @@ public class TestPhase2_SimpleDispatch
         Assert.That(registrations, Does.Contain("HandlerA"));
         Assert.That(registrations, Does.Contain("HandlerB"));
     }
+
+    [Test]
+    public void DuplicateRequestType_ReportsMBG001Warning_AndOmitsExtensionMethod()
+    {
+        const string source = """
+            using MiniBus.Convention;
+            namespace TestApp;
+
+            public record SharedRequest(int Id);
+
+            [Handler]
+            public class HandlerOne
+            {
+                public record Response;
+                public System.Threading.Tasks.Task<Response> Handle(SharedRequest request)
+                    => System.Threading.Tasks.Task.FromResult(new Response());
+            }
+
+            [Handler]
+            public class HandlerTwo
+            {
+                public record Response;
+                public System.Threading.Tasks.Task<Response> Handle(SharedRequest request)
+                    => System.Threading.Tasks.Task.FromResult(new Response());
+            }
+            """;
+
+        var (sources, diagnostics) = GeneratorTestHelper.Run(source);
+
+        // Both dispatchers are still generated
+        Assert.That(sources.Any(s => s.Contains("HandlerOneDispatcher")), Is.True);
+        Assert.That(sources.Any(s => s.Contains("HandlerTwoDispatcher")), Is.True);
+
+        // MBG001 warning emitted for each conflicting handler
+        var warnings = diagnostics.Where(d => d.Id == "MBG001").ToArray();
+        Assert.That(warnings, Has.Length.EqualTo(2));
+        Assert.That(warnings.Any(d => d.GetMessage().Contains("HandlerOne")), Is.True);
+        Assert.That(warnings.Any(d => d.GetMessage().Contains("HandlerTwo")), Is.True);
+
+        // No Handle extension method generated for the conflicting request type
+        var registrations = sources.Single(s => s.Contains("AddGeneratedHandlers"));
+        Assert.That(registrations, Does.Not.Contain("ConventionBus bus, global::TestApp.SharedRequest request"));
+    }
 }

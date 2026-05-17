@@ -15,7 +15,7 @@ internal sealed record LoadedElement(
 internal sealed record LoadInfo(
     bool IsAsync,
     bool IsTuple,
-    LoadedElement[] Elements);
+    ImmutableArray<LoadedElement> Elements);
 
 internal sealed record ValidateInfo(bool IsAsync);
 
@@ -29,7 +29,8 @@ internal sealed record HandlerModel(
     string HandleCallArgs,
     bool HandleIsAsync,
     ValidateInfo? Validate,
-    string ValidateCallArgs)
+    string ValidateCallArgs,
+    Location Location)
 {
     // "global::TestApp.DummyHandler" + "Dispatcher" = "global::TestApp.DummyHandlerDispatcher"
     public string DispatcherFullName => FullClassName + "Dispatcher";
@@ -40,6 +41,14 @@ internal sealed record HandlerModel(
 public class HandlerGenerator : IIncrementalGenerator
 {
     private const string HandlerAttributeFqn = "MiniBus.Convention.HandlerAttribute";
+
+    private static readonly DiagnosticDescriptor DuplicateRequestType = new DiagnosticDescriptor(
+        id: "MBG001",
+        title: "Duplicate request type",
+        messageFormat: "Handler '{0}' shares request type '{1}' with another [Handler] class. No typed extension method will be generated for this request type.",
+        category: "MiniBus.Generator",
+        defaultSeverity: DiagnosticSeverity.Warning,
+        isEnabledByDefault: true);
 
     public void Initialize(IncrementalGeneratorInitializationContext context)
     {
@@ -65,7 +74,17 @@ public class HandlerGenerator : IIncrementalGenerator
                 .Select(static m => m!)
                 .ToArray();
             if (valid.Length == 0) return;   // no handlers → no file (avoids noise in tests)
-            spc.AddSource("ConventionRegistrations.g.cs", GenerateRegistrationsSource(valid));
+
+            // Detect handlers that share a request type — extension methods would collide (CS0111)
+            var conflicting = new System.Collections.Generic.HashSet<string>();
+            foreach (var group in valid.GroupBy(static m => m.FullRequestType).Where(static g => g.Count() > 1))
+            {
+                conflicting.Add(group.Key);
+                foreach (var m in group)
+                    spc.ReportDiagnostic(Diagnostic.Create(DuplicateRequestType, m.Location, m.ClassName, m.FullRequestType));
+            }
+
+            spc.AddSource("ConventionRegistrations.g.cs", GenerateRegistrationsSource(valid, conflicting));
         });
     }
 
@@ -124,7 +143,7 @@ public class HandlerGenerator : IIncrementalGenerator
             if (loadReturnInner is INamedTypeSymbol { IsTupleType: true } tupleType)
             {
                 // Tuple load: (A? a, B? b) etc.
-                var elements = new System.Collections.Generic.List<LoadedElement>();
+                var elements = ImmutableArray.CreateBuilder<LoadedElement>();
                 for (int ei = 0; ei < tupleType.TupleElements.Length; ei++)
                 {
                     var elem = tupleType.TupleElements[ei];
@@ -142,7 +161,7 @@ public class HandlerGenerator : IIncrementalGenerator
                     elements.Add(new LoadedElement(localName, fqn, isNullable));
                     loadedByFqn[fqn] = localName;
                 }
-                loadInfo = new LoadInfo(IsAsync: loadAsync, IsTuple: true, Elements: elements.ToArray());
+                loadInfo = new LoadInfo(IsAsync: loadAsync, IsTuple: true, Elements: elements.ToImmutable());
             }
             else if (loadReturnInner.NullableAnnotation == NullableAnnotation.Annotated)
             {
@@ -151,7 +170,7 @@ public class HandlerGenerator : IIncrementalGenerator
                 var fqn = nonNullable.ToDisplayString(fmt);
                 loadedByFqn[fqn] = "loaded";
                 loadInfo = new LoadInfo(IsAsync: loadAsync, IsTuple: false,
-                    Elements: new[] { new LoadedElement("loaded", fqn, IsNullable: true) });
+                    Elements: ImmutableArray.Create(new LoadedElement("loaded", fqn, IsNullable: true)));
             }
         }
 
@@ -222,7 +241,8 @@ public class HandlerGenerator : IIncrementalGenerator
             HandleCallArgs: string.Join(", ", handleArgsList),
             HandleIsAsync: handleIsAsync,
             Validate: validateInfo,
-            ValidateCallArgs: string.Join(", ", validateArgsList));
+            ValidateCallArgs: string.Join(", ", validateArgsList),
+            Location: ctx.TargetNode.GetLocation());
     }
 
     private static string GenerateDispatcherSource(HandlerModel model)
@@ -278,8 +298,8 @@ public class HandlerGenerator : IIncrementalGenerator
             {
                 sb.AppendLine($"{i}        if ({nullChecks})");
                 sb.AppendLine($"{i}            return {taskWrap}global::MiniBus.Convention.Result<{model.FullResponseType}>.NotFound(){taskClose};");
-                sb.AppendLine();
             }
+            sb.AppendLine();
         }
 
         // ── Validate phase ────────────────────────────────────────────────────
@@ -304,7 +324,9 @@ public class HandlerGenerator : IIncrementalGenerator
         return sb.ToString();
     }
 
-    private static string GenerateRegistrationsSource(HandlerModel[] models)
+    private static string GenerateRegistrationsSource(
+        HandlerModel[] models,
+        System.Collections.Generic.HashSet<string> conflicting)
     {
         var sb = new StringBuilder();
         sb.AppendLine("// <auto-generated/>");
@@ -340,6 +362,7 @@ public class HandlerGenerator : IIncrementalGenerator
 
         foreach (var model in models)
         {
+            if (conflicting.Contains(model.FullRequestType)) continue;
             sb.AppendLine($"        public static global::System.Threading.Tasks.Task<global::MiniBus.Convention.Result<{model.FullResponseType}>>");
             sb.AppendLine($"            Handle(this global::MiniBus.Convention.ConventionBus bus, {model.FullRequestType} request)");
             sb.AppendLine($"            => bus.Handle<{model.FullRequestType}, {model.FullResponseType}>(request);");
