@@ -54,7 +54,7 @@ public class TupleLoadWithValidateHandler
 // ── Tests ─────────────────────────────────────────────────────────────────────
 
 [TestFixture]
-public class TestPhase5_IntegrationTupleLoad
+public class TupleLoadIntegrationTests
 {
     [Test]
     public async Task BothValuesLoaded_PassesToHandle()

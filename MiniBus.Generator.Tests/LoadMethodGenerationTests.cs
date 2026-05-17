@@ -1,7 +1,7 @@
 namespace MiniBus.Generator.Tests;
 
 [TestFixture]
-public class TestPhase3_LoadMethod
+public class LoadMethodGenerationTests
 {
     // ── Async Load (Task<T?>) ──────────────────────────────────────────────
 

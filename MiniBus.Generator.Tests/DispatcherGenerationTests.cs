@@ -1,7 +1,7 @@
 namespace MiniBus.Generator.Tests;
 
 [TestFixture]
-public class TestPhase2_SimpleDispatch
+public class DispatcherGenerationTests
 {
     // ── Dispatcher generation ──────────────────────────────────────────────
 

@@ -1,11 +1,10 @@
 namespace MiniBus.Generator.Tests;
 
 /// <summary>
-/// Phase 1 — verifies the skeleton generator compiles and produces no output.
-/// Real generation tests are added in subsequent phases.
+/// Verifies that the generator correctly triggers (or skips) based on the [Handler] attribute.
 /// </summary>
 [TestFixture]
-public class TestPhase1_Foundation
+public class HandlerAttributeDetectionTests
 {
     [Test]
     public void EmptySource_ProducesNoOutput()
@@ -32,8 +31,6 @@ public class TestPhase1_Foundation
     [Test]
     public void HandlerAttributePresent_GeneratesOutput()
     {
-        // Phase 1 note: the original test checked the skeleton produced nothing.
-        // From Phase 2 onward a valid [Handler] class must produce output.
         const string source = """
             using MiniBus.Convention;
             namespace TestApp;

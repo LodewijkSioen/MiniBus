@@ -28,7 +28,7 @@ public class SyncHandleConventionHandler
 // ── Tests ─────────────────────────────────────────────────────────────────────
 
 [TestFixture]
-public class TestPhase2_IntegrationSimpleDispatch
+public class SimpleDispatchIntegrationTests
 {
     [Test]
     public async Task HappyPath_HandleOnly_ReturnsSuccess()

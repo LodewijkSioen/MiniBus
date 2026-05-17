@@ -66,7 +66,7 @@ public class LoadValidateConventionHandler
 // ── Tests ─────────────────────────────────────────────────────────────────────
 
 [TestFixture]
-public class TestPhase4_IntegrationValidateMethod
+public class ValidateMethodIntegrationTests
 {
     [Test]
     public async Task SyncValidate_ValidRequest_PassesToHandle()

@@ -51,7 +51,7 @@ public class SyncLoadConventionHandler
 // ── Tests ─────────────────────────────────────────────────────────────────────
 
 [TestFixture]
-public class TestPhase3_IntegrationLoadMethod
+public class LoadMethodIntegrationTests
 {
     [Test]
     public async Task LoadReturnsNull_ResultIsNotFound()

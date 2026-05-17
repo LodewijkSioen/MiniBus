@@ -1,7 +1,7 @@
 namespace MiniBus.Generator.Tests;
 
 [TestFixture]
-public class TestPhase5_TupleLoad
+public class TupleLoadGenerationTests
 {
     // ── Named tuple elements ──────────────────────────────────────────────
 

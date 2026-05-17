@@ -1,7 +1,7 @@
 namespace MiniBus.Generator.Tests;
 
 [TestFixture]
-public class TestPhase4_ValidateMethod
+public class ValidateMethodGenerationTests
 {
     // ── Sync Validate ─────────────────────────────────────────────────────
 
