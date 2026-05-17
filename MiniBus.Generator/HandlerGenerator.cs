@@ -7,9 +7,15 @@ using System.Threading;
 
 namespace MiniBus.Generator;
 
+internal sealed record LoadedElement(
+    string LocalName,    // local variable name in generated code
+    string FullType,     // non-nullable, global::-prefixed
+    bool IsNullable);    // whether a null-check should be emitted
+
 internal sealed record LoadInfo(
     bool IsAsync,
-    string LoadedFullType);   // non-nullable, global::-prefixed
+    bool IsTuple,
+    LoadedElement[] Elements);
 
 internal sealed record ValidateInfo(bool IsAsync);
 
@@ -94,7 +100,7 @@ public class HandlerGenerator : IIncrementalGenerator
 
         // ── Detect optional Load method ───────────────────────────────────────
         LoadInfo? loadInfo = null;
-        string? loadedFqn = null;
+        var loadedByFqn = new System.Collections.Generic.Dictionary<string, string>(); // fqn → localName
 
         var loadMethod = classSymbol.GetMembers("Load")
             .OfType<IMethodSymbol>()
@@ -106,7 +112,7 @@ public class HandlerGenerator : IIncrementalGenerator
             bool loadAsync = false;
             ITypeSymbol loadReturnInner = loadReturn;
 
-            // Unwrap Task<T?>
+            // Unwrap Task<(A?,B?)> or Task<T?>
             if (loadReturn is INamedTypeSymbol { Name: "Task" } taskType
                 && taskType.TypeArguments.Length == 1)
             {
@@ -114,12 +120,37 @@ public class HandlerGenerator : IIncrementalGenerator
                 loadAsync = true;
             }
 
-            // Nullable reference type (T?) → the non-null T is what gets loaded
-            if (loadReturnInner.NullableAnnotation == NullableAnnotation.Annotated)
+            if (loadReturnInner is INamedTypeSymbol { IsTupleType: true } tupleType)
             {
+                // Tuple load: (A? a, B? b) etc.
+                var elements = new System.Collections.Generic.List<LoadedElement>();
+                for (int ei = 0; ei < tupleType.TupleElements.Length; ei++)
+                {
+                    var elem = tupleType.TupleElements[ei];
+                    var elemType = elem.Type;
+                    bool isNullable = elemType.NullableAnnotation == NullableAnnotation.Annotated;
+                    var nonNullType = isNullable
+                        ? elemType.WithNullableAnnotation(NullableAnnotation.NotAnnotated)
+                        : elemType;
+                    var fqn = nonNullType.ToDisplayString(fmt);
+                    // Camelcase the element name (Item1→item1, entity→entity)
+                    var rawName = elem.Name;
+                    var localName = rawName.Length > 0 && char.IsUpper(rawName[0])
+                        ? char.ToLower(rawName[0]) + rawName.Substring(1)
+                        : rawName;
+                    elements.Add(new LoadedElement(localName, fqn, isNullable));
+                    loadedByFqn[fqn] = localName;
+                }
+                loadInfo = new LoadInfo(IsAsync: loadAsync, IsTuple: true, Elements: elements.ToArray());
+            }
+            else if (loadReturnInner.NullableAnnotation == NullableAnnotation.Annotated)
+            {
+                // Scalar nullable load: T?
                 var nonNullable = loadReturnInner.WithNullableAnnotation(NullableAnnotation.NotAnnotated);
-                loadedFqn = nonNullable.ToDisplayString(fmt);
-                loadInfo = new LoadInfo(IsAsync: loadAsync, LoadedFullType: loadedFqn);
+                var fqn = nonNullable.ToDisplayString(fmt);
+                loadedByFqn[fqn] = "loaded";
+                loadInfo = new LoadInfo(IsAsync: loadAsync, IsTuple: false,
+                    Elements: new[] { new LoadedElement("loaded", fqn, IsNullable: true) });
             }
         }
 
@@ -133,8 +164,8 @@ public class HandlerGenerator : IIncrementalGenerator
         foreach (var param in handleMethod.Parameters)
         {
             var paramFqn = param.Type.ToDisplayString(fmt);
-            if (loadedFqn is not null && paramFqn == loadedFqn)
-                handleArgsList.Add("loaded");
+            if (loadedByFqn.TryGetValue(paramFqn, out var hLocalName))
+                handleArgsList.Add(hLocalName);
             else
                 handleArgsList.Add("request");
         }
@@ -168,8 +199,8 @@ public class HandlerGenerator : IIncrementalGenerator
                 foreach (var param in validateMethod.Parameters)
                 {
                     var paramFqn = param.Type.ToDisplayString(fmt);
-                    if (loadedFqn is not null && paramFqn == loadedFqn)
-                        validateArgsList.Add("loaded");
+                    if (loadedByFqn.TryGetValue(paramFqn, out var vLocalName))
+                        validateArgsList.Add(vLocalName);
                     else
                         validateArgsList.Add("request");
                 }
@@ -227,10 +258,24 @@ public class HandlerGenerator : IIncrementalGenerator
         if (model.Load is { } load)
         {
             var awaitPrefix = load.IsAsync ? "await " : "";
-            sb.AppendLine($"{i}        var loaded = {awaitPrefix}_handler.Load(request);");
-            sb.AppendLine($"{i}        if (loaded is null)");
-            sb.AppendLine($"{i}            return global::MiniBus.Convention.Result<{model.FullResponseType}>.NotFound();");
-            sb.AppendLine();
+            if (load.IsTuple)
+            {
+                var varNames = string.Join(", ", load.Elements.Select(e => e.LocalName));
+                sb.AppendLine($"{i}        var ({varNames}) = {awaitPrefix}_handler.Load(request);");
+            }
+            else
+            {
+                sb.AppendLine($"{i}        var {load.Elements[0].LocalName} = {awaitPrefix}_handler.Load(request);");
+            }
+            var nullChecks = string.Join(" || ", load.Elements
+                .Where(e => e.IsNullable)
+                .Select(e => $"{e.LocalName} is null"));
+            if (nullChecks.Length > 0)
+            {
+                sb.AppendLine($"{i}        if ({nullChecks})");
+                sb.AppendLine($"{i}            return global::MiniBus.Convention.Result<{model.FullResponseType}>.NotFound();");
+                sb.AppendLine();
+            }
         }
 
         // ── Validate phase ────────────────────────────────────────────────────
