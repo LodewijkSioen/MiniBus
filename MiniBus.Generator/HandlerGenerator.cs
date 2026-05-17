@@ -301,18 +301,6 @@ public class HandlerGenerator : IIncrementalGenerator
 
         if (inNs) sb.AppendLine("}");
 
-        // ── Typed ConventionBus extension method ─────────────────────────────
-        sb.AppendLine();
-        sb.AppendLine("namespace MiniBus.Convention");
-        sb.AppendLine("{");
-        sb.AppendLine($"    public static class {model.ClassName}Extensions");
-        sb.AppendLine("    {");
-        sb.AppendLine($"        public static global::System.Threading.Tasks.Task<global::MiniBus.Convention.Result<{model.FullResponseType}>>");
-        sb.AppendLine($"            Handle(this global::MiniBus.Convention.ConventionBus bus, {model.FullRequestType} request)");
-        sb.AppendLine($"            => bus.Handle<{model.FullRequestType}, {model.FullResponseType}>(request);");
-        sb.AppendLine("    }");
-        sb.AppendLine("}");
-
         return sb.ToString();
     }
 
@@ -344,6 +332,19 @@ public class HandlerGenerator : IIncrementalGenerator
 
         sb.AppendLine("            return services;");
         sb.AppendLine("        }");
+        sb.AppendLine("    }");
+        sb.AppendLine();
+        sb.AppendLine("    // ── Typed ConventionBus extension methods ──────────────────────────────");
+        sb.AppendLine("    public static class ConventionBusExtensions");
+        sb.AppendLine("    {");
+
+        foreach (var model in models)
+        {
+            sb.AppendLine($"        public static global::System.Threading.Tasks.Task<global::MiniBus.Convention.Result<{model.FullResponseType}>>");
+            sb.AppendLine($"            Handle(this global::MiniBus.Convention.ConventionBus bus, {model.FullRequestType} request)");
+            sb.AppendLine($"            => bus.Handle<{model.FullRequestType}, {model.FullResponseType}>(request);");
+        }
+
         sb.AppendLine("    }");
         sb.AppendLine("}");
 

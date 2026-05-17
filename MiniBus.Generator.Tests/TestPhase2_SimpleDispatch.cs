@@ -56,7 +56,7 @@ public class TestPhase2_SimpleDispatch
     }
 
     [Test]
-    public void ValidHandler_DispatcherFile_ContainsTypedExtensionMethod()
+    public void ValidHandler_RegistrationsFile_ContainsTypedExtensionMethod()
     {
         const string source = """
             using MiniBus.Convention;
@@ -74,9 +74,9 @@ public class TestPhase2_SimpleDispatch
 
         var (sources, _) = GeneratorTestHelper.Run(source);
 
-        var dispatcher = sources.Single(s => s.Contains("class ExtHandlerDispatcher"));
-        Assert.That(dispatcher, Does.Contain("ConventionBus bus"));
-        Assert.That(dispatcher, Does.Contain("ExtHandlerExtensions"));
+        var registrations = sources.Single(s => s.Contains("AddGeneratedHandlers"));
+        Assert.That(registrations, Does.Contain("class ConventionBusExtensions"));
+        Assert.That(registrations, Does.Contain("ConventionBus bus, global::TestApp.ExtHandler.Request request"));
     }
 
     [Test]
