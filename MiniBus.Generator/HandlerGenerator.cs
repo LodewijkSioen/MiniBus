@@ -11,6 +11,8 @@ internal sealed record LoadInfo(
     bool IsAsync,
     string LoadedFullType);   // non-nullable, global::-prefixed
 
+internal sealed record ValidateInfo(bool IsAsync);
+
 internal sealed record HandlerModel(
     string? Namespace,
     string ClassName,
@@ -18,7 +20,9 @@ internal sealed record HandlerModel(
     string FullRequestType,
     string FullResponseType,
     LoadInfo? Load,
-    string HandleCallArgs)   // pre-computed arg list, e.g. "loaded" or "request, loaded"
+    string HandleCallArgs,
+    ValidateInfo? Validate,
+    string ValidateCallArgs)
 {
     // "global::TestApp.DummyHandler" + "Dispatcher" = "global::TestApp.DummyHandlerDispatcher"
     public string DispatcherFullName => FullClassName + "Dispatcher";
@@ -131,6 +135,43 @@ public class HandlerGenerator : IIncrementalGenerator
                 handleArgsList.Add("request");
         }
 
+        // ── Detect optional Validate method ───────────────────────────────────
+        ValidateInfo? validateInfo = null;
+        var validateArgsList = new System.Collections.Generic.List<string>();
+
+        var validateMethod = classSymbol.GetMembers("Validate")
+            .OfType<IMethodSymbol>()
+            .FirstOrDefault(static m => !m.IsStatic);
+
+        if (validateMethod is not null)
+        {
+            var validateReturn = validateMethod.ReturnType;
+            bool validateAsync = false;
+            ITypeSymbol validateReturnInner = validateReturn;
+
+            // Unwrap Task<T>
+            if (validateReturn is INamedTypeSymbol { Name: "Task" } vTaskType
+                && vTaskType.TypeArguments.Length == 1)
+            {
+                validateReturnInner = vTaskType.TypeArguments[0];
+                validateAsync = true;
+            }
+
+            // Must return ValidationResult
+            if (validateReturnInner.ToDisplayString(fmt) == "global::MiniBus.Convention.ValidationResult")
+            {
+                validateInfo = new ValidateInfo(IsAsync: validateAsync);
+                foreach (var param in validateMethod.Parameters)
+                {
+                    var paramFqn = param.Type.ToDisplayString(fmt);
+                    if (loadedFqn is not null && paramFqn == loadedFqn)
+                        validateArgsList.Add("loaded");
+                    else
+                        validateArgsList.Add("request");
+                }
+            }
+        }
+
         var ns = classSymbol.ContainingNamespace.IsGlobalNamespace
             ? null
             : classSymbol.ContainingNamespace.ToDisplayString();
@@ -142,7 +183,9 @@ public class HandlerGenerator : IIncrementalGenerator
             FullRequestType: requestFqn,
             FullResponseType: responseType.ToDisplayString(fmt),
             Load: loadInfo,
-            HandleCallArgs: string.Join(", ", handleArgsList));
+            HandleCallArgs: string.Join(", ", handleArgsList),
+            Validate: validateInfo,
+            ValidateCallArgs: string.Join(", ", validateArgsList));
     }
 
     private static string GenerateDispatcherSource(HandlerModel model)
@@ -182,6 +225,16 @@ public class HandlerGenerator : IIncrementalGenerator
             sb.AppendLine($"{i}        var loaded = {awaitPrefix}_handler.Load(request);");
             sb.AppendLine($"{i}        if (loaded is null)");
             sb.AppendLine($"{i}            return global::MiniBus.Convention.Result<{model.FullResponseType}>.NotFound();");
+            sb.AppendLine();
+        }
+
+        // ── Validate phase ────────────────────────────────────────────────────
+        if (model.Validate is { } validate)
+        {
+            var validateAwait = validate.IsAsync ? "await " : "";
+            sb.AppendLine($"{i}        var validationResult = {validateAwait}_handler.Validate({model.ValidateCallArgs});");
+            sb.AppendLine($"{i}        if (!validationResult.IsValid())");
+            sb.AppendLine($"{i}            return global::MiniBus.Convention.Result<{model.FullResponseType}>.Invalid(validationResult);");
             sb.AppendLine();
         }
 
