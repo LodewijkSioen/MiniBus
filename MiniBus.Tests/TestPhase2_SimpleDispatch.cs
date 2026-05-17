@@ -15,6 +15,16 @@ public class SimpleConventionHandler
         => Task.FromResult(new Response(request.Value * 2));
 }
 
+[Handler]
+public class SyncHandleConventionHandler
+{
+    public record Request(int Value);
+    public record Response(int Result);
+
+    public Response Handle(Request request)
+        => new Response(request.Value * 3);
+}
+
 // ── Tests ─────────────────────────────────────────────────────────────────────
 
 [TestFixture]
@@ -56,5 +66,17 @@ public class TestPhase2_IntegrationSimpleDispatch
         var h2 = sp.GetRequiredService<SimpleConventionHandler>();
 
         Assert.That(ReferenceEquals(h1, h2), Is.True, "Handler should be scoped");
+    }
+
+    [Test]
+    public async Task SyncHandle_ReturnsSuccess()
+    {
+        using var scope = AppUnderTest.ConventionServices.CreateScope();
+        var bus = scope.ServiceProvider.GetRequiredService<ConventionBus>();
+
+        var result = await bus.Handle(new SyncHandleConventionHandler.Request(7));
+
+        Assert.That(result.IsSuccess, Is.True);
+        Assert.That(result.Response!.Result, Is.EqualTo(21));
     }
 }

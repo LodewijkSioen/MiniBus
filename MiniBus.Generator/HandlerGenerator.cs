@@ -21,6 +21,7 @@ internal sealed record HandlerModel(
     string FullResponseType,
     LoadInfo? Load,
     string HandleCallArgs,
+    bool HandleIsAsync,
     ValidateInfo? Validate,
     string ValidateCallArgs)
 {
@@ -75,15 +76,18 @@ public class HandlerGenerator : IIncrementalGenerator
         // Unwrap Task<T> → T to determine TResponse
         var returnType = handleMethod.ReturnType;
         ITypeSymbol responseType;
+        bool handleIsAsync;
         if (returnType is INamedTypeSymbol namedReturn
             && namedReturn.Name == "Task"
             && namedReturn.TypeArguments.Length == 1)
         {
             responseType = namedReturn.TypeArguments[0];
+            handleIsAsync = true;
         }
         else
         {
             responseType = returnType;
+            handleIsAsync = false;
         }
 
         var fmt = SymbolDisplayFormat.FullyQualifiedFormat;
@@ -184,6 +188,7 @@ public class HandlerGenerator : IIncrementalGenerator
             FullResponseType: responseType.ToDisplayString(fmt),
             Load: loadInfo,
             HandleCallArgs: string.Join(", ", handleArgsList),
+            HandleIsAsync: handleIsAsync,
             Validate: validateInfo,
             ValidateCallArgs: string.Join(", ", validateArgsList));
     }
@@ -239,7 +244,8 @@ public class HandlerGenerator : IIncrementalGenerator
         }
 
         // ── Handle phase ──────────────────────────────────────────────────────
-        sb.AppendLine($"{i}        var response = await _handler.Handle({model.HandleCallArgs});");
+        var handleAwait = model.HandleIsAsync ? "await " : "";
+        sb.AppendLine($"{i}        var response = {handleAwait}_handler.Handle({model.HandleCallArgs});");
         sb.AppendLine($"{i}        return global::MiniBus.Convention.Result<{model.FullResponseType}>.Success(response);");
         sb.AppendLine($"{i}    }}");
         sb.AppendLine($"{i}}}");

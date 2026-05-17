@@ -104,6 +104,34 @@ public class TestPhase2_SimpleDispatch
         Assert.That(registrations, Does.Contain("AddScoped"));
     }
 
+    // ── Sync Handle ────────────────────────────────────────────────────
+
+    [Test]
+    public void SyncHandle_GeneratesCallWithoutAwait()
+    {
+        const string source = """
+            using MiniBus.Convention;
+            namespace TestApp;
+
+            [Handler]
+            public class SyncHandleHandler
+            {
+                public record Request(int Value);
+                public record Response(int Result);
+
+                public Response Handle(Request request)
+                    => new Response(request.Value * 2);
+            }
+            """;
+
+        var (sources, diagnostics) = GeneratorTestHelper.Run(source);
+
+        Assert.That(diagnostics, Is.Empty);
+        var dispatcher = sources.Single(s => s.Contains("class SyncHandleHandlerDispatcher"));
+        Assert.That(dispatcher, Does.Not.Contain("await _handler.Handle"));
+        Assert.That(dispatcher, Does.Contain("_handler.Handle(request)"));
+    }
+
     // ── Negative cases ─────────────────────────────────────────────────────
 
     [Test]
