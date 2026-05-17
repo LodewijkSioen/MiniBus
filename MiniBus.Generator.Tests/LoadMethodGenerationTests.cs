@@ -6,7 +6,7 @@ public class LoadMethodGenerationTests
     // ── Async Load (Task<T?>) ──────────────────────────────────────────────
 
     [Test]
-    public void AsyncLoad_GeneratesAwaitedNullCheck()
+    public Task AsyncLoad_GeneratesAwaitedNullCheck()
     {
         const string source = """
             using MiniBus.Convention;
@@ -27,20 +27,14 @@ public class LoadMethodGenerationTests
             }
             """;
 
-        var (sources, diagnostics) = GeneratorTestHelper.Run(source);
-
-        Assert.That(diagnostics, Is.Empty);
-        var dispatcher = sources.Single(s => s.Contains("class EntityHandlerDispatcher"));
-        Assert.That(dispatcher, Does.Contain("await _handler.Load(request)"));
-        Assert.That(dispatcher, Does.Contain("if (loaded is null)"));
-        Assert.That(dispatcher, Does.Contain("NotFound()"));
-        Assert.That(dispatcher, Does.Contain("_handler.Handle(loaded)"));
+        var driver = GeneratorTestHelper.RunDriver(source);
+        return Verify(driver);
     }
 
     // ── Sync Load (T?) ────────────────────────────────────────────────────
 
     [Test]
-    public void SyncLoad_GeneratesNullCheckWithoutAwait()
+    public Task SyncLoad_GeneratesNullCheckWithoutAwait()
     {
         const string source = """
             using MiniBus.Convention;
@@ -61,19 +55,14 @@ public class LoadMethodGenerationTests
             }
             """;
 
-        var (sources, _) = GeneratorTestHelper.Run(source);
-
-        var dispatcher = sources.Single(s => s.Contains("class SyncLoadHandler"));
-        // No 'await' before the Load call
-        Assert.That(dispatcher, Does.Not.Contain("await _handler.Load"));
-        Assert.That(dispatcher, Does.Contain("_handler.Load(request)"));
-        Assert.That(dispatcher, Does.Contain("if (loaded is null)"));
+        var driver = GeneratorTestHelper.RunDriver(source);
+        return Verify(driver);
     }
 
     // ── Handle receives both Request and loaded value ─────────────────────
 
     [Test]
-    public void HandleWithRequestAndLoadedParams_PassesBoth()
+    public Task HandleWithRequestAndLoadedParams_PassesBoth()
     {
         const string source = """
             using MiniBus.Convention;
@@ -94,14 +83,12 @@ public class LoadMethodGenerationTests
             }
             """;
 
-        var (sources, _) = GeneratorTestHelper.Run(source);
-
-        var dispatcher = sources.Single(s => s.Contains("class BothParamsHandlerDispatcher"));
-        Assert.That(dispatcher, Does.Contain("Handle(request, loaded)"));
+        var driver = GeneratorTestHelper.RunDriver(source);
+        return Verify(driver);
     }
 
     [Test]
-    public void HandleWithLoadedThenRequestParams_PassesInDeclaredOrder()
+    public Task HandleWithLoadedThenRequestParams_PassesInDeclaredOrder()
     {
         const string source = """
             using MiniBus.Convention;
@@ -122,16 +109,14 @@ public class LoadMethodGenerationTests
             }
             """;
 
-        var (sources, _) = GeneratorTestHelper.Run(source);
-
-        var dispatcher = sources.Single(s => s.Contains("class ReversedParamsHandlerDispatcher"));
-        Assert.That(dispatcher, Does.Contain("Handle(loaded, request)"));
+        var driver = GeneratorTestHelper.RunDriver(source);
+        return Verify(driver);
     }
 
     // ── No Load → no null-check ───────────────────────────────────────────
 
     [Test]
-    public void NoLoadMethod_DoesNotGenerateNullCheck()
+    public Task NoLoadMethod_DoesNotGenerateNullCheck()
     {
         const string source = """
             using MiniBus.Convention;
@@ -148,17 +133,14 @@ public class LoadMethodGenerationTests
             }
             """;
 
-        var (sources, _) = GeneratorTestHelper.Run(source);
-
-        var dispatcher = sources.Single(s => s.Contains("class NoLoadHandlerDispatcher"));
-        Assert.That(dispatcher, Does.Not.Contain("loaded"));
-        Assert.That(dispatcher, Does.Not.Contain("NotFound"));
+        var driver = GeneratorTestHelper.RunDriver(source);
+        return Verify(driver);
     }
 
     // ── Non-nullable Load return → treated as plain call, no null-check ───
 
     [Test]
-    public void LoadReturningNonNullableType_DoesNotGenerateNullCheck()
+    public Task LoadReturningNonNullableType_DoesNotGenerateNullCheck()
     {
         // A Load method returning Task<Entity> (not Task<Entity?>) should not
         // generate a null-check — the generator only reacts to nullable returns.
@@ -181,9 +163,7 @@ public class LoadMethodGenerationTests
             }
             """;
 
-        var (sources, _) = GeneratorTestHelper.Run(source);
-
-        var dispatcher = sources.Single(s => s.Contains("class NonNullableLoadHandlerDispatcher"));
-        Assert.That(dispatcher, Does.Not.Contain("if (loaded is null)"));
+        var driver = GeneratorTestHelper.RunDriver(source);
+        return Verify(driver);
     }
 }

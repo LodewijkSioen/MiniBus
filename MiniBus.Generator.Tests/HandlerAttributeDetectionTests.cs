@@ -7,29 +7,26 @@ namespace MiniBus.Generator.Tests;
 public class HandlerAttributeDetectionTests
 {
     [Test]
-    public void EmptySource_ProducesNoOutput()
+    public Task EmptySource_ProducesNoOutput()
     {
-        var (sources, diagnostics) = GeneratorTestHelper.Run(string.Empty);
-
-        Assert.That(sources, Is.Empty);
-        Assert.That(diagnostics, Is.Empty);
+        var driver = GeneratorTestHelper.RunDriver(string.Empty);
+        return Verify(driver);
     }
 
     [Test]
-    public void ClassWithoutHandlerAttribute_ProducesNoOutput()
+    public Task ClassWithoutHandlerAttribute_ProducesNoOutput()
     {
         const string source = """
             namespace TestApp;
             public class MyClass { }
             """;
 
-        var (sources, _) = GeneratorTestHelper.Run(source);
-
-        Assert.That(sources, Is.Empty);
+        var driver = GeneratorTestHelper.RunDriver(source);
+        return Verify(driver);
     }
 
     [Test]
-    public void HandlerAttributePresent_GeneratesOutput()
+    public Task HandlerAttributePresent_GeneratesOutput()
     {
         const string source = """
             using MiniBus.Convention;
@@ -45,9 +42,7 @@ public class HandlerAttributeDetectionTests
             }
             """;
 
-        var (sources, diagnostics) = GeneratorTestHelper.Run(source);
-
-        Assert.That(sources, Is.Not.Empty);
-        Assert.That(diagnostics, Is.Empty);
+        var driver = GeneratorTestHelper.RunDriver(source);
+        return Verify(driver);
     }
 }

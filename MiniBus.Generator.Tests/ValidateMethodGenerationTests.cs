@@ -6,7 +6,7 @@ public class ValidateMethodGenerationTests
     // ── Sync Validate ─────────────────────────────────────────────────────
 
     [Test]
-    public void SyncValidate_GeneratesCallWithoutAwait()
+    public Task SyncValidate_GeneratesCallWithoutAwait()
     {
         const string source = """
             using MiniBus.Convention;
@@ -26,20 +26,14 @@ public class ValidateMethodGenerationTests
             }
             """;
 
-        var (sources, diagnostics) = GeneratorTestHelper.Run(source);
-
-        Assert.That(diagnostics, Is.Empty);
-        var dispatcher = sources.Single(s => s.Contains("class SyncValidateHandlerDispatcher"));
-        Assert.That(dispatcher, Does.Not.Contain("await _handler.Validate"));
-        Assert.That(dispatcher, Does.Contain("_handler.Validate(request)"));
-        Assert.That(dispatcher, Does.Contain("validationResult.IsValid()"));
-        Assert.That(dispatcher, Does.Contain("Invalid(validationResult)"));
+        var driver = GeneratorTestHelper.RunDriver(source);
+        return Verify(driver);
     }
 
     // ── Async Validate (Task<ValidationResult>) ───────────────────────────
 
     [Test]
-    public void AsyncValidate_GeneratesAwaitedCall()
+    public Task AsyncValidate_GeneratesAwaitedCall()
     {
         const string source = """
             using MiniBus.Convention;
@@ -59,19 +53,14 @@ public class ValidateMethodGenerationTests
             }
             """;
 
-        var (sources, diagnostics) = GeneratorTestHelper.Run(source);
-
-        Assert.That(diagnostics, Is.Empty);
-        var dispatcher = sources.Single(s => s.Contains("class AsyncValidateHandlerDispatcher"));
-        Assert.That(dispatcher, Does.Contain("await _handler.Validate(request)"));
-        Assert.That(dispatcher, Does.Contain("validationResult.IsValid()"));
-        Assert.That(dispatcher, Does.Contain("Invalid(validationResult)"));
+        var driver = GeneratorTestHelper.RunDriver(source);
+        return Verify(driver);
     }
 
     // ── Validate receives only the loaded entity ──────────────────────────
 
     [Test]
-    public void ValidateWithLoadedParam_PassesLoaded()
+    public Task ValidateWithLoadedParam_PassesLoaded()
     {
         const string source = """
             using MiniBus.Convention;
@@ -95,16 +84,14 @@ public class ValidateMethodGenerationTests
             }
             """;
 
-        var (sources, _) = GeneratorTestHelper.Run(source);
-
-        var dispatcher = sources.Single(s => s.Contains("class LoadedValidateHandlerDispatcher"));
-        Assert.That(dispatcher, Does.Contain("_handler.Validate(loaded)"));
+        var driver = GeneratorTestHelper.RunDriver(source);
+        return Verify(driver);
     }
 
     // ── Validate receives both Request and loaded entity ──────────────────
 
     [Test]
-    public void ValidateWithBothParams_PassesBoth()
+    public Task ValidateWithBothParams_PassesBoth()
     {
         const string source = """
             using MiniBus.Convention;
@@ -128,16 +115,14 @@ public class ValidateMethodGenerationTests
             }
             """;
 
-        var (sources, _) = GeneratorTestHelper.Run(source);
-
-        var dispatcher = sources.Single(s => s.Contains("class BothParamValidateHandlerDispatcher"));
-        Assert.That(dispatcher, Does.Contain("_handler.Validate(request, loaded)"));
+        var driver = GeneratorTestHelper.RunDriver(source);
+        return Verify(driver);
     }
 
     // ── No Validate → no validation code ─────────────────────────────────
 
     [Test]
-    public void NoValidateMethod_DoesNotGenerateValidationCode()
+    public Task NoValidateMethod_DoesNotGenerateValidationCode()
     {
         const string source = """
             using MiniBus.Convention;
@@ -154,17 +139,14 @@ public class ValidateMethodGenerationTests
             }
             """;
 
-        var (sources, _) = GeneratorTestHelper.Run(source);
-
-        var dispatcher = sources.Single(s => s.Contains("class NoValidateHandlerDispatcher"));
-        Assert.That(dispatcher, Does.Not.Contain("validationResult"));
-        Assert.That(dispatcher, Does.Not.Contain("_handler.Validate"));
+        var driver = GeneratorTestHelper.RunDriver(source);
+        return Verify(driver);
     }
 
     // ── Validate method with wrong return type is ignored ─────────────────
 
     [Test]
-    public void ValidateWithWrongReturnType_IsIgnored()
+    public Task ValidateWithWrongReturnType_IsIgnored()
     {
         // A Validate method returning bool (not ValidationResult) must be ignored.
         const string source = """
@@ -184,16 +166,14 @@ public class ValidateMethodGenerationTests
             }
             """;
 
-        var (sources, _) = GeneratorTestHelper.Run(source);
-
-        var dispatcher = sources.Single(s => s.Contains("class WrongValidateHandlerDispatcher"));
-        Assert.That(dispatcher, Does.Not.Contain("validationResult"));
+        var driver = GeneratorTestHelper.RunDriver(source);
+        return Verify(driver);
     }
 
     // ── Full pipeline: Load → Validate → Handle ───────────────────────────
 
     [Test]
-    public void FullPipeline_LoadValidateHandle_GeneratesAllPhases()
+    public Task FullPipeline_LoadValidateHandle_GeneratesAllPhases()
     {
         const string source = """
             using MiniBus.Convention;
@@ -217,23 +197,7 @@ public class ValidateMethodGenerationTests
             }
             """;
 
-        var (sources, diagnostics) = GeneratorTestHelper.Run(source);
-
-        Assert.That(diagnostics, Is.Empty);
-        var dispatcher = sources.Single(s => s.Contains("class FullPipelineHandlerDispatcher"));
-
-        // Load phase
-        Assert.That(dispatcher, Does.Contain("await _handler.Load(request)"));
-        Assert.That(dispatcher, Does.Contain("if (loaded is null)"));
-        Assert.That(dispatcher, Does.Contain("NotFound()"));
-
-        // Validate phase
-        Assert.That(dispatcher, Does.Contain("_handler.Validate(loaded)"));
-        Assert.That(dispatcher, Does.Contain("!validationResult.IsValid()"));
-        Assert.That(dispatcher, Does.Contain("Invalid(validationResult)"));
-
-        // Handle phase
-        Assert.That(dispatcher, Does.Contain("_handler.Handle(loaded)"));
-        Assert.That(dispatcher, Does.Contain("Success(response)"));
+        var driver = GeneratorTestHelper.RunDriver(source);
+        return Verify(driver);
     }
 }

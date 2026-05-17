@@ -51,4 +51,36 @@ internal static class GeneratorTestHelper
 
         return (generatedSources, generatorDiagnostics);
     }
+
+    /// <summary>
+    /// Compiles <paramref name="source"/> with MiniBus.Convention available,
+    /// runs <see cref="HandlerGenerator"/> against it, and returns the
+    /// <see cref="GeneratorDriver"/> for use with Verify snapshot assertions.
+    /// </summary>
+    internal static GeneratorDriver RunDriver(string source)
+    {
+        var syntaxTree = CSharpSyntaxTree.ParseText(source);
+
+        var references = AppDomain.CurrentDomain
+            .GetAssemblies()
+            .Where(a => !a.IsDynamic && !string.IsNullOrEmpty(a.Location))
+            .Select(a => MetadataReference.CreateFromFile(a.Location))
+            .Cast<MetadataReference>()
+            .ToList();
+
+        var conventionPath = typeof(HandlerAttribute).Assembly.Location;
+        if (!references.Any(r => r.Display == conventionPath))
+            references.Add(MetadataReference.CreateFromFile(conventionPath));
+
+        var compilation = CSharpCompilation.Create(
+            "GeneratorTestAssembly",
+            new[] { syntaxTree },
+            references,
+            new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary)
+        );
+
+        var generator = new HandlerGenerator();
+        GeneratorDriver driver = CSharpGeneratorDriver.Create(generator);
+        return driver.RunGeneratorsAndUpdateCompilation(compilation, out _, out _);
+    }
 }

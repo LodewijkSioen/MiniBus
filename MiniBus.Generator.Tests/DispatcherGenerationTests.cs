@@ -6,7 +6,7 @@ public class DispatcherGenerationTests
     // ── Dispatcher generation ──────────────────────────────────────────────
 
     [Test]
-    public void ValidHandler_GeneratesTwoFiles_DispatcherAndRegistrations()
+    public Task ValidHandler_GeneratesTwoFiles_DispatcherAndRegistrations()
     {
         const string source = """
             using MiniBus.Convention;
@@ -22,14 +22,12 @@ public class DispatcherGenerationTests
             }
             """;
 
-        var (sources, diagnostics) = GeneratorTestHelper.Run(source);
-
-        Assert.That(diagnostics, Is.Empty);
-        Assert.That(sources, Has.Count.EqualTo(2));
+        var driver = GeneratorTestHelper.RunDriver(source);
+        return Verify(driver);
     }
 
     [Test]
-    public void ValidHandler_DispatcherFile_ImplementsIConventionHandler()
+    public Task ValidHandler_DispatcherFile_ImplementsIConventionHandler()
     {
         const string source = """
             using MiniBus.Convention;
@@ -45,18 +43,12 @@ public class DispatcherGenerationTests
             }
             """;
 
-        var (sources, _) = GeneratorTestHelper.Run(source);
-
-        var dispatcher = sources.Single(s => s.Contains("class OrderHandlerDispatcher"));
-        Assert.That(dispatcher, Does.Contain("IConventionHandler"));
-        Assert.That(dispatcher, Does.Contain("OrderHandler.Request"));
-        Assert.That(dispatcher, Does.Contain("OrderHandler.Response"));
-        Assert.That(dispatcher, Does.Contain("Result"));
-        Assert.That(dispatcher, Does.Contain("Success(response)"));
+        var driver = GeneratorTestHelper.RunDriver(source);
+        return Verify(driver);
     }
 
     [Test]
-    public void ValidHandler_RegistrationsFile_ContainsTypedExtensionMethod()
+    public Task ValidHandler_RegistrationsFile_ContainsTypedExtensionMethod()
     {
         const string source = """
             using MiniBus.Convention;
@@ -72,15 +64,12 @@ public class DispatcherGenerationTests
             }
             """;
 
-        var (sources, _) = GeneratorTestHelper.Run(source);
-
-        var registrations = sources.Single(s => s.Contains("AddGeneratedHandlers"));
-        Assert.That(registrations, Does.Contain("class ConventionBusExtensions"));
-        Assert.That(registrations, Does.Contain("ConventionBus bus, global::TestApp.ExtHandler.Request request"));
+        var driver = GeneratorTestHelper.RunDriver(source);
+        return Verify(driver);
     }
 
     [Test]
-    public void ValidHandler_RegistrationsFile_ContainsAddGeneratedHandlers()
+    public Task ValidHandler_RegistrationsFile_ContainsAddGeneratedHandlers()
     {
         const string source = """
             using MiniBus.Convention;
@@ -96,18 +85,14 @@ public class DispatcherGenerationTests
             }
             """;
 
-        var (sources, _) = GeneratorTestHelper.Run(source);
-
-        var registrations = sources.Single(s => s.Contains("AddGeneratedHandlers"));
-        Assert.That(registrations, Does.Contain("RegHandler"));
-        Assert.That(registrations, Does.Contain("RegHandlerDispatcher"));
-        Assert.That(registrations, Does.Contain("AddScoped"));
+        var driver = GeneratorTestHelper.RunDriver(source);
+        return Verify(driver);
     }
 
     // ── Sync Handle ────────────────────────────────────────────────────
 
     [Test]
-    public void SyncHandle_GeneratesCallWithoutAwait()
+    public Task SyncHandle_GeneratesCallWithoutAwait()
     {
         const string source = """
             using MiniBus.Convention;
@@ -124,20 +109,14 @@ public class DispatcherGenerationTests
             }
             """;
 
-        var (sources, diagnostics) = GeneratorTestHelper.Run(source);
-
-        Assert.That(diagnostics, Is.Empty);
-        var dispatcher = sources.Single(s => s.Contains("class SyncHandleHandlerDispatcher"));
-        Assert.That(dispatcher, Does.Not.Contain("async "));
-        Assert.That(dispatcher, Does.Not.Contain("await _handler.Handle"));
-        Assert.That(dispatcher, Does.Contain("_handler.Handle(request)"));
-        Assert.That(dispatcher, Does.Contain("Task.FromResult"));
+        var driver = GeneratorTestHelper.RunDriver(source);
+        return Verify(driver);
     }
 
     // ── Negative cases ─────────────────────────────────────────────────────
 
     [Test]
-    public void Handler_NoNestedRequestType_UsesFirstHandleParamAsRequestType()
+    public Task Handler_NoNestedRequestType_UsesFirstHandleParamAsRequestType()
     {
         // No nested Request type: the first param of Handle determines the request type.
         const string source = """
@@ -153,14 +132,12 @@ public class DispatcherGenerationTests
             }
             """;
 
-        var (sources, _) = GeneratorTestHelper.Run(source);
-
-        var dispatcher = sources.Single(s => s.Contains("class NoRequestHandlerDispatcher"));
-        Assert.That(dispatcher, Does.Contain("Handle(string request)"));
+        var driver = GeneratorTestHelper.RunDriver(source);
+        return Verify(driver);
     }
 
     [Test]
-    public void Handler_MissingHandleMethod_ProducesNoDispatcher()
+    public Task Handler_MissingHandleMethod_ProducesNoDispatcher()
     {
         const string source = """
             using MiniBus.Convention;
@@ -174,15 +151,14 @@ public class DispatcherGenerationTests
             }
             """;
 
-        var (sources, _) = GeneratorTestHelper.Run(source);
-
-        Assert.That(sources.Any(s => s.Contains("NoHandleHandlerDispatcher")), Is.False);
+        var driver = GeneratorTestHelper.RunDriver(source);
+        return Verify(driver);
     }
 
     // ── Multiple handlers ──────────────────────────────────────────────────
 
     [Test]
-    public void MultipleHandlers_GeneratesSeparateDispatchersAndSharedRegistrations()
+    public Task MultipleHandlers_GeneratesSeparateDispatchersAndSharedRegistrations()
     {
         const string source = """
             using MiniBus.Convention;
@@ -207,21 +183,12 @@ public class DispatcherGenerationTests
             }
             """;
 
-        var (sources, diagnostics) = GeneratorTestHelper.Run(source);
-
-        Assert.That(diagnostics, Is.Empty);
-        // Two dispatcher files + one registrations file
-        Assert.That(sources, Has.Count.EqualTo(3));
-        Assert.That(sources.Any(s => s.Contains("HandlerADispatcher")), Is.True);
-        Assert.That(sources.Any(s => s.Contains("HandlerBDispatcher")), Is.True);
-
-        var registrations = sources.Single(s => s.Contains("AddGeneratedHandlers"));
-        Assert.That(registrations, Does.Contain("HandlerA"));
-        Assert.That(registrations, Does.Contain("HandlerB"));
+        var driver = GeneratorTestHelper.RunDriver(source);
+        return Verify(driver);
     }
 
     [Test]
-    public void DuplicateRequestType_ReportsMBG001Warning_AndOmitsExtensionMethod()
+    public Task DuplicateRequestType_ReportsMBG001Warning_AndOmitsExtensionMethod()
     {
         const string source = """
             using MiniBus.Convention;
@@ -246,20 +213,7 @@ public class DispatcherGenerationTests
             }
             """;
 
-        var (sources, diagnostics) = GeneratorTestHelper.Run(source);
-
-        // Both dispatchers are still generated
-        Assert.That(sources.Any(s => s.Contains("HandlerOneDispatcher")), Is.True);
-        Assert.That(sources.Any(s => s.Contains("HandlerTwoDispatcher")), Is.True);
-
-        // MBG001 warning emitted for each conflicting handler
-        var warnings = diagnostics.Where(d => d.Id == "MBG001").ToArray();
-        Assert.That(warnings, Has.Length.EqualTo(2));
-        Assert.That(warnings.Any(d => d.GetMessage().Contains("HandlerOne")), Is.True);
-        Assert.That(warnings.Any(d => d.GetMessage().Contains("HandlerTwo")), Is.True);
-
-        // No Handle extension method generated for the conflicting request type
-        var registrations = sources.Single(s => s.Contains("AddGeneratedHandlers"));
-        Assert.That(registrations, Does.Not.Contain("ConventionBus bus, global::TestApp.SharedRequest request"));
+        var driver = GeneratorTestHelper.RunDriver(source);
+        return Verify(driver);
     }
 }
