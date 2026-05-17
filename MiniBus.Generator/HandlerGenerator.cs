@@ -7,12 +7,18 @@ using System.Threading;
 
 namespace MiniBus.Generator;
 
+internal sealed record LoadInfo(
+    bool IsAsync,
+    string LoadedFullType);   // non-nullable, global::-prefixed
+
 internal sealed record HandlerModel(
     string? Namespace,
     string ClassName,
     string FullClassName,
     string FullRequestType,
-    string FullResponseType)
+    string FullResponseType,
+    LoadInfo? Load,
+    string HandleCallArgs)   // pre-computed arg list, e.g. "loaded" or "request, loaded"
 {
     // "global::TestApp.DummyHandler" + "Dispatcher" = "global::TestApp.DummyHandlerDispatcher"
     public string DispatcherFullName => FullClassName + "Dispatcher";
@@ -56,11 +62,6 @@ public class HandlerGenerator : IIncrementalGenerator
         if (ctx.TargetSymbol is not INamedTypeSymbol classSymbol) return null;
         ct.ThrowIfCancellationRequested();
 
-        // Must have a nested type named "Request"
-        var requestType = classSymbol.GetTypeMembers()
-            .FirstOrDefault(static t => t.Name == "Request");
-        if (requestType is null) return null;
-
         // Must have a non-static Handle method with at least one parameter
         var handleMethod = classSymbol.GetMembers("Handle")
             .OfType<IMethodSymbol>()
@@ -82,6 +83,54 @@ public class HandlerGenerator : IIncrementalGenerator
         }
 
         var fmt = SymbolDisplayFormat.FullyQualifiedFormat;
+
+        // ── Detect optional Load method ───────────────────────────────────────
+        LoadInfo? loadInfo = null;
+        string? loadedFqn = null;
+
+        var loadMethod = classSymbol.GetMembers("Load")
+            .OfType<IMethodSymbol>()
+            .FirstOrDefault(static m => !m.IsStatic && m.Parameters.Length >= 1);
+
+        if (loadMethod is not null)
+        {
+            var loadReturn = loadMethod.ReturnType;
+            bool loadAsync = false;
+            ITypeSymbol loadReturnInner = loadReturn;
+
+            // Unwrap Task<T?>
+            if (loadReturn is INamedTypeSymbol { Name: "Task" } taskType
+                && taskType.TypeArguments.Length == 1)
+            {
+                loadReturnInner = taskType.TypeArguments[0];
+                loadAsync = true;
+            }
+
+            // Nullable reference type (T?) → the non-null T is what gets loaded
+            if (loadReturnInner.NullableAnnotation == NullableAnnotation.Annotated)
+            {
+                var nonNullable = loadReturnInner.WithNullableAnnotation(NullableAnnotation.NotAnnotated);
+                loadedFqn = nonNullable.ToDisplayString(fmt);
+                loadInfo = new LoadInfo(IsAsync: loadAsync, LoadedFullType: loadedFqn);
+            }
+        }
+
+        // Request type: first param of Load (if present), else first param of Handle
+        var requestFqn = (loadMethod is not null
+            ? loadMethod.Parameters[0].Type
+            : handleMethod.Parameters[0].Type).ToDisplayString(fmt);
+
+        // ── Compute Handle call arguments (matched by type) ───────────────────
+        var handleArgsList = new System.Collections.Generic.List<string>();
+        foreach (var param in handleMethod.Parameters)
+        {
+            var paramFqn = param.Type.ToDisplayString(fmt);
+            if (loadedFqn is not null && paramFqn == loadedFqn)
+                handleArgsList.Add("loaded");
+            else
+                handleArgsList.Add("request");
+        }
+
         var ns = classSymbol.ContainingNamespace.IsGlobalNamespace
             ? null
             : classSymbol.ContainingNamespace.ToDisplayString();
@@ -90,8 +139,10 @@ public class HandlerGenerator : IIncrementalGenerator
             Namespace: ns,
             ClassName: classSymbol.Name,
             FullClassName: classSymbol.ToDisplayString(fmt),
-            FullRequestType: requestType.ToDisplayString(fmt),
-            FullResponseType: responseType.ToDisplayString(fmt));
+            FullRequestType: requestFqn,
+            FullResponseType: responseType.ToDisplayString(fmt),
+            Load: loadInfo,
+            HandleCallArgs: string.Join(", ", handleArgsList));
     }
 
     private static string GenerateDispatcherSource(HandlerModel model)
@@ -123,7 +174,19 @@ public class HandlerGenerator : IIncrementalGenerator
         sb.AppendLine($"{i}        global::MiniBus.Convention.Result<{model.FullResponseType}>>");
         sb.AppendLine($"{i}        Handle({model.FullRequestType} request)");
         sb.AppendLine($"{i}    {{");
-        sb.AppendLine($"{i}        var response = await _handler.Handle(request);");
+
+        // ── Load phase ────────────────────────────────────────────────────────
+        if (model.Load is { } load)
+        {
+            var awaitPrefix = load.IsAsync ? "await " : "";
+            sb.AppendLine($"{i}        var loaded = {awaitPrefix}_handler.Load(request);");
+            sb.AppendLine($"{i}        if (loaded is null)");
+            sb.AppendLine($"{i}            return global::MiniBus.Convention.Result<{model.FullResponseType}>.NotFound();");
+            sb.AppendLine();
+        }
+
+        // ── Handle phase ──────────────────────────────────────────────────────
+        sb.AppendLine($"{i}        var response = await _handler.Handle({model.HandleCallArgs});");
         sb.AppendLine($"{i}        return global::MiniBus.Convention.Result<{model.FullResponseType}>.Success(response);");
         sb.AppendLine($"{i}    }}");
         sb.AppendLine($"{i}}}");

@@ -107,8 +107,9 @@ public class TestPhase2_SimpleDispatch
     // ── Negative cases ─────────────────────────────────────────────────────
 
     [Test]
-    public void Handler_MissingNestedRequestType_ProducesNoOutput()
+    public void Handler_NoNestedRequestType_UsesFirstHandleParamAsRequestType()
     {
+        // No nested Request type: the first param of Handle determines the request type.
         const string source = """
             using MiniBus.Convention;
             namespace TestApp;
@@ -124,8 +125,8 @@ public class TestPhase2_SimpleDispatch
 
         var (sources, _) = GeneratorTestHelper.Run(source);
 
-        // Only the (empty) registrations file should be emitted
-        Assert.That(sources.Any(s => s.Contains("NoRequestHandlerDispatcher")), Is.False);
+        var dispatcher = sources.Single(s => s.Contains("class NoRequestHandlerDispatcher"));
+        Assert.That(dispatcher, Does.Contain("Handle(string request)"));
     }
 
     [Test]
