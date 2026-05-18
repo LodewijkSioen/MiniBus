@@ -218,7 +218,7 @@ public class HandlerGenerator : IIncrementalGenerator
                     }
 
                     var byName = loadedNames
-                        .Where(n => string.Equals(n, param.Name, global::System.StringComparison.OrdinalIgnoreCase))
+                        .Where(n => string.Equals(n, param.Name, global::System.StringComparison.Ordinal))
                         .Distinct()
                         .ToArray();
                     if (byName.Length == 1)
