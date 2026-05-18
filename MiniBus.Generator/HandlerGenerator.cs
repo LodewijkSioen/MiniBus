@@ -35,6 +35,7 @@ public sealed record HandlerModel(
     ImmutableArray<string> UnsupportedHandleParameters,
     ImmutableArray<string> UnsupportedValidateParameters,
     bool IsGenericHandler,
+    bool IsNestedHandler,
     Location Location)
 {
     // "global::TestApp.DummyHandler" + "Dispatcher" = "global::TestApp.DummyHandlerDispatcher"
@@ -81,6 +82,14 @@ public class HandlerGenerator : IIncrementalGenerator
         defaultSeverity: DiagnosticSeverity.Warning,
         isEnabledByDefault: true);
 
+    private static readonly DiagnosticDescriptor NestedHandlerNotSupported = new DiagnosticDescriptor(
+        id: "MBG005",
+        title: "Nested handler is not supported",
+        messageFormat: "Handler '{0}' is nested. Nested [Handler] classes are not supported by source generation.",
+        category: "MiniBus.Generator",
+        defaultSeverity: DiagnosticSeverity.Warning,
+        isEnabledByDefault: true);
+
     public void Initialize(IncrementalGeneratorInitializationContext context)
     {
         var handlerModels = context.SyntaxProvider
@@ -100,7 +109,9 @@ public class HandlerGenerator : IIncrementalGenerator
                 spc.ReportDiagnostic(Diagnostic.Create(UnsupportedParameter, model.Location, model.ClassName, unsupported, "Validate", model.FullRequestType));
             if (model.IsGenericHandler)
                 spc.ReportDiagnostic(Diagnostic.Create(GenericHandlerNotSupported, model.Location, model.FullClassName));
-            if (model.HasUnsupportedParameters || model.IsGenericHandler) return;
+            if (model.IsNestedHandler)
+                spc.ReportDiagnostic(Diagnostic.Create(NestedHandlerNotSupported, model.Location, model.FullClassName));
+            if (model.HasUnsupportedParameters || model.IsGenericHandler || model.IsNestedHandler) return;
             spc.AddSource(CreateDispatcherHintName(model), DispatcherSourceBuilder.Build(model));
         });
 
@@ -110,7 +121,7 @@ public class HandlerGenerator : IIncrementalGenerator
             var valid = models
                 .Where(static m => m is not null)
                 .Select(static m => m!)
-                .Where(static m => !m.HasUnsupportedParameters && !m.IsGenericHandler)
+                .Where(static m => !m.HasUnsupportedParameters && !m.IsGenericHandler && !m.IsNestedHandler)
                 .ToArray();
             if (valid.Length == 0) return;   // no handlers → no file (avoids noise in tests)
 
@@ -147,6 +158,7 @@ public class HandlerGenerator : IIncrementalGenerator
         var fmt = SymbolDisplayFormat.FullyQualifiedFormat;
 
         var isGenericHandler = classSymbol.Arity > 0 || HasGenericContainingType(classSymbol.ContainingType);
+        var isNestedHandler = classSymbol.ContainingType is not null;
 
         // Must have a non-static Handle method with at least one parameter
         var handleMethod = classSymbol.GetMembers("Handle")
@@ -349,6 +361,7 @@ public class HandlerGenerator : IIncrementalGenerator
             UnsupportedHandleParameters: unsupportedHandleParameters,
             UnsupportedValidateParameters: unsupportedValidateParameters,
             IsGenericHandler: isGenericHandler,
+            IsNestedHandler: isNestedHandler,
             Location: location);
     }
 

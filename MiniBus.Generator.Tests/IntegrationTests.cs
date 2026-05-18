@@ -224,6 +224,31 @@ public class IntegrationTests
     }
 
     [Test]
+    public void NestedHandler_ReportsMBG005_AndSkipsDispatcherGeneration()
+    {
+        const string source = """
+            using MiniBus;
+            namespace TestApp;
+
+            public class Container
+            {
+                [Handler]
+                public class NestedHandler
+                {
+                    public record Request(int Id);
+                    public record Response(string Name);
+                    public Response Handle(Request request) => new Response(request.Id.ToString());
+                }
+            }
+            """;
+
+        var result = GeneratorTestHelper.Run(source);
+
+        Assert.That(result.Diagnostics.Select(d => d.Id), Does.Contain("MBG005"));
+        Assert.That(result.GeneratedSources.Any(s => s.Contains("NestedHandlerDispatcher", StringComparison.Ordinal)), Is.False);
+    }
+
+    [Test]
     public void DuplicateRequestResponsePair_ReportsMBG003_AndSkipsDuplicateDispatcherRegistrations()
     {
         const string source = """
