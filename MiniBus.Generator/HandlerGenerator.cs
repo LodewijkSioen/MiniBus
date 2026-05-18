@@ -367,9 +367,6 @@ public class HandlerGenerator : IIncrementalGenerator
     private static string CreateDispatcherHintName(HandlerModel model)
     {
         using var sha = SHA256.Create();
-        if (sha is null)
-            throw new InvalidOperationException("SHA256 is not available.");
-
         var hashBytes = sha.ComputeHash(Encoding.UTF8.GetBytes(model.FullClassName));
         var chars = new char[8];
         for (var i = 0; i < 4; i++)
