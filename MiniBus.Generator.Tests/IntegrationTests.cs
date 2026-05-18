@@ -182,7 +182,7 @@ public class IntegrationTests
 
         var result = GeneratorTestHelper.Run(source);
 
-        Assert.That(result.Diagnostics.Any(d => d.Id == "MBG004"), Is.True);
+        Assert.That(result.Diagnostics.Select(d => d.Id), Does.Contain("MBG004"));
         Assert.That(result.GeneratedSources.Any(s => s.Contains("GenericHandlerDispatcher", StringComparison.Ordinal)), Is.False);
     }
 
