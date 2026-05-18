@@ -44,7 +44,7 @@ public class SimpleDispatchIntegrationTests
     [Test]
     public async Task TypedExtensionMethod_ResolvesWithoutExplicitTypeArgs()
     {
-        // The generated Handle(this ConventionBus, Request) extension means
+        // The generated Handle(this MiniBus, Request) extension means
         // the caller never needs to specify TResponse.
         using var scope = AppUnderTest.Services.CreateScope();
         var bus = scope.ServiceProvider.GetRequiredService<MiniBus>();
@@ -63,8 +63,11 @@ public class SimpleDispatchIntegrationTests
 
         var h1 = sp.GetRequiredService<SyncSimpleHandler>();
         var h2 = sp.GetRequiredService<SyncSimpleHandler>();
+        var d1 = sp.GetRequiredService<global::MiniBus.IDispatcher<SyncSimpleHandler.Request, SyncSimpleHandler.Response>>();
+        var d2 = sp.GetRequiredService<global::MiniBus.IDispatcher<SyncSimpleHandler.Request, SyncSimpleHandler.Response>>();
 
         Assert.That(ReferenceEquals(h1, h2), Is.True, "Handler should be scoped");
+        Assert.That(ReferenceEquals(d1, d2), Is.True, "Dispatcher should be scoped");
     }
 
     [Test]

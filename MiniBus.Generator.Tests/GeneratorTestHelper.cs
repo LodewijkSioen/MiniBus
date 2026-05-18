@@ -48,7 +48,12 @@ internal static class GeneratorTestHelper
             .Select(t => t.GetText().ToString())
             .ToArray();
 
-        return (generatedSources, generatorDiagnostics);
+        var diagnostics = runResult.Results
+            .SelectMany(r => r.Diagnostics)
+            .Concat(generatorDiagnostics)
+            .ToArray();
+
+        return (generatedSources, diagnostics);
     }
 
     /// <summary>

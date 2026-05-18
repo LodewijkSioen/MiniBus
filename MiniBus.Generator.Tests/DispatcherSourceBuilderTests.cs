@@ -29,6 +29,8 @@ public class DispatcherSourceBuilderTests
             HandleIsAsync: handleIsAsync,
             Validate: validate,
             ValidateCallArgs: validateCallArgs,
+            UnsupportedHandleParameters: ImmutableArray<string>.Empty,
+            UnsupportedValidateParameters: ImmutableArray<string>.Empty,
             Location: Location.None);
     }
 

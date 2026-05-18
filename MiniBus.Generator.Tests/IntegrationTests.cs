@@ -116,4 +116,57 @@ public class IntegrationTests
         var driver = GeneratorTestHelper.RunDriver(source);
         return Verify(driver);
     }
+
+    [Test]
+    public void UnsupportedHandleParameter_ReportsMBG002_AndSkipsDispatcherGeneration()
+    {
+        const string source = """
+            using MiniBus;
+            namespace TestApp;
+
+            [Handler]
+            public class InvalidHandleHandler
+            {
+                public record Request(int Id);
+                public record Response(string Name);
+                public record Other(int Id);
+                public Response Handle(Request request, Other other) => new Response(other.Id.ToString());
+            }
+            """;
+
+        var result = GeneratorTestHelper.Run(source);
+
+        Assert.That(result.Diagnostics.Any(d => d.Id == "MBG002"), Is.True);
+        Assert.That(result.GeneratedSources.Any(s => s.Contains("InvalidHandleHandlerDispatcher", StringComparison.Ordinal)), Is.False);
+    }
+
+    [Test]
+    public void DuplicateRequestResponsePair_ReportsMBG003_AndSkipsDuplicateDispatcherRegistrations()
+    {
+        const string source = """
+            using MiniBus;
+            namespace TestApp;
+
+            public record SharedRequest(int Id);
+            public record SharedResponse(string Name);
+
+            [Handler]
+            public class HandlerOne
+            {
+                public SharedResponse Handle(SharedRequest request) => new("A");
+            }
+
+            [Handler]
+            public class HandlerTwo
+            {
+                public SharedResponse Handle(SharedRequest request) => new("B");
+            }
+            """;
+
+        var result = GeneratorTestHelper.Run(source);
+
+        Assert.That(result.Diagnostics.Any(d => d.Id == "MBG003"), Is.True);
+        var registration = result.GeneratedSources.Single(s => s.Contains("class GeneratedHandlerRegistrations", StringComparison.Ordinal));
+        Assert.That(registration.Contains("IDispatcher<\n                    global::TestApp.SharedRequest,\n                    global::TestApp.SharedResponse>", StringComparison.Ordinal), Is.False);
+    }
 }

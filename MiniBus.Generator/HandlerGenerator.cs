@@ -29,11 +29,15 @@ public sealed record HandlerModel(
     bool HandleIsAsync,
     ValidateInfo? Validate,
     string ValidateCallArgs,
+    ImmutableArray<string> UnsupportedHandleParameters,
+    ImmutableArray<string> UnsupportedValidateParameters,
     Location Location)
 {
     // "global::TestApp.DummyHandler" + "Dispatcher" = "global::TestApp.DummyHandlerDispatcher"
     public string DispatcherFullName => FullClassName + "Dispatcher";
+    public string DispatcherKey => $"{FullRequestType}|{FullResponseType}";
     public bool IsAnyAsync => HandleIsAsync || (Load?.IsAsync ?? false) || (Validate?.IsAsync ?? false);
+    public bool HasUnsupportedParameters => !UnsupportedHandleParameters.IsEmpty || !UnsupportedValidateParameters.IsEmpty;
 }
 
 [Generator]
@@ -45,6 +49,22 @@ public class HandlerGenerator : IIncrementalGenerator
         id: "MBG001",
         title: "Duplicate request type",
         messageFormat: "Handler '{0}' shares request type '{1}' with another [Handler] class. No typed extension method will be generated for this request type.",
+        category: "MiniBus.Generator",
+        defaultSeverity: DiagnosticSeverity.Warning,
+        isEnabledByDefault: true);
+
+    private static readonly DiagnosticDescriptor UnsupportedParameter = new DiagnosticDescriptor(
+        id: "MBG002",
+        title: "Unsupported handler parameter",
+        messageFormat: "Handler '{0}' has unsupported parameter '{1}' in {2}. Parameters must match request type '{3}' or a loaded value type.",
+        category: "MiniBus.Generator",
+        defaultSeverity: DiagnosticSeverity.Warning,
+        isEnabledByDefault: true);
+
+    private static readonly DiagnosticDescriptor DuplicateRequestResponsePair = new DiagnosticDescriptor(
+        id: "MBG003",
+        title: "Duplicate request/response pair",
+        messageFormat: "Handler '{0}' shares request/response pair '{1}' -> '{2}' with another [Handler] class. Dispatcher registration and typed extension method are omitted for this pair.",
         category: "MiniBus.Generator",
         defaultSeverity: DiagnosticSeverity.Warning,
         isEnabledByDefault: true);
@@ -62,6 +82,11 @@ public class HandlerGenerator : IIncrementalGenerator
         context.RegisterSourceOutput(handlerModels, static (spc, model) =>
         {
             if (model is null) return;
+            foreach (var unsupported in model.UnsupportedHandleParameters)
+                spc.ReportDiagnostic(Diagnostic.Create(UnsupportedParameter, model.Location, model.ClassName, unsupported, "Handle", model.FullRequestType));
+            foreach (var unsupported in model.UnsupportedValidateParameters)
+                spc.ReportDiagnostic(Diagnostic.Create(UnsupportedParameter, model.Location, model.ClassName, unsupported, "Validate", model.FullRequestType));
+            if (model.HasUnsupportedParameters) return;
             spc.AddSource($"{model.ClassName}Dispatcher.g.cs", DispatcherSourceBuilder.Build(model));
         });
 
@@ -71,6 +96,7 @@ public class HandlerGenerator : IIncrementalGenerator
             var valid = models
                 .Where(static m => m is not null)
                 .Select(static m => m!)
+                .Where(static m => !m.HasUnsupportedParameters)
                 .ToArray();
             if (valid.Length == 0) return;   // no handlers → no file (avoids noise in tests)
 
@@ -83,7 +109,15 @@ public class HandlerGenerator : IIncrementalGenerator
                     spc.ReportDiagnostic(Diagnostic.Create(DuplicateRequestType, m.Location, m.ClassName, m.FullRequestType));
             }
 
-            spc.AddSource("MiniBusRegistrations.g.cs", RegistrationsSourceBuilder.Build(valid, conflicting));
+            var excludedDispatcherPairs = new System.Collections.Generic.HashSet<string>();
+            foreach (var group in valid.GroupBy(static m => m.DispatcherKey).Where(static g => g.Count() > 1))
+            {
+                excludedDispatcherPairs.Add(group.Key);
+                foreach (var m in group)
+                    spc.ReportDiagnostic(Diagnostic.Create(DuplicateRequestResponsePair, m.Location, m.ClassName, m.FullRequestType, m.FullResponseType));
+            }
+
+            spc.AddSource("MiniBusRegistrations.g.cs", RegistrationsSourceBuilder.Build(valid, conflicting, excludedDispatcherPairs));
         });
     }
 
@@ -199,13 +233,15 @@ public class HandlerGenerator : IIncrementalGenerator
             : handleMethod.Parameters[0].Type).ToDisplayString(fmt);
 
         // ── Compute Handle call arguments (matched by type) ───────────────────
-        static System.Collections.Generic.List<string> BuildCallArgs(
+        static (System.Collections.Generic.List<string> CallArgs, ImmutableArray<string> Unsupported) BuildCallArgs(
             ImmutableArray<IParameterSymbol> parameters,
             System.Collections.Generic.Dictionary<string, System.Collections.Generic.List<string>> loadedByType,
+            string requestType,
             SymbolDisplayFormat format)
         {
             var callArgs = new System.Collections.Generic.List<string>();
             var seenLoadedTypeCount = new System.Collections.Generic.Dictionary<string, int>();
+            var unsupported = ImmutableArray.CreateBuilder<string>();
             foreach (var param in parameters)
             {
                 var paramFqn = param.Type.ToDisplayString(format);
@@ -233,16 +269,24 @@ public class HandlerGenerator : IIncrementalGenerator
                     continue;
                 }
 
+                if (paramFqn == requestType)
+                {
+                    callArgs.Add("request");
+                    continue;
+                }
+
                 callArgs.Add("request");
+                unsupported.Add($"{param.Name}: {paramFqn}");
             }
 
-            return callArgs;
+            return (callArgs, unsupported.ToImmutable());
         }
-        var handleArgsList = BuildCallArgs(handleMethod.Parameters, loadedByFqn, fmt);
+        var (handleArgsList, unsupportedHandleParameters) = BuildCallArgs(handleMethod.Parameters, loadedByFqn, requestFqn, fmt);
 
         // ── Detect optional Validate method ───────────────────────────────────
         ValidateInfo? validateInfo = null;
         var validateArgsList = new System.Collections.Generic.List<string>();
+        var unsupportedValidateParameters = ImmutableArray<string>.Empty;
 
         var validateMethod = classSymbol.GetMembers("Validate")
             .OfType<IMethodSymbol>()
@@ -266,7 +310,9 @@ public class HandlerGenerator : IIncrementalGenerator
             if (validateReturnInner.ToDisplayString(fmt) == "global::MiniBus.ValidationResult")
             {
                 validateInfo = new ValidateInfo(IsAsync: validateAsync);
-                validateArgsList = BuildCallArgs(validateMethod.Parameters, loadedByFqn, fmt);
+                var (args, unsupported) = BuildCallArgs(validateMethod.Parameters, loadedByFqn, requestFqn, fmt);
+                validateArgsList = args;
+                unsupportedValidateParameters = unsupported;
             }
         }
 
@@ -285,6 +331,8 @@ public class HandlerGenerator : IIncrementalGenerator
             HandleIsAsync: handleIsAsync,
             Validate: validateInfo,
             ValidateCallArgs: string.Join(", ", validateArgsList),
+            UnsupportedHandleParameters: unsupportedHandleParameters,
+            UnsupportedValidateParameters: unsupportedValidateParameters,
             Location: location);
     }
 }
