@@ -311,6 +311,36 @@ public class HandlerModelExtractionTests
         });
     }
 
+    [Test]
+    public void DuplicateTupleElementTypes_MapByParameterPosition()
+    {
+        const string source = """
+            using MiniBus;
+            namespace TestApp;
+            [Handler]
+            public class DuplicateTupleTypesHandler
+            {
+                public record Request(int Id);
+                public record Response(string Name);
+                public record Entity(string Value);
+                public (Entity primary, Entity secondary) Load(Request request)
+                    => (new Entity("a"), new Entity("b"));
+                public ValidationResult Validate(Entity first, Entity second)
+                    => new ValidationResult();
+                public System.Threading.Tasks.Task<Response> Handle(Entity first, Entity second)
+                    => System.Threading.Tasks.Task.FromResult(new Response(first.Value + second.Value));
+            }
+            """;
+
+        var model = HandlerGenerator.GetHandlerModel(GetSymbol(source, "DuplicateTupleTypesHandler"), Location.None);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(model!.HandleCallArgs, Is.EqualTo("primary, secondary"));
+            Assert.That(model.ValidateCallArgs, Is.EqualTo("primary, secondary"));
+        });
+    }
+
     // ── Handle call args ──────────────────────────────────────────────────
 
     [Test]

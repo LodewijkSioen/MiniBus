@@ -123,7 +123,20 @@ public class HandlerGenerator : IIncrementalGenerator
 
         // ── Detect optional Load method ───────────────────────────────────────
         LoadInfo? loadInfo = null;
-        var loadedByFqn = new System.Collections.Generic.Dictionary<string, string>(); // fqn → localName
+        var loadedByFqn = new System.Collections.Generic.Dictionary<string, System.Collections.Generic.List<string>>(); // fqn → localNames
+        static void AddLoadedLocalName(
+            System.Collections.Generic.Dictionary<string, System.Collections.Generic.List<string>> map,
+            string fqn,
+            string localName)
+        {
+            if (!map.TryGetValue(fqn, out var names))
+            {
+                names = new System.Collections.Generic.List<string>();
+                map[fqn] = names;
+            }
+
+            names.Add(localName);
+        }
 
         var loadMethod = classSymbol.GetMembers("Load")
             .OfType<IMethodSymbol>()
@@ -162,7 +175,7 @@ public class HandlerGenerator : IIncrementalGenerator
                         ? char.ToLower(rawName[0]) + rawName.Substring(1)
                         : rawName;
                     elements.Add(new LoadedElement(localName, fqn, isNullable));
-                    loadedByFqn[fqn] = localName;
+                    AddLoadedLocalName(loadedByFqn, fqn, localName);
                 }
                 loadInfo = new LoadInfo(IsAsync: loadAsync, IsTuple: true, Elements: elements.ToImmutable());
             }
@@ -174,7 +187,7 @@ public class HandlerGenerator : IIncrementalGenerator
                     ? loadReturnInner.WithNullableAnnotation(NullableAnnotation.NotAnnotated)
                     : loadReturnInner;
                 var fqn = nonNullable.ToDisplayString(fmt);
-                loadedByFqn[fqn] = "loaded";
+                AddLoadedLocalName(loadedByFqn, fqn, "loaded");
                 loadInfo = new LoadInfo(IsAsync: loadAsync, IsTuple: false,
                     Elements: ImmutableArray.Create(new LoadedElement("loaded", fqn, IsNullable: isNullable)));
             }
@@ -186,15 +199,46 @@ public class HandlerGenerator : IIncrementalGenerator
             : handleMethod.Parameters[0].Type).ToDisplayString(fmt);
 
         // ── Compute Handle call arguments (matched by type) ───────────────────
-        var handleArgsList = new System.Collections.Generic.List<string>();
-        foreach (var param in handleMethod.Parameters)
+        static System.Collections.Generic.List<string> BuildCallArgs(
+            ImmutableArray<IParameterSymbol> parameters,
+            System.Collections.Generic.Dictionary<string, System.Collections.Generic.List<string>> loadedByType,
+            SymbolDisplayFormat format)
         {
-            var paramFqn = param.Type.ToDisplayString(fmt);
-            if (loadedByFqn.TryGetValue(paramFqn, out var hLocalName))
-                handleArgsList.Add(hLocalName);
-            else
-                handleArgsList.Add("request");
+            var callArgs = new System.Collections.Generic.List<string>();
+            var seenLoadedTypeCount = new System.Collections.Generic.Dictionary<string, int>();
+            foreach (var param in parameters)
+            {
+                var paramFqn = param.Type.ToDisplayString(format);
+                if (loadedByType.TryGetValue(paramFqn, out var loadedNames))
+                {
+                    if (loadedNames.Count == 1)
+                    {
+                        callArgs.Add(loadedNames[0]);
+                        continue;
+                    }
+
+                    var byName = loadedNames
+                        .Where(n => string.Equals(n, param.Name, global::System.StringComparison.OrdinalIgnoreCase))
+                        .Distinct()
+                        .ToArray();
+                    if (byName.Length == 1)
+                    {
+                        callArgs.Add(byName[0]);
+                        continue;
+                    }
+
+                    seenLoadedTypeCount.TryGetValue(paramFqn, out var seenCount);
+                    callArgs.Add(seenCount < loadedNames.Count ? loadedNames[seenCount] : loadedNames[loadedNames.Count - 1]);
+                    seenLoadedTypeCount[paramFqn] = seenCount + 1;
+                    continue;
+                }
+
+                callArgs.Add("request");
+            }
+
+            return callArgs;
         }
+        var handleArgsList = BuildCallArgs(handleMethod.Parameters, loadedByFqn, fmt);
 
         // ── Detect optional Validate method ───────────────────────────────────
         ValidateInfo? validateInfo = null;
@@ -222,14 +266,7 @@ public class HandlerGenerator : IIncrementalGenerator
             if (validateReturnInner.ToDisplayString(fmt) == "global::MiniBus.ValidationResult")
             {
                 validateInfo = new ValidateInfo(IsAsync: validateAsync);
-                foreach (var param in validateMethod.Parameters)
-                {
-                    var paramFqn = param.Type.ToDisplayString(fmt);
-                    if (loadedByFqn.TryGetValue(paramFqn, out var vLocalName))
-                        validateArgsList.Add(vLocalName);
-                    else
-                        validateArgsList.Add("request");
-                }
+                validateArgsList = BuildCallArgs(validateMethod.Parameters, loadedByFqn, fmt);
             }
         }
 
