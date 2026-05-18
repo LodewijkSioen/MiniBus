@@ -141,6 +141,30 @@ public class IntegrationTests
     }
 
     [Test]
+    public void UnsupportedValidateParameter_ReportsMBG002_AndSkipsDispatcherGeneration()
+    {
+        const string source = """
+            using MiniBus;
+            namespace TestApp;
+
+            [Handler]
+            public class InvalidValidateHandler
+            {
+                public record Request(int Id);
+                public record Response(string Name);
+                public record Other(int Id);
+                public ValidationResult Validate(Request request, Other other) => new ValidationResult();
+                public Response Handle(Request request) => new Response(request.Id.ToString());
+            }
+            """;
+
+        var result = GeneratorTestHelper.Run(source);
+
+        Assert.That(result.Diagnostics.Any(d => d.Id == "MBG002"), Is.True);
+        Assert.That(result.GeneratedSources.Any(s => s.Contains("InvalidValidateHandlerDispatcher", StringComparison.Ordinal)), Is.False);
+    }
+
+    [Test]
     public void DuplicateRequestResponsePair_ReportsMBG003_AndSkipsDuplicateDispatcherRegistrations()
     {
         const string source = """
