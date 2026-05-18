@@ -275,7 +275,6 @@ public class HandlerGenerator : IIncrementalGenerator
                     continue;
                 }
 
-                callArgs.Add("request");
                 unsupported.Add($"{param.Name}: {paramFqn}");
             }
 

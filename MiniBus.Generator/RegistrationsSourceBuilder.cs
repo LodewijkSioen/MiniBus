@@ -45,7 +45,10 @@ public static class RegistrationsSourceBuilder
 
         foreach (var model in models)
         {
-            if (excludedDispatcherPairs.Contains(model.DispatcherKey)) continue;
+            if (excludedDispatcherPairs.Contains(model.DispatcherKey))
+            {
+                continue;
+            }
             if (conflicting.Contains(model.FullRequestType)) continue;
             sb.AppendLine($"        public static global::System.Threading.Tasks.Task<global::MiniBus.Result<{model.FullResponseType}>>");
             sb.AppendLine($"            Handle(this global::MiniBus.MiniBus bus, {model.FullRequestType} request)");
