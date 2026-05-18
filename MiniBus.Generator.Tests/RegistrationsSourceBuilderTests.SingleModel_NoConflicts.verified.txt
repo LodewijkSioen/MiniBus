@@ -3,7 +3,7 @@
 
 using Microsoft.Extensions.DependencyInjection;
 
-namespace MiniBus.Convention
+namespace MiniBus
 {
     public static class GeneratedHandlerRegistrations
     {
@@ -12,7 +12,7 @@ namespace MiniBus.Convention
         {
             services.AddScoped<global::TestApp.OrderHandler>();
             services.AddScoped<
-                global::MiniBus.Convention.IConventionHandler<
+                global::MiniBus.IDispatcher<
                     global::TestApp.OrderHandler.Request,
                     global::TestApp.OrderHandler.Response>,
                 global::TestApp.OrderHandlerDispatcher>();
@@ -20,11 +20,11 @@ namespace MiniBus.Convention
         }
     }
 
-    // ── Typed ConventionBus extension methods ──────────────────────────────
-    public static class ConventionBusExtensions
+    // ── Typed MiniBus extension methods ──────────────────────────────
+    public static class MiniBusExtensions
     {
-        public static global::System.Threading.Tasks.Task<global::MiniBus.Convention.Result<global::TestApp.OrderHandler.Response>>
-            Handle(this global::MiniBus.Convention.ConventionBus bus, global::TestApp.OrderHandler.Request request)
+        public static global::System.Threading.Tasks.Task<global::MiniBus.Result<global::TestApp.OrderHandler.Response>>
+            Handle(this global::MiniBus.MiniBus bus, global::TestApp.OrderHandler.Request request)
             => bus.Handle<global::TestApp.OrderHandler.Request, global::TestApp.OrderHandler.Response>(request);
     }
 }

@@ -14,7 +14,7 @@ public static class RegistrationsSourceBuilder
         sb.AppendLine();
         sb.AppendLine("using Microsoft.Extensions.DependencyInjection;");
         sb.AppendLine();
-        sb.AppendLine("namespace MiniBus.Convention");
+        sb.AppendLine("namespace MiniBus");
         sb.AppendLine("{");
         sb.AppendLine("    public static class GeneratedHandlerRegistrations");
         sb.AppendLine("    {");
@@ -26,7 +26,7 @@ public static class RegistrationsSourceBuilder
         {
             sb.AppendLine($"            services.AddScoped<{model.FullClassName}>();");
             sb.AppendLine($"            services.AddScoped<");
-            sb.AppendLine($"                global::MiniBus.Convention.IConventionHandler<");
+            sb.AppendLine($"                global::MiniBus.IDispatcher<");
             sb.AppendLine($"                    {model.FullRequestType},");
             sb.AppendLine($"                    {model.FullResponseType}>,");
             sb.AppendLine($"                {model.DispatcherFullName}>();");
@@ -36,15 +36,15 @@ public static class RegistrationsSourceBuilder
         sb.AppendLine("        }");
         sb.AppendLine("    }");
         sb.AppendLine();
-        sb.AppendLine("    // ── Typed ConventionBus extension methods ──────────────────────────────");
-        sb.AppendLine("    public static class ConventionBusExtensions");
+        sb.AppendLine("    // ── Typed MiniBus extension methods ──────────────────────────────");
+        sb.AppendLine("    public static class MiniBusExtensions");
         sb.AppendLine("    {");
 
         foreach (var model in models)
         {
             if (conflicting.Contains(model.FullRequestType)) continue;
-            sb.AppendLine($"        public static global::System.Threading.Tasks.Task<global::MiniBus.Convention.Result<{model.FullResponseType}>>");
-            sb.AppendLine($"            Handle(this global::MiniBus.Convention.ConventionBus bus, {model.FullRequestType} request)");
+            sb.AppendLine($"        public static global::System.Threading.Tasks.Task<global::MiniBus.Result<{model.FullResponseType}>>");
+            sb.AppendLine($"            Handle(this global::MiniBus.MiniBus bus, {model.FullRequestType} request)");
             sb.AppendLine($"            => bus.Handle<{model.FullRequestType}, {model.FullResponseType}>(request);");
         }
 

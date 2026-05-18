@@ -1,5 +1,4 @@
 using Microsoft.CodeAnalysis;
-using MiniBus.Generator;
 
 namespace MiniBus.Generator.Tests;
 
@@ -55,7 +54,7 @@ public class RegistrationsSourceBuilderTests
             new HashSet<string> { "global::TestApp.SharedRequest" }));
 
     [Test]
-    public Task AllConflicting_ConventionBusExtensionsIsEmpty() =>
+    public Task AllConflicting_MiniBusExtensionsIsEmpty() =>
         Verify(RegistrationsSourceBuilder.Build(
             new[]
             {

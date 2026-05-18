@@ -4,7 +4,7 @@
 namespace TestApp
 {
     public class MyHandlerDispatcher
-        : global::MiniBus.Convention.IConventionHandler<
+        : global::MiniBus.IDispatcher<
             global::TestApp.MyHandler.Request,
             global::TestApp.MyHandler.Response>
     {
@@ -16,19 +16,19 @@ namespace TestApp
         }
 
         public async global::System.Threading.Tasks.Task<
-            global::MiniBus.Convention.Result<global::TestApp.MyHandler.Response>>
+            global::MiniBus.Result<global::TestApp.MyHandler.Response>>
             Handle(global::TestApp.MyHandler.Request request)
         {
             var loaded = await _handler.Load(request);
             if (loaded is null)
-                return global::MiniBus.Convention.Result<global::TestApp.MyHandler.Response>.NotFound();
+                return global::MiniBus.Result<global::TestApp.MyHandler.Response>.NotFound();
 
             var validationResult = await _handler.Validate(loaded);
             if (!validationResult.IsValid())
-                return global::MiniBus.Convention.Result<global::TestApp.MyHandler.Response>.Invalid(validationResult);
+                return global::MiniBus.Result<global::TestApp.MyHandler.Response>.Invalid(validationResult);
 
             var response = await _handler.Handle(loaded);
-            return global::MiniBus.Convention.Result<global::TestApp.MyHandler.Response>.Success(response);
+            return global::MiniBus.Result<global::TestApp.MyHandler.Response>.Success(response);
         }
     }
 }

@@ -31,7 +31,7 @@
       so we can instantiate HandlerGenerator directly in tests.
     -->
     <ProjectReference Include="..\MiniBus.Generator\MiniBus.Generator.csproj" />
-    <ProjectReference Include="..\MiniBus.Convention\MiniBus.Convention.csproj" />
+    <ProjectReference Include="..\MiniBus\MiniBus.csproj" />
   </ItemGroup>
 
   <ItemGroup>

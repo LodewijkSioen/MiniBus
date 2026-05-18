@@ -1,8 +1,6 @@
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
-using MiniBus.Convention;
-using MiniBus.Generator;
 
 namespace MiniBus.Generator.Tests;
 
@@ -22,9 +20,9 @@ public class HandlerModelExtractionTests
             .Cast<MetadataReference>()
             .ToList();
 
-        var conventionPath = typeof(HandlerAttribute).Assembly.Location;
-        if (!references.Any(r => r.Display == conventionPath))
-            references.Add(MetadataReference.CreateFromFile(conventionPath));
+        var path = typeof(HandlerAttribute).Assembly.Location;
+        if (!references.Any(r => r.Display == path))
+            references.Add(MetadataReference.CreateFromFile(path));
 
         var compilation = CSharpCompilation.Create(
             "TestAssembly",
@@ -47,7 +45,7 @@ public class HandlerModelExtractionTests
     public void AsyncHandle_ExtractsAllProperties()
     {
         const string source = """
-            using MiniBus.Convention;
+            using MiniBus;
             namespace TestApp;
             [Handler]
             public class OrderHandler
@@ -80,7 +78,7 @@ public class HandlerModelExtractionTests
     public void SyncHandle_HandleIsAsync_IsFalse()
     {
         const string source = """
-            using MiniBus.Convention;
+            using MiniBus;
             namespace TestApp;
             [Handler]
             public class SyncHandler
@@ -100,7 +98,7 @@ public class HandlerModelExtractionTests
     public void GlobalNamespace_NamespaceIsNull()
     {
         const string source = """
-            using MiniBus.Convention;
+            using MiniBus;
             [Handler]
             public class GlobalHandler
             {
@@ -120,7 +118,7 @@ public class HandlerModelExtractionTests
     public void MissingHandleMethod_ReturnsNull()
     {
         const string source = """
-            using MiniBus.Convention;
+            using MiniBus;
             namespace TestApp;
             [Handler]
             public class NoHandleHandler
@@ -141,7 +139,7 @@ public class HandlerModelExtractionTests
     public void AsyncNullableScalarLoad_LoadInfoIsCorrect()
     {
         const string source = """
-            using MiniBus.Convention;
+            using MiniBus;
             namespace TestApp;
             [Handler]
             public class EntityHandler
@@ -173,7 +171,7 @@ public class HandlerModelExtractionTests
     public void SyncNullableScalarLoad_LoadIsAsyncFalse()
     {
         const string source = """
-            using MiniBus.Convention;
+            using MiniBus;
             namespace TestApp;
             [Handler]
             public class SyncLoadHandler
@@ -200,7 +198,7 @@ public class HandlerModelExtractionTests
     public void NonNullableLoad_ElementIsNotNullable()
     {
         const string source = """
-            using MiniBus.Convention;
+            using MiniBus;
             namespace TestApp;
             [Handler]
             public class NonNullLoadHandler
@@ -223,7 +221,7 @@ public class HandlerModelExtractionTests
     public void LoadMethod_SetsRequestTypeFromLoadParam()
     {
         const string source = """
-            using MiniBus.Convention;
+            using MiniBus;
             namespace TestApp;
             [Handler]
             public class LoadRequestHandler
@@ -247,7 +245,7 @@ public class HandlerModelExtractionTests
     public void NamedTupleLoad_ExtractsElementNamesAndNullability()
     {
         const string source = """
-            using MiniBus.Convention;
+            using MiniBus;
             namespace TestApp;
             [Handler]
             public class TupleHandler
@@ -280,7 +278,7 @@ public class HandlerModelExtractionTests
     public void UnnamedTupleLoad_UsesItem1Item2Names()
     {
         const string source = """
-            using MiniBus.Convention;
+            using MiniBus;
             namespace TestApp;
             [Handler]
             public class UnnamedTupleHandler
@@ -311,7 +309,7 @@ public class HandlerModelExtractionTests
     public void HandleCallArgs_SubstitutesLoadedParam()
     {
         const string source = """
-            using MiniBus.Convention;
+            using MiniBus;
             namespace TestApp;
             [Handler]
             public class LoadedArgHandler
@@ -335,7 +333,7 @@ public class HandlerModelExtractionTests
     public void HandleCallArgs_BothRequestAndLoaded()
     {
         const string source = """
-            using MiniBus.Convention;
+            using MiniBus;
             namespace TestApp;
             [Handler]
             public class BothArgsHandler
@@ -361,7 +359,7 @@ public class HandlerModelExtractionTests
     public void SyncValidate_ValidateInfoIsCorrect()
     {
         const string source = """
-            using MiniBus.Convention;
+            using MiniBus;
             namespace TestApp;
             [Handler]
             public class SyncValidateHandler
@@ -388,7 +386,7 @@ public class HandlerModelExtractionTests
     public void AsyncValidate_IsAsyncTrue()
     {
         const string source = """
-            using MiniBus.Convention;
+            using MiniBus;
             namespace TestApp;
             [Handler]
             public class AsyncValidateHandler
@@ -411,7 +409,7 @@ public class HandlerModelExtractionTests
     public void ValidateCallArgs_WithBothRequestAndLoaded()
     {
         const string source = """
-            using MiniBus.Convention;
+            using MiniBus;
             namespace TestApp;
             [Handler]
             public class BothValidateArgsHandler
@@ -437,7 +435,7 @@ public class HandlerModelExtractionTests
     public void ValidateWithWrongReturnType_IsIgnored()
     {
         const string source = """
-            using MiniBus.Convention;
+            using MiniBus;
             namespace TestApp;
             [Handler]
             public class WrongValidateHandler

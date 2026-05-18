@@ -5,7 +5,7 @@
 namespace TestApp
 {
     public class HandlerADispatcher
-        : global::MiniBus.Convention.IConventionHandler<
+        : global::MiniBus.IDispatcher<
             global::TestApp.HandlerA.Request,
             global::TestApp.HandlerA.Response>
     {
@@ -17,11 +17,11 @@ namespace TestApp
         }
 
         public async global::System.Threading.Tasks.Task<
-            global::MiniBus.Convention.Result<global::TestApp.HandlerA.Response>>
+            global::MiniBus.Result<global::TestApp.HandlerA.Response>>
             Handle(global::TestApp.HandlerA.Request request)
         {
             var response = await _handler.Handle(request);
-            return global::MiniBus.Convention.Result<global::TestApp.HandlerA.Response>.Success(response);
+            return global::MiniBus.Result<global::TestApp.HandlerA.Response>.Success(response);
         }
     }
 }

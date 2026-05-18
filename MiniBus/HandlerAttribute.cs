@@ -1,4 +1,4 @@
-namespace MiniBus.Convention;
+namespace MiniBus;
 
 [AttributeUsage(AttributeTargets.Class)]
 public sealed class HandlerAttribute : Attribute;

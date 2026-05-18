@@ -1,4 +1,3 @@
-using MiniBus.Convention;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace MiniBus.Tests;
@@ -6,7 +5,7 @@ namespace MiniBus.Tests;
 // ── Handlers under test ───────────────────────────────────────────────────────
 
 [Handler]
-public class TupleLoadConventionHandler
+public class TupleLoadHandler
 {
     public record Request(int EntityId, int ConfigId);
     public record Response(string Value);
@@ -39,11 +38,11 @@ public class TupleLoadWithValidateHandler
         return Task.FromResult<(Entity?, Config?)>((entity, config));
     }
 
-    public global::MiniBus.Convention.ValidationResult Validate(Entity entity, Config config)
+    public global::MiniBus.ValidationResult Validate(Entity entity, Config config)
     {
-        var errors = new global::MiniBus.Convention.ValidationResult();
+        var errors = new global::MiniBus.ValidationResult();
         if (entity.Id > 100)
-            errors.Add(new global::MiniBus.Convention.ValidationError("Entity Id out of range", "RANGE"));
+            errors.Add(new global::MiniBus.ValidationError("Entity Id out of range", "RANGE"));
         return errors;
     }
 
@@ -59,10 +58,10 @@ public class TupleLoadIntegrationTests
     [Test]
     public async Task BothValuesLoaded_PassesToHandle()
     {
-        using var scope = AppUnderTest.ConventionServices.CreateScope();
-        var bus = scope.ServiceProvider.GetRequiredService<ConventionBus>();
+        using var scope = AppUnderTest.Services.CreateScope();
+        var bus = scope.ServiceProvider.GetRequiredService<MiniBus>();
 
-        var result = await bus.Handle(new TupleLoadConventionHandler.Request(1, 2));
+        var result = await bus.Handle(new TupleLoadHandler.Request(1, 2));
 
         Assert.That(result.IsSuccess, Is.True);
         Assert.That(result.Response!.Value, Is.EqualTo("entity-1|config-2"));
@@ -71,32 +70,32 @@ public class TupleLoadIntegrationTests
     [Test]
     public async Task NullEntity_ReturnsNotFound()
     {
-        using var scope = AppUnderTest.ConventionServices.CreateScope();
-        var bus = scope.ServiceProvider.GetRequiredService<ConventionBus>();
+        using var scope = AppUnderTest.Services.CreateScope();
+        var bus = scope.ServiceProvider.GetRequiredService<MiniBus>();
 
         // EntityId = 0 → entity is null
-        var result = await bus.Handle(new TupleLoadConventionHandler.Request(0, 2));
+        var result = await bus.Handle(new TupleLoadHandler.Request(0, 2));
 
-        Assert.That(result.Status, Is.EqualTo(global::MiniBus.Convention.ResultStatus.NotFound));
+        Assert.That(result.Status, Is.EqualTo(global::MiniBus.ResultStatus.NotFound));
     }
 
     [Test]
     public async Task NullConfig_ReturnsNotFound()
     {
-        using var scope = AppUnderTest.ConventionServices.CreateScope();
-        var bus = scope.ServiceProvider.GetRequiredService<ConventionBus>();
+        using var scope = AppUnderTest.Services.CreateScope();
+        var bus = scope.ServiceProvider.GetRequiredService<MiniBus>();
 
         // ConfigId = 0 → config is null
-        var result = await bus.Handle(new TupleLoadConventionHandler.Request(1, 0));
+        var result = await bus.Handle(new TupleLoadHandler.Request(1, 0));
 
-        Assert.That(result.Status, Is.EqualTo(global::MiniBus.Convention.ResultStatus.NotFound));
+        Assert.That(result.Status, Is.EqualTo(global::MiniBus.ResultStatus.NotFound));
     }
 
     [Test]
     public async Task TupleLoadWithValidate_ValidRequest_Succeeds()
     {
-        using var scope = AppUnderTest.ConventionServices.CreateScope();
-        var bus = scope.ServiceProvider.GetRequiredService<ConventionBus>();
+        using var scope = AppUnderTest.Services.CreateScope();
+        var bus = scope.ServiceProvider.GetRequiredService<MiniBus>();
 
         var result = await bus.Handle(new TupleLoadWithValidateHandler.Request(5, 3));
 
@@ -107,13 +106,13 @@ public class TupleLoadIntegrationTests
     [Test]
     public async Task TupleLoadWithValidate_InvalidEntity_ReturnsInvalid()
     {
-        using var scope = AppUnderTest.ConventionServices.CreateScope();
-        var bus = scope.ServiceProvider.GetRequiredService<ConventionBus>();
+        using var scope = AppUnderTest.Services.CreateScope();
+        var bus = scope.ServiceProvider.GetRequiredService<MiniBus>();
 
         // EntityId = 999 → load succeeds but validate rejects
         var result = await bus.Handle(new TupleLoadWithValidateHandler.Request(999, 1));
 
-        Assert.That(result.Status, Is.EqualTo(global::MiniBus.Convention.ResultStatus.Invalid));
+        Assert.That(result.Status, Is.EqualTo(global::MiniBus.ResultStatus.Invalid));
         Assert.That(result.ValidationErrors[0].Code, Is.EqualTo("RANGE"));
     }
 }

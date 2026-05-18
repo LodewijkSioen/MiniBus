@@ -13,7 +13,7 @@ public class IntegrationTests
     public Task FullPipeline_AsyncLoad_Validate_AsyncHandle()
     {
         const string source = """
-            using MiniBus.Convention;
+            using MiniBus;
             namespace TestApp;
 
             [Handler]
@@ -42,7 +42,7 @@ public class IntegrationTests
     public Task MultipleHandlers_GenerateSeparateDispatchersAndSharedRegistrations()
     {
         const string source = """
-            using MiniBus.Convention;
+            using MiniBus;
             namespace TestApp;
 
             [Handler]
@@ -72,7 +72,7 @@ public class IntegrationTests
     public Task DuplicateRequestType_ReportsMBG001Warning_AndOmitsExtensionMethod()
     {
         const string source = """
-            using MiniBus.Convention;
+            using MiniBus;
             namespace TestApp;
 
             public record SharedRequest(int Id);
@@ -102,7 +102,7 @@ public class IntegrationTests
     public Task MissingHandleMethod_ProducesNoOutput()
     {
         const string source = """
-            using MiniBus.Convention;
+            using MiniBus;
             namespace TestApp;
 
             [Handler]

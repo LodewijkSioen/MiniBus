@@ -1,4 +1,3 @@
-using MiniBus.Convention;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace MiniBus.Tests;
@@ -11,11 +10,11 @@ public class SyncValidatingHandler
     public record Request(string Value);
     public record Response(string Out);
 
-    public global::MiniBus.Convention.ValidationResult Validate(Request request)
+    public global::MiniBus.ValidationResult Validate(Request request)
     {
-        var errors = new global::MiniBus.Convention.ValidationResult();
+        var errors = new global::MiniBus.ValidationResult();
         if (string.IsNullOrEmpty(request.Value))
-            errors.Add(new global::MiniBus.Convention.ValidationError("Value is required", "REQUIRED"));
+            errors.Add(new global::MiniBus.ValidationError("Value is required", "REQUIRED"));
         return errors;
     }
 
@@ -29,11 +28,11 @@ public class AsyncValidatingHandler
     public record Request(int Id);
     public record Response(int Value);
 
-    public Task<global::MiniBus.Convention.ValidationResult> Validate(Request request)
+    public Task<global::MiniBus.ValidationResult> Validate(Request request)
     {
-        var errors = new global::MiniBus.Convention.ValidationResult();
+        var errors = new global::MiniBus.ValidationResult();
         if (request.Id <= 0)
-            errors.Add(new global::MiniBus.Convention.ValidationError("Id must be positive", "POSITIVE"));
+            errors.Add(new global::MiniBus.ValidationError("Id must be positive", "POSITIVE"));
         return Task.FromResult(errors);
     }
 
@@ -42,7 +41,7 @@ public class AsyncValidatingHandler
 }
 
 [Handler]
-public class LoadValidateConventionHandler
+public class LoadValidateHandler
 {
     public record Request(int Id);
     public record Response(string Name);
@@ -51,11 +50,11 @@ public class LoadValidateConventionHandler
     public Task<Entity?> Load(Request request)
         => Task.FromResult<Entity?>(request.Id > 0 ? new Entity(request.Id, "item-" + request.Id) : null);
 
-    public global::MiniBus.Convention.ValidationResult Validate(Entity entity)
+    public global::MiniBus.ValidationResult Validate(Entity entity)
     {
-        var errors = new global::MiniBus.Convention.ValidationResult();
+        var errors = new global::MiniBus.ValidationResult();
         if (entity.Id > 100)
-            errors.Add(new global::MiniBus.Convention.ValidationError("Id out of range", "OUT_OF_RANGE"));
+            errors.Add(new global::MiniBus.ValidationError("Id out of range", "OUT_OF_RANGE"));
         return errors;
     }
 
@@ -71,8 +70,8 @@ public class ValidateMethodIntegrationTests
     [Test]
     public async Task SyncValidate_ValidRequest_PassesToHandle()
     {
-        using var scope = AppUnderTest.ConventionServices.CreateScope();
-        var bus = scope.ServiceProvider.GetRequiredService<ConventionBus>();
+        using var scope = AppUnderTest.Services.CreateScope();
+        var bus = scope.ServiceProvider.GetRequiredService<MiniBus>();
 
         var result = await bus.Handle(new SyncValidatingHandler.Request("hello"));
 
@@ -83,13 +82,13 @@ public class ValidateMethodIntegrationTests
     [Test]
     public async Task SyncValidate_InvalidRequest_ReturnsInvalidWithErrors()
     {
-        using var scope = AppUnderTest.ConventionServices.CreateScope();
-        var bus = scope.ServiceProvider.GetRequiredService<ConventionBus>();
+        using var scope = AppUnderTest.Services.CreateScope();
+        var bus = scope.ServiceProvider.GetRequiredService<MiniBus>();
 
         var result = await bus.Handle(new SyncValidatingHandler.Request(""));
 
         Assert.That(result.IsSuccess, Is.False);
-        Assert.That(result.Status, Is.EqualTo(global::MiniBus.Convention.ResultStatus.Invalid));
+        Assert.That(result.Status, Is.EqualTo(global::MiniBus.ResultStatus.Invalid));
         Assert.That(result.ValidationErrors, Has.Count.EqualTo(1));
         Assert.That(result.ValidationErrors[0].Code, Is.EqualTo("REQUIRED"));
     }
@@ -97,8 +96,8 @@ public class ValidateMethodIntegrationTests
     [Test]
     public async Task AsyncValidate_ValidRequest_PassesToHandle()
     {
-        using var scope = AppUnderTest.ConventionServices.CreateScope();
-        var bus = scope.ServiceProvider.GetRequiredService<ConventionBus>();
+        using var scope = AppUnderTest.Services.CreateScope();
+        var bus = scope.ServiceProvider.GetRequiredService<MiniBus>();
 
         var result = await bus.Handle(new AsyncValidatingHandler.Request(5));
 
@@ -109,48 +108,48 @@ public class ValidateMethodIntegrationTests
     [Test]
     public async Task AsyncValidate_InvalidRequest_ReturnsInvalidWithErrors()
     {
-        using var scope = AppUnderTest.ConventionServices.CreateScope();
-        var bus = scope.ServiceProvider.GetRequiredService<ConventionBus>();
+        using var scope = AppUnderTest.Services.CreateScope();
+        var bus = scope.ServiceProvider.GetRequiredService<MiniBus>();
 
         var result = await bus.Handle(new AsyncValidatingHandler.Request(-1));
 
         Assert.That(result.IsSuccess, Is.False);
-        Assert.That(result.Status, Is.EqualTo(global::MiniBus.Convention.ResultStatus.Invalid));
+        Assert.That(result.Status, Is.EqualTo(global::MiniBus.ResultStatus.Invalid));
         Assert.That(result.ValidationErrors[0].Code, Is.EqualTo("POSITIVE"));
     }
 
     [Test]
     public async Task LoadValidate_NullLoad_ReturnsNotFoundBeforeValidate()
     {
-        using var scope = AppUnderTest.ConventionServices.CreateScope();
-        var bus = scope.ServiceProvider.GetRequiredService<ConventionBus>();
+        using var scope = AppUnderTest.Services.CreateScope();
+        var bus = scope.ServiceProvider.GetRequiredService<MiniBus>();
 
         // Id = 0 → Load returns null → NotFound, Validate never called
-        var result = await bus.Handle(new LoadValidateConventionHandler.Request(0));
+        var result = await bus.Handle(new LoadValidateHandler.Request(0));
 
-        Assert.That(result.Status, Is.EqualTo(global::MiniBus.Convention.ResultStatus.NotFound));
+        Assert.That(result.Status, Is.EqualTo(global::MiniBus.ResultStatus.NotFound));
     }
 
     [Test]
     public async Task LoadValidate_InvalidEntity_ReturnsInvalid()
     {
-        using var scope = AppUnderTest.ConventionServices.CreateScope();
-        var bus = scope.ServiceProvider.GetRequiredService<ConventionBus>();
+        using var scope = AppUnderTest.Services.CreateScope();
+        var bus = scope.ServiceProvider.GetRequiredService<MiniBus>();
 
         // Id = 999 → Load returns entity, but Validate rejects it
-        var result = await bus.Handle(new LoadValidateConventionHandler.Request(999));
+        var result = await bus.Handle(new LoadValidateHandler.Request(999));
 
-        Assert.That(result.Status, Is.EqualTo(global::MiniBus.Convention.ResultStatus.Invalid));
+        Assert.That(result.Status, Is.EqualTo(global::MiniBus.ResultStatus.Invalid));
         Assert.That(result.ValidationErrors[0].Code, Is.EqualTo("OUT_OF_RANGE"));
     }
 
     [Test]
     public async Task LoadValidate_ValidEntity_PassesToHandle()
     {
-        using var scope = AppUnderTest.ConventionServices.CreateScope();
-        var bus = scope.ServiceProvider.GetRequiredService<ConventionBus>();
+        using var scope = AppUnderTest.Services.CreateScope();
+        var bus = scope.ServiceProvider.GetRequiredService<MiniBus>();
 
-        var result = await bus.Handle(new LoadValidateConventionHandler.Request(42));
+        var result = await bus.Handle(new LoadValidateHandler.Request(42));
 
         Assert.That(result.IsSuccess, Is.True);
         Assert.That(result.Response!.Name, Is.EqualTo("item-42"));

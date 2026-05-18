@@ -2,7 +2,7 @@
 #nullable enable
 
 public class MyHandlerDispatcher
-    : global::MiniBus.Convention.IConventionHandler<
+    : global::MiniBus.IDispatcher<
         global::MyHandler.Request,
         global::MyHandler.Response>
 {
@@ -14,10 +14,10 @@ public class MyHandlerDispatcher
     }
 
     public async global::System.Threading.Tasks.Task<
-        global::MiniBus.Convention.Result<global::MyHandler.Response>>
+        global::MiniBus.Result<global::MyHandler.Response>>
         Handle(global::MyHandler.Request request)
     {
         var response = await _handler.Handle(request);
-        return global::MiniBus.Convention.Result<global::MyHandler.Response>.Success(response);
+        return global::MiniBus.Result<global::MyHandler.Response>.Success(response);
     }
 }

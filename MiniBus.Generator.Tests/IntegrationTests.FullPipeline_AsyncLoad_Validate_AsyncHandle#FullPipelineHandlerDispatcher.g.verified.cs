@@ -5,7 +5,7 @@
 namespace TestApp
 {
     public class FullPipelineHandlerDispatcher
-        : global::MiniBus.Convention.IConventionHandler<
+        : global::MiniBus.IDispatcher<
             global::TestApp.FullPipelineHandler.Request,
             global::TestApp.FullPipelineHandler.Response>
     {
@@ -17,19 +17,19 @@ namespace TestApp
         }
 
         public async global::System.Threading.Tasks.Task<
-            global::MiniBus.Convention.Result<global::TestApp.FullPipelineHandler.Response>>
+            global::MiniBus.Result<global::TestApp.FullPipelineHandler.Response>>
             Handle(global::TestApp.FullPipelineHandler.Request request)
         {
             var loaded = await _handler.Load(request);
             if (loaded is null)
-                return global::MiniBus.Convention.Result<global::TestApp.FullPipelineHandler.Response>.NotFound();
+                return global::MiniBus.Result<global::TestApp.FullPipelineHandler.Response>.NotFound();
 
             var validationResult = _handler.Validate(loaded);
             if (!validationResult.IsValid())
-                return global::MiniBus.Convention.Result<global::TestApp.FullPipelineHandler.Response>.Invalid(validationResult);
+                return global::MiniBus.Result<global::TestApp.FullPipelineHandler.Response>.Invalid(validationResult);
 
             var response = await _handler.Handle(loaded);
-            return global::MiniBus.Convention.Result<global::TestApp.FullPipelineHandler.Response>.Success(response);
+            return global::MiniBus.Result<global::TestApp.FullPipelineHandler.Response>.Success(response);
         }
     }
 }

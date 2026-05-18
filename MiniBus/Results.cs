@@ -1,6 +1,6 @@
 using System.Diagnostics.CodeAnalysis;
 
-namespace MiniBus.Convention;
+namespace MiniBus;
 
 public enum ResultStatus
 {

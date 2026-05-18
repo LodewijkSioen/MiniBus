@@ -1,13 +1,12 @@
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
-using MiniBus.Convention;
 
 namespace MiniBus.Generator.Tests;
 
 internal static class GeneratorTestHelper
 {
     /// <summary>
-    /// Compiles <paramref name="source"/> with MiniBus.Convention available,
+    /// Compiles <paramref name="source"/> with MiniBus available,
     /// runs <see cref="HandlerGenerator"/> against it, and returns the generated
     /// source texts and any generator-emitted diagnostics.
     /// </summary>
@@ -16,7 +15,7 @@ internal static class GeneratorTestHelper
         var syntaxTree = CSharpSyntaxTree.ParseText(source);
 
         // Collect all assemblies already loaded in this test process — this includes
-        // System.Runtime, Task, etc. — then add MiniBus.Convention explicitly.
+        // System.Runtime, Task, etc. — then add MiniBus explicitly.
         var references = AppDomain.CurrentDomain
             .GetAssemblies()
             .Where(a => !a.IsDynamic && !string.IsNullOrEmpty(a.Location))
@@ -24,9 +23,9 @@ internal static class GeneratorTestHelper
             .Cast<MetadataReference>()
             .ToList();
 
-        var conventionPath = typeof(HandlerAttribute).Assembly.Location;
-        if (!references.Any(r => r.Display == conventionPath))
-            references.Add(MetadataReference.CreateFromFile(conventionPath));
+        var path = typeof(HandlerAttribute).Assembly.Location;
+        if (!references.Any(r => r.Display == path))
+            references.Add(MetadataReference.CreateFromFile(path));
 
         var compilation = CSharpCompilation.Create(
             "GeneratorTestAssembly",
@@ -53,7 +52,7 @@ internal static class GeneratorTestHelper
     }
 
     /// <summary>
-    /// Compiles <paramref name="source"/> with MiniBus.Convention available,
+    /// Compiles <paramref name="source"/> with MiniBus available,
     /// runs <see cref="HandlerGenerator"/> against it, and returns the
     /// <see cref="GeneratorDriver"/> for use with Verify snapshot assertions.
     /// </summary>
@@ -68,9 +67,9 @@ internal static class GeneratorTestHelper
             .Cast<MetadataReference>()
             .ToList();
 
-        var conventionPath = typeof(HandlerAttribute).Assembly.Location;
-        if (!references.Any(r => r.Display == conventionPath))
-            references.Add(MetadataReference.CreateFromFile(conventionPath));
+        var path = typeof(HandlerAttribute).Assembly.Location;
+        if (!references.Any(r => r.Display == path))
+            references.Add(MetadataReference.CreateFromFile(path));
 
         var compilation = CSharpCompilation.Create(
             "GeneratorTestAssembly",

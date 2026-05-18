@@ -1,4 +1,3 @@
-using MiniBus.Convention;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace MiniBus.Tests;
@@ -34,7 +33,7 @@ public class LoadWithBothParamsHandler
 }
 
 [Handler]
-public class SyncLoadConventionHandler
+public class SyncLoadHandler
 {
     public record Request(int Id);
     public record Response(int Value);
@@ -56,20 +55,20 @@ public class LoadMethodIntegrationTests
     [Test]
     public async Task LoadReturnsNull_ResultIsNotFound()
     {
-        using var scope = AppUnderTest.ConventionServices.CreateScope();
-        var bus = scope.ServiceProvider.GetRequiredService<ConventionBus>();
+        using var scope = AppUnderTest.Services.CreateScope();
+        var bus = scope.ServiceProvider.GetRequiredService<MiniBus>();
 
         var result = await bus.Handle(new NullableLoadHandler.Request(ReturnNull: true));
 
         Assert.That(result.IsSuccess, Is.False);
-        Assert.That(result.Status, Is.EqualTo(global::MiniBus.Convention.ResultStatus.NotFound));
+        Assert.That(result.Status, Is.EqualTo(global::MiniBus.ResultStatus.NotFound));
     }
 
     [Test]
     public async Task LoadReturnsValue_HandleReceivesIt()
     {
-        using var scope = AppUnderTest.ConventionServices.CreateScope();
-        var bus = scope.ServiceProvider.GetRequiredService<ConventionBus>();
+        using var scope = AppUnderTest.Services.CreateScope();
+        var bus = scope.ServiceProvider.GetRequiredService<MiniBus>();
 
         var result = await bus.Handle(new NullableLoadHandler.Request(ReturnNull: false));
 
@@ -80,8 +79,8 @@ public class LoadMethodIntegrationTests
     [Test]
     public async Task HandleReceivesBothRequestAndLoaded()
     {
-        using var scope = AppUnderTest.ConventionServices.CreateScope();
-        var bus = scope.ServiceProvider.GetRequiredService<ConventionBus>();
+        using var scope = AppUnderTest.Services.CreateScope();
+        var bus = scope.ServiceProvider.GetRequiredService<MiniBus>();
 
         var result = await bus.Handle(new LoadWithBothParamsHandler.Request("hello"));
 
@@ -92,22 +91,22 @@ public class LoadMethodIntegrationTests
     [Test]
     public async Task SyncLoad_ReturnsNull_IsNotFound()
     {
-        using var scope = AppUnderTest.ConventionServices.CreateScope();
-        var bus = scope.ServiceProvider.GetRequiredService<ConventionBus>();
+        using var scope = AppUnderTest.Services.CreateScope();
+        var bus = scope.ServiceProvider.GetRequiredService<MiniBus>();
 
-        var result = await bus.Handle(new SyncLoadConventionHandler.Request(Id: 0));
+        var result = await bus.Handle(new SyncLoadHandler.Request(Id: 0));
 
         Assert.That(result.IsSuccess, Is.False);
-        Assert.That(result.Status, Is.EqualTo(global::MiniBus.Convention.ResultStatus.NotFound));
+        Assert.That(result.Status, Is.EqualTo(global::MiniBus.ResultStatus.NotFound));
     }
 
     [Test]
     public async Task SyncLoad_ReturnsValue_HandleReceivesIt()
     {
-        using var scope = AppUnderTest.ConventionServices.CreateScope();
-        var bus = scope.ServiceProvider.GetRequiredService<ConventionBus>();
+        using var scope = AppUnderTest.Services.CreateScope();
+        var bus = scope.ServiceProvider.GetRequiredService<MiniBus>();
 
-        var result = await bus.Handle(new SyncLoadConventionHandler.Request(Id: 4));
+        var result = await bus.Handle(new SyncLoadHandler.Request(Id: 4));
 
         Assert.That(result.IsSuccess, Is.True);
         Assert.That(result.Response!.Value, Is.EqualTo(12));

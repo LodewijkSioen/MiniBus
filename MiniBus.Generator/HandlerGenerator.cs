@@ -2,7 +2,6 @@ using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using System.Collections.Immutable;
 using System.Linq;
-using System.Text;
 using System.Threading;
 
 namespace MiniBus.Generator;
@@ -40,7 +39,7 @@ public sealed record HandlerModel(
 [Generator]
 public class HandlerGenerator : IIncrementalGenerator
 {
-    private const string HandlerAttributeFqn = "MiniBus.Convention.HandlerAttribute";
+    private const string HandlerAttributeFqn = "MiniBus.HandlerAttribute";
 
     private static readonly DiagnosticDescriptor DuplicateRequestType = new DiagnosticDescriptor(
         id: "MBG001",
@@ -59,7 +58,7 @@ public class HandlerGenerator : IIncrementalGenerator
                 transform: static (ctx, ct) => GetHandlerModel(ctx, ct))
             .Where(static m => m is not null);
 
-        // One file per handler: dispatcher class + typed ConventionBus extension method
+        // One file per handler: dispatcher class + typed MiniBus extension method
         context.RegisterSourceOutput(handlerModels, static (spc, model) =>
         {
             if (model is null) return;
@@ -84,7 +83,7 @@ public class HandlerGenerator : IIncrementalGenerator
                     spc.ReportDiagnostic(Diagnostic.Create(DuplicateRequestType, m.Location, m.ClassName, m.FullRequestType));
             }
 
-            spc.AddSource("ConventionRegistrations.g.cs", RegistrationsSourceBuilder.Build(valid, conflicting));
+            spc.AddSource("MiniBusRegistrations.g.cs", RegistrationsSourceBuilder.Build(valid, conflicting));
         });
     }
 
@@ -217,7 +216,7 @@ public class HandlerGenerator : IIncrementalGenerator
             }
 
             // Must return ValidationResult
-            if (validateReturnInner.ToDisplayString(fmt) == "global::MiniBus.Convention.ValidationResult")
+            if (validateReturnInner.ToDisplayString(fmt) == "global::MiniBus.ValidationResult")
             {
                 validateInfo = new ValidateInfo(IsAsync: validateAsync);
                 foreach (var param in validateMethod.Parameters)

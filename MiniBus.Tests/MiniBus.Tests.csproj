@@ -24,10 +24,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\MiniBus\MiniBus.csproj" />
-    <ProjectReference Include="..\MiniBus.Convention\MiniBus.Convention.csproj" />
-    <ProjectReference Include="..\MiniBus.Generator\MiniBus.Generator.csproj"
-                      OutputItemType="Analyzer"
-                      ReferenceOutputAssembly="false" />
+    <ProjectReference Include="..\MiniBus.Generator\MiniBus.Generator.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
   </ItemGroup>
 
   <ItemGroup>

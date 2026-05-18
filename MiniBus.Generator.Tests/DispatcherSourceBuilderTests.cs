@@ -1,6 +1,5 @@
 using System.Collections.Immutable;
 using Microsoft.CodeAnalysis;
-using MiniBus.Generator;
 
 namespace MiniBus.Generator.Tests;
 
