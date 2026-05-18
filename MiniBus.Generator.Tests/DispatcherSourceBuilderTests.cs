@@ -31,6 +31,7 @@ public class DispatcherSourceBuilderTests
             ValidateCallArgs: validateCallArgs,
             UnsupportedHandleParameters: ImmutableArray<string>.Empty,
             UnsupportedValidateParameters: ImmutableArray<string>.Empty,
+            IsGenericHandler: false,
             Location: Location.None);
     }
 

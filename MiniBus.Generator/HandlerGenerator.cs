@@ -1,5 +1,8 @@
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
+using System;
+using System.Security.Cryptography;
+using System.Text;
 using System.Collections.Immutable;
 using System.Linq;
 using System.Threading;
@@ -31,6 +34,7 @@ public sealed record HandlerModel(
     string ValidateCallArgs,
     ImmutableArray<string> UnsupportedHandleParameters,
     ImmutableArray<string> UnsupportedValidateParameters,
+    bool IsGenericHandler,
     Location Location)
 {
     // "global::TestApp.DummyHandler" + "Dispatcher" = "global::TestApp.DummyHandlerDispatcher"
@@ -69,6 +73,14 @@ public class HandlerGenerator : IIncrementalGenerator
         defaultSeverity: DiagnosticSeverity.Warning,
         isEnabledByDefault: true);
 
+    private static readonly DiagnosticDescriptor GenericHandlerNotSupported = new DiagnosticDescriptor(
+        id: "MBG004",
+        title: "Generic handler is not supported",
+        messageFormat: "Handler '{0}' is generic. Generic [Handler] classes are not supported by source generation.",
+        category: "MiniBus.Generator",
+        defaultSeverity: DiagnosticSeverity.Warning,
+        isEnabledByDefault: true);
+
     public void Initialize(IncrementalGeneratorInitializationContext context)
     {
         var handlerModels = context.SyntaxProvider
@@ -86,8 +98,10 @@ public class HandlerGenerator : IIncrementalGenerator
                 spc.ReportDiagnostic(Diagnostic.Create(UnsupportedParameter, model.Location, model.ClassName, unsupported, "Handle", model.FullRequestType));
             foreach (var unsupported in model.UnsupportedValidateParameters)
                 spc.ReportDiagnostic(Diagnostic.Create(UnsupportedParameter, model.Location, model.ClassName, unsupported, "Validate", model.FullRequestType));
-            if (model.HasUnsupportedParameters) return;
-            spc.AddSource($"{model.ClassName}Dispatcher.g.cs", DispatcherSourceBuilder.Build(model));
+            if (model.IsGenericHandler)
+                spc.ReportDiagnostic(Diagnostic.Create(GenericHandlerNotSupported, model.Location, model.FullClassName));
+            if (model.HasUnsupportedParameters || model.IsGenericHandler) return;
+            spc.AddSource(CreateDispatcherHintName(model), DispatcherSourceBuilder.Build(model));
         });
 
         // One file for all handlers: AddGeneratedHandlers() DI registration
@@ -96,7 +110,7 @@ public class HandlerGenerator : IIncrementalGenerator
             var valid = models
                 .Where(static m => m is not null)
                 .Select(static m => m!)
-                .Where(static m => !m.HasUnsupportedParameters)
+                .Where(static m => !m.HasUnsupportedParameters && !m.IsGenericHandler)
                 .ToArray();
             if (valid.Length == 0) return;   // no handlers → no file (avoids noise in tests)
 
@@ -130,6 +144,10 @@ public class HandlerGenerator : IIncrementalGenerator
 
     public static HandlerModel? GetHandlerModel(INamedTypeSymbol classSymbol, Location location)
     {
+        var fmt = SymbolDisplayFormat.FullyQualifiedFormat;
+
+        var isGenericHandler = classSymbol.Arity > 0 || HasGenericContainingType(classSymbol.ContainingType);
+
         // Must have a non-static Handle method with at least one parameter
         var handleMethod = classSymbol.GetMembers("Handle")
             .OfType<IMethodSymbol>()
@@ -152,8 +170,6 @@ public class HandlerGenerator : IIncrementalGenerator
             responseType = returnType;
             handleIsAsync = false;
         }
-
-        var fmt = SymbolDisplayFormat.FullyQualifiedFormat;
 
         // ── Detect optional Load method ───────────────────────────────────────
         LoadInfo? loadInfo = null;
@@ -332,6 +348,27 @@ public class HandlerGenerator : IIncrementalGenerator
             ValidateCallArgs: string.Join(", ", validateArgsList),
             UnsupportedHandleParameters: unsupportedHandleParameters,
             UnsupportedValidateParameters: unsupportedValidateParameters,
+            IsGenericHandler: isGenericHandler,
             Location: location);
+    }
+
+    private static bool HasGenericContainingType(INamedTypeSymbol? typeSymbol)
+    {
+        var current = typeSymbol;
+        while (current is not null)
+        {
+            if (current.Arity > 0) return true;
+            current = current.ContainingType;
+        }
+
+        return false;
+    }
+
+    private static string CreateDispatcherHintName(HandlerModel model)
+    {
+        using var sha = SHA256.Create();
+        var hashBytes = sha.ComputeHash(Encoding.UTF8.GetBytes(model.FullClassName));
+        var hash = BitConverter.ToString(hashBytes, 0, 4).Replace("-", "").ToLowerInvariant();
+        return $"{model.ClassName}Dispatcher_{hash}.g.cs";
     }
 }

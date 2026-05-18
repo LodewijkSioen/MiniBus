@@ -25,6 +25,7 @@ public class RegistrationsSourceBuilderTests
             ValidateCallArgs: "",
             UnsupportedHandleParameters: ImmutableArray<string>.Empty,
             UnsupportedValidateParameters: ImmutableArray<string>.Empty,
+            IsGenericHandler: false,
             Location: Location.None);
 
     // ── Tests ─────────────────────────────────────────────────────────────

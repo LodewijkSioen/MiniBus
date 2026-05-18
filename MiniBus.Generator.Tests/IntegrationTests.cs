@@ -165,6 +165,65 @@ public class IntegrationTests
     }
 
     [Test]
+    public void GenericHandler_ReportsMBG004_AndSkipsDispatcherGeneration()
+    {
+        const string source = """
+            using MiniBus;
+            namespace TestApp;
+
+            [Handler]
+            public class GenericHandler<T>
+            {
+                public record Request(int Id);
+                public record Response(string Name);
+                public Response Handle(Request request) => new Response(request.Id.ToString());
+            }
+            """;
+
+        var result = GeneratorTestHelper.Run(source);
+
+        Assert.That(result.Diagnostics.Any(d => d.Id == "MBG004"), Is.True);
+        Assert.That(result.GeneratedSources.Any(s => s.Contains("GenericHandlerDispatcher", StringComparison.Ordinal)), Is.False);
+    }
+
+    [Test]
+    public void SameClassNameInDifferentNamespaces_GeneratesBothDispatchers()
+    {
+        const string source = """
+            using MiniBus;
+
+            namespace TestApp.One
+            {
+                [Handler]
+                public class SameNameHandler
+                {
+                    public record Request(int Id);
+                    public record Response(string Name);
+                    public Response Handle(Request request) => new Response(request.Id.ToString());
+                }
+            }
+
+            namespace TestApp.Two
+            {
+                [Handler]
+                public class SameNameHandler
+                {
+                    public record Request(int Id);
+                    public record Response(string Name);
+                    public Response Handle(Request request) => new Response(request.Id.ToString());
+                }
+            }
+            """;
+
+        var result = GeneratorTestHelper.Run(source);
+
+        Assert.That(result.Diagnostics.Any(d => d.Severity == Microsoft.CodeAnalysis.DiagnosticSeverity.Error), Is.False);
+        Assert.That(result.GeneratedSources.Count(s => s.Contains("class SameNameHandlerDispatcher", StringComparison.Ordinal)), Is.EqualTo(2));
+        Assert.That(result.GeneratedSources.Any(s => s.Contains("namespace TestApp.One", StringComparison.Ordinal) && s.Contains("class SameNameHandlerDispatcher", StringComparison.Ordinal)), Is.True);
+        Assert.That(result.GeneratedSources.Any(s => s.Contains("namespace TestApp.Two", StringComparison.Ordinal) && s.Contains("class SameNameHandlerDispatcher", StringComparison.Ordinal)), Is.True);
+    }
+
+    [Test]
     public void DuplicateRequestResponsePair_ReportsMBG003_AndSkipsDuplicateDispatcherRegistrations()
     {
         const string source = """
