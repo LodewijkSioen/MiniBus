@@ -166,14 +166,17 @@ public class HandlerGenerator : IIncrementalGenerator
                 }
                 loadInfo = new LoadInfo(IsAsync: loadAsync, IsTuple: true, Elements: elements.ToImmutable());
             }
-            else if (loadReturnInner.NullableAnnotation == NullableAnnotation.Annotated)
+            else
             {
-                // Scalar nullable load: T?
-                var nonNullable = loadReturnInner.WithNullableAnnotation(NullableAnnotation.NotAnnotated);
+                // Scalar load: T or T?
+                var isNullable = loadReturnInner.NullableAnnotation == NullableAnnotation.Annotated;
+                var nonNullable = isNullable
+                    ? loadReturnInner.WithNullableAnnotation(NullableAnnotation.NotAnnotated)
+                    : loadReturnInner;
                 var fqn = nonNullable.ToDisplayString(fmt);
                 loadedByFqn[fqn] = "loaded";
                 loadInfo = new LoadInfo(IsAsync: loadAsync, IsTuple: false,
-                    Elements: ImmutableArray.Create(new LoadedElement("loaded", fqn, IsNullable: true)));
+                    Elements: ImmutableArray.Create(new LoadedElement("loaded", fqn, IsNullable: isNullable)));
             }
         }
 
@@ -248,4 +251,3 @@ public class HandlerGenerator : IIncrementalGenerator
             Location: location);
     }
 }
-

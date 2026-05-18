@@ -214,7 +214,15 @@ public class HandlerModelExtractionTests
 
         var model = HandlerGenerator.GetHandlerModel(GetSymbol(source, "NonNullLoadHandler"), Location.None);
 
-        Assert.That(model!.Load, Is.Null);  // non-nullable scalar → no LoadInfo
+        Assert.Multiple(() =>
+        {
+            Assert.That(model!.Load, Is.Not.Null);
+            Assert.That(model.Load!.IsTuple, Is.False);
+            Assert.That(model.Load.Elements, Has.Length.EqualTo(1));
+            Assert.That(model.Load.Elements[0].LocalName, Is.EqualTo("loaded"));
+            Assert.That(model.Load.Elements[0].IsNullable, Is.False);
+            Assert.That(model.HandleCallArgs, Is.EqualTo("loaded"));
+        });
     }
 
     [Test]
