@@ -168,7 +168,7 @@ public class HandlerGenerator : IIncrementalGenerator
             }
             else
             {
-                // Scalar load: T or T?
+                // Scalar load branch: handles both T and T? return types.
                 var isNullable = loadReturnInner.NullableAnnotation == NullableAnnotation.Annotated;
                 var nonNullable = isNullable
                     ? loadReturnInner.WithNullableAnnotation(NullableAnnotation.NotAnnotated)
