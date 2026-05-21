@@ -8,18 +8,9 @@ namespace MiniBus
 {
     public static class GeneratedHandlerRegistrations
     {
-        public static IServiceCollection AddMiniBus(
-            this IServiceCollection services)
-        {
-            services.AddMiniBusCore();
-            services.AddGeneratedHandlers();
-            return services;
-        }
-
         public static IServiceCollection AddGeneratedHandlers(
             this IServiceCollection services)
         {
-            services.AddTransient<global::MiniBus.MiniBus>();
             services.AddScoped<global::TestApp.HandlerOne>();
             services.AddScoped<
                 global::MiniBus.IDispatcher<
