@@ -11,6 +11,7 @@ namespace MiniBus
         public static IServiceCollection AddGeneratedHandlers(
             this IServiceCollection services)
         {
+            services.AddTransient<global::MiniBus.MiniBus>();
             return services;
         }
     }
