@@ -1,0 +1,67 @@
+﻿{
+  Diagnostics: [
+    {
+      Location: /*
+
+[Handler]
+^^^^^^^^^
+public class HandlerOne
+^^^^^^^^^^^^^^^^^^^^^^^
+{
+^
+    public record Response;
+^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    public System.Threading.Tasks.Task<Response> Handle(SharedRequest request)
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+        => System.Threading.Tasks.Task.FromResult(new Response());
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+}
+^
+
+*/
+ : (5,0)-(11,1),
+      Message: Handler 'HandlerOne' shares request type 'global::TestApp.SharedRequest' with another [Handler] class. No typed extension method will be generated for this request type.,
+      Severity: Warning,
+      WarningLevel: 1,
+      Descriptor: {
+        Id: MBG001,
+        Title: Duplicate request type,
+        MessageFormat: Handler '{0}' shares request type '{1}' with another [Handler] class. No typed extension method will be generated for this request type.,
+        Category: MiniBus.Generator,
+        DefaultSeverity: Warning,
+        IsEnabledByDefault: true
+      }
+    },
+    {
+      Location: /*
+
+[Handler]
+^^^^^^^^^
+public class HandlerTwo
+^^^^^^^^^^^^^^^^^^^^^^^
+{
+^
+    public record Response;
+^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    public System.Threading.Tasks.Task<Response> Handle(SharedRequest request)
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+        => System.Threading.Tasks.Task.FromResult(new Response());
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+}
+^
+*/
+ : (13,0)-(19,1),
+      Message: Handler 'HandlerTwo' shares request type 'global::TestApp.SharedRequest' with another [Handler] class. No typed extension method will be generated for this request type.,
+      Severity: Warning,
+      WarningLevel: 1,
+      Descriptor: {
+        Id: MBG001,
+        Title: Duplicate request type,
+        MessageFormat: Handler '{0}' shares request type '{1}' with another [Handler] class. No typed extension method will be generated for this request type.,
+        Category: MiniBus.Generator,
+        DefaultSeverity: Warning,
+        IsEnabledByDefault: true
+      }
+    }
+  ]
+}
