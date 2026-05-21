@@ -123,8 +123,6 @@ public class HandlerGenerator : IIncrementalGenerator
                 .Select(static m => m!)
                 .Where(static m => !m.HasUnsupportedParameters && !m.IsGenericHandler && !m.IsNestedHandler)
                 .ToArray();
-            if (valid.Length == 0) return;   // no handlers → no file (avoids noise in tests)
-
             // Detect handlers that share a request type — extension methods would collide (CS0111)
             var conflicting = new System.Collections.Generic.HashSet<string>();
             foreach (var group in valid.GroupBy(static m => m.FullRequestType).Where(static g => g.Count() > 1))
