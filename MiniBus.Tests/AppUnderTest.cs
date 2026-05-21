@@ -12,7 +12,6 @@ public class AppUnderTest
     {
         var serviceCollection = new ServiceCollection();
         serviceCollection.AddMiniBus();
-        serviceCollection.AddGeneratedHandlers();
         Services = serviceCollection.BuildServiceProvider();
     }
 

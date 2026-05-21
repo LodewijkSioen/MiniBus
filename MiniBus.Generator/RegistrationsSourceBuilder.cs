@@ -22,6 +22,7 @@ public static class RegistrationsSourceBuilder
         sb.AppendLine("        public static IServiceCollection AddGeneratedHandlers(");
         sb.AppendLine("            this IServiceCollection services)");
         sb.AppendLine("        {");
+        sb.AppendLine("            services.AddTransient<global::MiniBus.MiniBus>();");
 
         foreach (var model in models)
         {
