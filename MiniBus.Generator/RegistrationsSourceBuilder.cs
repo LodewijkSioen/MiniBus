@@ -19,6 +19,14 @@ public static class RegistrationsSourceBuilder
         sb.AppendLine("{");
         sb.AppendLine("    public static class GeneratedHandlerRegistrations");
         sb.AppendLine("    {");
+        sb.AppendLine("        public static IServiceCollection AddMiniBus(");
+        sb.AppendLine("            this IServiceCollection services)");
+        sb.AppendLine("        {");
+        sb.AppendLine("            services.AddMiniBusCore();");
+        sb.AppendLine("            services.AddGeneratedHandlers();");
+        sb.AppendLine("            return services;");
+        sb.AppendLine("        }");
+        sb.AppendLine();
         sb.AppendLine("        public static IServiceCollection AddGeneratedHandlers(");
         sb.AppendLine("            this IServiceCollection services)");
         sb.AppendLine("        {");
