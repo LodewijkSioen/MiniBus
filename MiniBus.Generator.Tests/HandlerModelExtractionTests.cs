@@ -364,7 +364,7 @@ public class HandlerModelExtractionTests
 
         var model = HandlerGenerator.GetHandlerModel(GetSymbol(source, "LoadedArgHandler"), Location.None);
 
-        Assert.That(model!.HandleCallArgs, Is.EqualTo("loaded"));
+        Assert.That(model!.HandleCallArgs, Is.EqualTo("loadedValue"));
     }
 
     [Test]
@@ -388,7 +388,7 @@ public class HandlerModelExtractionTests
 
         var model = HandlerGenerator.GetHandlerModel(GetSymbol(source, "BothArgsHandler"), Location.None);
 
-        Assert.That(model!.HandleCallArgs, Is.EqualTo("request, loaded"));
+        Assert.That(model!.HandleCallArgs, Is.EqualTo("request, loadedValue"));
     }
 
     // ── Validate ──────────────────────────────────────────────────────────
@@ -466,7 +466,7 @@ public class HandlerModelExtractionTests
 
         var model = HandlerGenerator.GetHandlerModel(GetSymbol(source, "BothValidateArgsHandler"), Location.None);
 
-        Assert.That(model!.ValidateCallArgs, Is.EqualTo("request, loaded"));
+        Assert.That(model!.ValidateCallArgs, Is.EqualTo("request, loadedValue"));
     }
 
     [Test]

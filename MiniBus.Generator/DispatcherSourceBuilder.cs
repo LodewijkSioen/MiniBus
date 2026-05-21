@@ -51,12 +51,10 @@ public static class DispatcherSourceBuilder
             {
                 sb.AppendLine($"{i}        var {load.Elements[0].LocalName} = {awaitPrefix}_handler.Load(request);");
             }
-            var nullChecks = string.Join(" || ", load.Elements
-                .Where(e => e.IsNullable)
-                .Select(e => $"{e.LocalName} is null"));
-            if (nullChecks.Length > 0)
+            var nullableElements = load.Elements.Where(e => e.IsNullable).ToArray();
+            foreach (var e in nullableElements)
             {
-                sb.AppendLine($"{i}        if ({nullChecks})");
+                sb.AppendLine($"{i}        if ({e.LocalName} is not {{ }} {e.NonNullLocalName})");
                 sb.AppendLine($"{i}            return {taskWrap}global::MiniBus.Result<{model.FullResponseType}>.NotFound(){taskClose};");
             }
             sb.AppendLine();

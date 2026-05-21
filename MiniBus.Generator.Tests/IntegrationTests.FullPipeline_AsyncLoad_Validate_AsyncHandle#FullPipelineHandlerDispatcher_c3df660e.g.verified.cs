@@ -21,14 +21,14 @@ namespace TestApp
             Handle(global::TestApp.FullPipelineHandler.Request request)
         {
             var loaded = await _handler.Load(request);
-            if (loaded is null)
+            if (loaded is not { } loadedValue)
                 return global::MiniBus.Result<global::TestApp.FullPipelineHandler.Response>.NotFound();
 
-            var validationResult = _handler.Validate(loaded);
+            var validationResult = _handler.Validate(loadedValue);
             if (!validationResult.IsValid())
                 return global::MiniBus.Result<global::TestApp.FullPipelineHandler.Response>.Invalid(validationResult);
 
-            var response = await _handler.Handle(loaded);
+            var response = await _handler.Handle(loadedValue);
             return global::MiniBus.Result<global::TestApp.FullPipelineHandler.Response>.Success(response);
         }
     }

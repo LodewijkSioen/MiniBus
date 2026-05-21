@@ -12,7 +12,11 @@ namespace MiniBus.Generator;
 public sealed record LoadedElement(
     string LocalName,    // local variable name in generated code
     string FullType,     // non-nullable, global::-prefixed
-    bool IsNullable);    // whether a null-check should be emitted
+    bool IsNullable)     // whether a null-check should be emitted
+{
+    // For nullable elements, a non-nullable pattern variable captured after the null check
+    public string NonNullLocalName => IsNullable ? LocalName + "Value" : LocalName;
+}
 
 public sealed record LoadInfo(
     bool IsAsync,
@@ -234,8 +238,9 @@ public class HandlerGenerator : IIncrementalGenerator
                     var localName = rawName.Length > 0 && char.IsUpper(rawName[0])
                         ? char.ToLower(rawName[0]) + rawName.Substring(1)
                         : rawName;
-                    elements.Add(new LoadedElement(localName, fqn, isNullable));
-                    AddLoadedLocalName(loadedByFqn, fqn, localName);
+                    var loadedElem = new LoadedElement(localName, fqn, isNullable);
+                    elements.Add(loadedElem);
+                    AddLoadedLocalName(loadedByFqn, fqn, loadedElem.NonNullLocalName);
                 }
                 loadInfo = new LoadInfo(IsAsync: loadAsync, IsTuple: true, Elements: elements.ToImmutable());
             }
@@ -247,9 +252,10 @@ public class HandlerGenerator : IIncrementalGenerator
                     ? loadReturnInner.WithNullableAnnotation(NullableAnnotation.NotAnnotated)
                     : loadReturnInner;
                 var fqn = nonNullable.ToDisplayString(fmt);
-                AddLoadedLocalName(loadedByFqn, fqn, "loaded");
+                var loadedElem = new LoadedElement("loaded", fqn, IsNullable: isNullable);
+                AddLoadedLocalName(loadedByFqn, fqn, loadedElem.NonNullLocalName);
                 loadInfo = new LoadInfo(IsAsync: loadAsync, IsTuple: false,
-                    Elements: ImmutableArray.Create(new LoadedElement("loaded", fqn, IsNullable: isNullable)));
+                    Elements: ImmutableArray.Create(loadedElem));
             }
         }
 

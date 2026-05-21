@@ -20,10 +20,10 @@ namespace TestApp
             Handle(global::TestApp.MyHandler.Request request)
         {
             var loaded = await _handler.Load(request);
-            if (loaded is null)
+            if (loaded is not { } loadedValue)
                 return global::MiniBus.Result<global::TestApp.MyHandler.Response>.NotFound();
 
-            var response = await _handler.Handle(loaded);
+            var response = await _handler.Handle(loadedValue);
             return global::MiniBus.Result<global::TestApp.MyHandler.Response>.Success(response);
         }
     }

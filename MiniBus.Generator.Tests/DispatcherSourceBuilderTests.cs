@@ -56,12 +56,12 @@ public class DispatcherSourceBuilderTests
     [Test]
     public Task AsyncNullableScalarLoad_AsyncHandle() =>
         Verify(DispatcherSourceBuilder.Build(
-            Model(load: ScalarLoad(true, true), handleCallArgs: "loaded")));
+            Model(load: ScalarLoad(true, true), handleCallArgs: "loadedValue")));
 
     [Test]
     public Task SyncNullableScalarLoad_AsyncHandle() =>
         Verify(DispatcherSourceBuilder.Build(
-            Model(load: ScalarLoad(false, true), handleCallArgs: "loaded")));
+            Model(load: ScalarLoad(false, true), handleCallArgs: "loadedValue")));
 
     [Test]
     public Task NonNullableLoad_DoesNotGenerateNullCheck() =>
@@ -75,7 +75,7 @@ public class DispatcherSourceBuilderTests
         Verify(DispatcherSourceBuilder.Build(Model(
             load: ScalarLoad(false, true),
             validate: new ValidateInfo(IsAsync: false),
-            handleCallArgs: "loaded",
+            handleCallArgs: "loadedValue",
             validateCallArgs: "request")));
 
     [Test]
@@ -83,24 +83,24 @@ public class DispatcherSourceBuilderTests
         Verify(DispatcherSourceBuilder.Build(Model(
             load: ScalarLoad(false, true),
             validate: new ValidateInfo(IsAsync: false),
-            handleCallArgs: "loaded",
-            validateCallArgs: "loaded")));
+            handleCallArgs: "loadedValue",
+            validateCallArgs: "loadedValue")));
 
     [Test]
     public Task SyncLoad_SyncValidate_BothArgs() =>
         Verify(DispatcherSourceBuilder.Build(Model(
             load: ScalarLoad(false, true),
             validate: new ValidateInfo(IsAsync: false),
-            handleCallArgs: "request, loaded",
-            validateCallArgs: "request, loaded")));
+            handleCallArgs: "request, loadedValue",
+            validateCallArgs: "request, loadedValue")));
 
     [Test]
     public Task AsyncLoad_AsyncValidate_AsyncHandle() =>
         Verify(DispatcherSourceBuilder.Build(Model(
             load: ScalarLoad(true, true),
             validate: new ValidateInfo(IsAsync: true),
-            handleCallArgs: "loaded",
-            validateCallArgs: "loaded")));
+            handleCallArgs: "loadedValue",
+            validateCallArgs: "loadedValue")));
 
     // ── Tuple load ────────────────────────────────────────────────────────
 
@@ -111,7 +111,7 @@ public class DispatcherSourceBuilderTests
                 Elements: ImmutableArray.Create(
                     new LoadedElement("entity", "global::TestApp.MyHandler.Entity", IsNullable: true),
                     new LoadedElement("config", "global::TestApp.MyHandler.Config", IsNullable: true))),
-            handleCallArgs: "entity, config")));
+            handleCallArgs: "entityValue, configValue")));
 
     [Test]
     public Task TupleLoad_PartialNullableUnnamedElements() =>
@@ -120,7 +120,7 @@ public class DispatcherSourceBuilderTests
                 Elements: ImmutableArray.Create(
                     new LoadedElement("item1", "global::TestApp.MyHandler.Entity", IsNullable: true),
                     new LoadedElement("item2", "global::TestApp.MyHandler.Config", IsNullable: false))),
-            handleCallArgs: "item1, item2")));
+            handleCallArgs: "item1Value, item2")));
 
     [Test]
     public Task TupleLoad_NoNullableElements_NoNullCheck() =>
