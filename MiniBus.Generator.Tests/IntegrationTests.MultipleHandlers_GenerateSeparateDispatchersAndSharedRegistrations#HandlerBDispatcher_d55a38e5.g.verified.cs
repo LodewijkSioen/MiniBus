@@ -16,6 +16,8 @@ namespace TestApp
             _handler = handler;
         }
 
+        public string HandlerName => nameof(global::TestApp.HandlerB);
+
         public async global::System.Threading.Tasks.Task<
             global::MiniBus.Result<global::TestApp.HandlerB.Response>>
             Handle(global::TestApp.HandlerB.Request request)

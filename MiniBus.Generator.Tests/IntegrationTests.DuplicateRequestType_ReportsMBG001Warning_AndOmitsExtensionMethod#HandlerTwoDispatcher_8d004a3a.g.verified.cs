@@ -16,6 +16,8 @@ namespace TestApp
             _handler = handler;
         }
 
+        public string HandlerName => nameof(global::TestApp.HandlerTwo);
+
         public async global::System.Threading.Tasks.Task<
             global::MiniBus.Result<global::TestApp.HandlerTwo.Response>>
             Handle(global::TestApp.SharedRequest request)

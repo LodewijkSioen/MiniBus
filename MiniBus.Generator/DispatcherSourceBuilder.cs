@@ -30,6 +30,8 @@ public static class DispatcherSourceBuilder
         sb.AppendLine($"{i}        _handler = handler;");
         sb.AppendLine($"{i}    }}");
         sb.AppendLine();
+        sb.AppendLine($"{i}    public string HandlerName => nameof({model.FullClassName});");
+        sb.AppendLine();
         var asyncKeyword = model.IsAnyAsync ? "async " : "";
         var taskWrap  = model.IsAnyAsync ? "" : "global::System.Threading.Tasks.Task.FromResult(";
         var taskClose = model.IsAnyAsync ? "" : ")";

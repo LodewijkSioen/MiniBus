@@ -13,6 +13,8 @@ public class MyHandlerDispatcher
         _handler = handler;
     }
 
+    public string HandlerName => nameof(global::MyHandler);
+
     public async global::System.Threading.Tasks.Task<
         global::MiniBus.Result<global::MyHandler.Response>>
         Handle(global::MyHandler.Request request)
