@@ -1,6 +1,7 @@
 # MiniBus
 
-MiniBus is a small mediator-style helper around dependency injection.
+MiniBus is a small mediator-style library for request/response handling through
+dependency injection.
 
 ## Registration
 
@@ -66,6 +67,7 @@ Short-circuit behavior:
 For loader implementations, there is a helper extension:
 
 ```csharp
+// Assign a loaded entity to a field only when the entity is not null.
 bool isLoaded = this.TryAssign(candidateValue, ref targetField);
 ```
 
