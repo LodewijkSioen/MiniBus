@@ -25,7 +25,7 @@ public class MiniBus(IServiceProvider services)
             {
                 { "exception.type", ex.GetType().FullName },
                 { "exception.message", ex.Message },
-                { "exception.stacktrace", ex.ToString() }
+                { "exception.stacktrace", ex.StackTrace }
             }));
             activity?.SetStatus(ActivityStatusCode.Error, ex.Message);
             throw;
