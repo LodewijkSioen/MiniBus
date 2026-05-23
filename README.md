@@ -1,16 +1,10 @@
 # MiniBus
 
-MiniBus is a small Mediator-style helper to move request handling logic out of
-controllers and into dedicated handlers.
+MiniBus is a small mediator-style helper around dependency injection.
 
-## What it does
+## Registration
 
-- Registers handlers with DI through `AddMinibus(...)`
-- Executes optional loading and validation before handling
-- Returns a `Result<TResponse>` with status information (`Ok`, `NotFound`,
-  `Invalid`)
-
-## Quick start
+Register MiniBus and scan assemblies for handlers:
 
 ```csharp
 using MiniBus;
@@ -18,44 +12,61 @@ using Microsoft.Extensions.DependencyInjection;
 
 var services = new ServiceCollection();
 services.AddMinibus(typeof(SomeRequest).Assembly);
+var provider = services.BuildServiceProvider();
 ```
 
-Create a request + handler:
+`AddMinibus(...)` registers:
+- all `IHandler<TRequest, TResponse>` implementations as **scoped**
+- `MiniBus` as **transient**
+
+## Requests and handlers
 
 ```csharp
 public record SomeRequest(int Id) : IRequest<SomeResponse>;
 public record SomeResponse(string Name);
 
-public class SomeHandler : IHandler<SomeRequest, SomeResponse>
+public sealed class SomeHandler : IHandler<SomeRequest, SomeResponse>
 {
     public Task<SomeResponse> Handle(SomeRequest request)
-    {
-        return Task.FromResult(new SomeResponse("MiniBus"));
-    }
+        => Task.FromResult(new SomeResponse($"Item {request.Id}"));
 }
 ```
 
-Handle a request:
+Call the bus:
 
 ```csharp
 var bus = provider.GetRequiredService<MiniBus.MiniBus>();
-var result = await bus.Handle<SomeRequest, SomeResponse>(new SomeRequest(1));
-
-if (result.IsSuccess)
-{
-    Console.WriteLine(result.Response!.Name);
-}
+Result<SomeResponse> result = await bus.Handle<SomeRequest, SomeResponse>(new(1));
 ```
 
-## Optional pipeline interfaces
+## Pipeline behavior
 
-Handlers can also implement:
+Before calling `IHandler<TRequest, TResponse>.Handle(...)`, MiniBus optionally runs:
 
-- `ILoader<TRequest>`: load extra data before handling
-- `IValidator<TRequest>`: synchronous validation
-- `IAsyncValidator<TRequest>`: asynchronous validation
+1. `ILoader<TRequest>.Load(...)`
+2. `IValidator<TRequest>.Validate(...)`
+3. `IAsyncValidator<TRequest>.Validate(...)`
 
-If loading returns `LoadResult.NotFound(...)`, execution stops with
-`ResultStatus.NotFound`.
+Short-circuit behavior:
+- `LoadResult.NotFound(message)` -> `ResultStatus.NotFound`
+- non-empty `ValidationResult` -> `ResultStatus.Invalid`
+- otherwise -> `ResultStatus.Ok` with `Response`
 
-If validation returns errors, execution stops with `ResultStatus.Invalid`.
+## Result model
+
+`Result<TResponse>` contains:
+- `Status` (`Ok`, `NotFound`, `Invalid`)
+- `Response` (when successful)
+- `ValidationResult` (validation errors / not-found message)
+
+`IsSuccess` is true when `Status == ResultStatus.Ok`.
+
+## Loader nullability helper
+
+For loader implementations, there is a helper extension:
+
+```csharp
+bool isLoaded = this.TryAssign(candidateValue, ref targetField);
+```
+
+`TryAssign` returns `true` and assigns when the candidate value is not null.
