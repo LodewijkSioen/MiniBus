@@ -490,4 +490,33 @@ public class HandlerModelExtractionTests
 
         Assert.That(model!.Validate, Is.Null);
     }
+
+    [Test]
+    public void RequestType_UsesValidateFirstParam_WhenLoadIsMissing()
+    {
+        const string source = """
+            using MiniBus;
+            namespace TestApp;
+            [Handler]
+            public class ValidateRequestTypeHandler
+            {
+                public record Query(string Value);
+                public record Command(string Value);
+                public record Response(string Out);
+                public ValidationResult Validate(Query query) => new ValidationResult();
+                public System.Threading.Tasks.Task<Response> Handle(Command command)
+                    => System.Threading.Tasks.Task.FromResult(new Response(command.Value));
+            }
+            """;
+
+        var model = HandlerModelFactory.GetHandlerModel(GetSymbol(source, "ValidateRequestTypeHandler"), Location.None);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(model, Is.Not.Null);
+            Assert.That(model!.FullRequestType, Is.EqualTo("global::TestApp.ValidateRequestTypeHandler.Query"));
+            Assert.That(model.UnsupportedHandleParameters, Has.Length.EqualTo(1));
+            Assert.That(model.UnsupportedHandleParameters[0], Is.EqualTo("command: global::TestApp.ValidateRequestTypeHandler.Command"));
+        });
+    }
 }

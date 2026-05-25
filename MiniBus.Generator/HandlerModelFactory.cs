@@ -43,10 +43,13 @@ public static class HandlerModelFactory
         // Extract Load info and build the loaded-by-type lookup
         var (loadInfo, loadedByFqn) = ExtractLoadInfo(loadMethod, fmt);
 
-        // Request type: first param of Load (if present), else first param of Handle
-        var requestFqn = (loadMethod is not null
+        // Request type: first param of Load (if present), else first param of Validate (if present), else first param of Handle
+        var requestTypeSymbol = loadMethod is not null
             ? loadMethod.Parameters[0].Type
-            : handleMethod.Parameters[0].Type).ToDisplayString(fmt);
+            : validateMethod is { Parameters.Length: >= 1 }
+                ? validateMethod.Parameters[0].Type
+                : handleMethod.Parameters[0].Type;
+        var requestFqn = requestTypeSymbol.ToDisplayString(fmt);
 
         // Build call args for Handle
         var (handleArgsList, unsupportedHandleParameters) = BuildCallArgs(handleMethod.Parameters, loadedByFqn, requestFqn, fmt);
