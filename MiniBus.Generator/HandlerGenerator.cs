@@ -53,46 +53,6 @@ public class HandlerGenerator : IIncrementalGenerator
 {
     private const string HandlerAttributeFqn = "MiniBus.HandlerAttribute";
 
-    private static readonly DiagnosticDescriptor DuplicateRequestType = new DiagnosticDescriptor(
-        id: "MBG001",
-        title: "Duplicate request type",
-        messageFormat: "Handler '{0}' shares request type '{1}' with another [Handler] class. No typed extension method will be generated for this request type.",
-        category: "MiniBus.Generator",
-        defaultSeverity: DiagnosticSeverity.Warning,
-        isEnabledByDefault: true);
-
-    private static readonly DiagnosticDescriptor UnsupportedParameter = new DiagnosticDescriptor(
-        id: "MBG002",
-        title: "Unsupported handler parameter",
-        messageFormat: "Handler '{0}' has unsupported parameter '{1}' in {2}. Parameters must match request type '{3}' or a loaded value type.",
-        category: "MiniBus.Generator",
-        defaultSeverity: DiagnosticSeverity.Warning,
-        isEnabledByDefault: true);
-
-    private static readonly DiagnosticDescriptor DuplicateRequestResponsePair = new DiagnosticDescriptor(
-        id: "MBG003",
-        title: "Duplicate request/response pair",
-        messageFormat: "Handler '{0}' shares request/response pair '{1}' -> '{2}' with another [Handler] class. Dispatcher registration and typed extension method are omitted for this pair.",
-        category: "MiniBus.Generator",
-        defaultSeverity: DiagnosticSeverity.Warning,
-        isEnabledByDefault: true);
-
-    private static readonly DiagnosticDescriptor GenericHandlerNotSupported = new DiagnosticDescriptor(
-        id: "MBG004",
-        title: "Generic handler is not supported",
-        messageFormat: "Handler '{0}' is generic. Generic [Handler] classes are not supported by source generation.",
-        category: "MiniBus.Generator",
-        defaultSeverity: DiagnosticSeverity.Warning,
-        isEnabledByDefault: true);
-
-    private static readonly DiagnosticDescriptor NestedHandlerNotSupported = new DiagnosticDescriptor(
-        id: "MBG005",
-        title: "Nested handler is not supported",
-        messageFormat: "Handler '{0}' is nested. Nested [Handler] classes are not supported by source generation.",
-        category: "MiniBus.Generator",
-        defaultSeverity: DiagnosticSeverity.Warning,
-        isEnabledByDefault: true);
-
     public void Initialize(IncrementalGeneratorInitializationContext context)
     {
         var handlerModels = context.SyntaxProvider
@@ -107,13 +67,27 @@ public class HandlerGenerator : IIncrementalGenerator
         {
             if (model is null) return;
             foreach (var unsupported in model.UnsupportedHandleParameters)
-                spc.ReportDiagnostic(Diagnostic.Create(UnsupportedParameter, model.Location, model.ClassName, unsupported, "Handle", model.FullRequestType));
+                spc.ReportDiagnostic(GeneratorDiagnostics.UnsupportedParameter(
+                    location: model.Location,
+                    handlerName: model.ClassName,
+                    parameterNameAndType: unsupported,
+                    methodName: "Handle",
+                    requestType: model.FullRequestType));
             foreach (var unsupported in model.UnsupportedValidateParameters)
-                spc.ReportDiagnostic(Diagnostic.Create(UnsupportedParameter, model.Location, model.ClassName, unsupported, "Validate", model.FullRequestType));
+                spc.ReportDiagnostic(GeneratorDiagnostics.UnsupportedParameter(
+                    location: model.Location,
+                    handlerName: model.ClassName,
+                    parameterNameAndType: unsupported,
+                    methodName: "Validate",
+                    requestType: model.FullRequestType));
             if (model.IsGenericHandler)
-                spc.ReportDiagnostic(Diagnostic.Create(GenericHandlerNotSupported, model.Location, model.FullClassName));
+                spc.ReportDiagnostic(GeneratorDiagnostics.GenericHandlerNotSupported(
+                    location: model.Location,
+                    fullHandlerName: model.FullClassName));
             if (model.IsNestedHandler)
-                spc.ReportDiagnostic(Diagnostic.Create(NestedHandlerNotSupported, model.Location, model.FullClassName));
+                spc.ReportDiagnostic(GeneratorDiagnostics.NestedHandlerNotSupported(
+                    location: model.Location,
+                    fullHandlerName: model.FullClassName));
             if (model.HasUnsupportedParameters || model.IsGenericHandler || model.IsNestedHandler) return;
             spc.AddSource(CreateDispatcherHintName(model), DispatcherSourceBuilder.Build(model));
         });
@@ -132,7 +106,10 @@ public class HandlerGenerator : IIncrementalGenerator
             {
                 conflicting.Add(group.Key);
                 foreach (var m in group)
-                    spc.ReportDiagnostic(Diagnostic.Create(DuplicateRequestType, m.Location, m.ClassName, m.FullRequestType));
+                    spc.ReportDiagnostic(GeneratorDiagnostics.DuplicateRequestType(
+                        location: m.Location,
+                        handlerName: m.ClassName,
+                        requestType: m.FullRequestType));
             }
 
             var excludedDispatcherPairs = new System.Collections.Generic.HashSet<string>();
@@ -140,7 +117,11 @@ public class HandlerGenerator : IIncrementalGenerator
             {
                 excludedDispatcherPairs.Add(group.Key);
                 foreach (var m in group)
-                    spc.ReportDiagnostic(Diagnostic.Create(DuplicateRequestResponsePair, m.Location, m.ClassName, m.FullRequestType, m.FullResponseType));
+                    spc.ReportDiagnostic(GeneratorDiagnostics.DuplicateRequestResponsePair(
+                        location: m.Location,
+                        handlerName: m.ClassName,
+                        requestType: m.FullRequestType,
+                        responseType: m.FullResponseType));
             }
 
             spc.AddSource("MiniBusRegistrations.g.cs", RegistrationsSourceBuilder.Build(valid, conflicting, excludedDispatcherPairs));
