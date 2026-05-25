@@ -57,7 +57,7 @@ public class HandlerModelExtractionTests
             }
             """;
 
-        var model = HandlerGenerator.GetHandlerModel(GetSymbol(source, "OrderHandler"), Location.None);
+        var model = HandlerModelFactory.GetHandlerModel(GetSymbol(source, "OrderHandler"), Location.None);
 
         Assert.Multiple(() =>
         {
@@ -89,7 +89,7 @@ public class HandlerModelExtractionTests
             }
             """;
 
-        var model = HandlerGenerator.GetHandlerModel(GetSymbol(source, "SyncHandler"), Location.None);
+        var model = HandlerModelFactory.GetHandlerModel(GetSymbol(source, "SyncHandler"), Location.None);
 
         Assert.That(model!.HandleIsAsync, Is.False);
     }
@@ -109,7 +109,7 @@ public class HandlerModelExtractionTests
             }
             """;
 
-        var model = HandlerGenerator.GetHandlerModel(GetSymbol(source, "GlobalHandler"), Location.None);
+        var model = HandlerModelFactory.GetHandlerModel(GetSymbol(source, "GlobalHandler"), Location.None);
 
         Assert.That(model!.Namespace, Is.Null);
     }
@@ -128,7 +128,7 @@ public class HandlerModelExtractionTests
             }
             """;
 
-        var model = HandlerGenerator.GetHandlerModel(GetSymbol(source, "NoHandleHandler"), Location.None);
+        var model = HandlerModelFactory.GetHandlerModel(GetSymbol(source, "NoHandleHandler"), Location.None);
 
         Assert.That(model, Is.Null);
     }
@@ -154,7 +154,7 @@ public class HandlerModelExtractionTests
             }
             """;
 
-        var model = HandlerGenerator.GetHandlerModel(GetSymbol(source, "EntityHandler"), Location.None);
+        var model = HandlerModelFactory.GetHandlerModel(GetSymbol(source, "EntityHandler"), Location.None);
 
         Assert.Multiple(() =>
         {
@@ -185,7 +185,7 @@ public class HandlerModelExtractionTests
             }
             """;
 
-        var model = HandlerGenerator.GetHandlerModel(GetSymbol(source, "SyncLoadHandler"), Location.None);
+        var model = HandlerModelFactory.GetHandlerModel(GetSymbol(source, "SyncLoadHandler"), Location.None);
 
         Assert.Multiple(() =>
         {
@@ -212,7 +212,7 @@ public class HandlerModelExtractionTests
             }
             """;
 
-        var model = HandlerGenerator.GetHandlerModel(GetSymbol(source, "NonNullLoadHandler"), Location.None);
+        var model = HandlerModelFactory.GetHandlerModel(GetSymbol(source, "NonNullLoadHandler"), Location.None);
 
         Assert.Multiple(() =>
         {
@@ -244,7 +244,7 @@ public class HandlerModelExtractionTests
             }
             """;
 
-        var model = HandlerGenerator.GetHandlerModel(GetSymbol(source, "LoadRequestHandler"), Location.None);
+        var model = HandlerModelFactory.GetHandlerModel(GetSymbol(source, "LoadRequestHandler"), Location.None);
 
         Assert.That(model!.FullRequestType, Is.EqualTo("global::TestApp.LoadRequestHandler.Query"));
     }
@@ -269,7 +269,7 @@ public class HandlerModelExtractionTests
             }
             """;
 
-        var model = HandlerGenerator.GetHandlerModel(GetSymbol(source, "TupleHandler"), Location.None);
+        var model = HandlerModelFactory.GetHandlerModel(GetSymbol(source, "TupleHandler"), Location.None);
 
         Assert.Multiple(() =>
         {
@@ -301,7 +301,7 @@ public class HandlerModelExtractionTests
             }
             """;
 
-        var model = HandlerGenerator.GetHandlerModel(GetSymbol(source, "UnnamedTupleHandler"), Location.None);
+        var model = HandlerModelFactory.GetHandlerModel(GetSymbol(source, "UnnamedTupleHandler"), Location.None);
 
         Assert.Multiple(() =>
         {
@@ -332,7 +332,7 @@ public class HandlerModelExtractionTests
             }
             """;
 
-        var model = HandlerGenerator.GetHandlerModel(GetSymbol(source, "DuplicateTupleTypesHandler"), Location.None);
+        var model = HandlerModelFactory.GetHandlerModel(GetSymbol(source, "DuplicateTupleTypesHandler"), Location.None);
 
         Assert.Multiple(() =>
         {
@@ -362,7 +362,7 @@ public class HandlerModelExtractionTests
             }
             """;
 
-        var model = HandlerGenerator.GetHandlerModel(GetSymbol(source, "LoadedArgHandler"), Location.None);
+        var model = HandlerModelFactory.GetHandlerModel(GetSymbol(source, "LoadedArgHandler"), Location.None);
 
         Assert.That(model!.HandleCallArgs, Is.EqualTo("loadedValue"));
     }
@@ -386,7 +386,7 @@ public class HandlerModelExtractionTests
             }
             """;
 
-        var model = HandlerGenerator.GetHandlerModel(GetSymbol(source, "BothArgsHandler"), Location.None);
+        var model = HandlerModelFactory.GetHandlerModel(GetSymbol(source, "BothArgsHandler"), Location.None);
 
         Assert.That(model!.HandleCallArgs, Is.EqualTo("request, loadedValue"));
     }
@@ -410,7 +410,7 @@ public class HandlerModelExtractionTests
             }
             """;
 
-        var model = HandlerGenerator.GetHandlerModel(GetSymbol(source, "SyncValidateHandler"), Location.None);
+        var model = HandlerModelFactory.GetHandlerModel(GetSymbol(source, "SyncValidateHandler"), Location.None);
 
         Assert.Multiple(() =>
         {
@@ -438,7 +438,7 @@ public class HandlerModelExtractionTests
             }
             """;
 
-        var model = HandlerGenerator.GetHandlerModel(GetSymbol(source, "AsyncValidateHandler"), Location.None);
+        var model = HandlerModelFactory.GetHandlerModel(GetSymbol(source, "AsyncValidateHandler"), Location.None);
 
         Assert.That(model!.Validate!.IsAsync, Is.True);
     }
@@ -464,7 +464,7 @@ public class HandlerModelExtractionTests
             }
             """;
 
-        var model = HandlerGenerator.GetHandlerModel(GetSymbol(source, "BothValidateArgsHandler"), Location.None);
+        var model = HandlerModelFactory.GetHandlerModel(GetSymbol(source, "BothValidateArgsHandler"), Location.None);
 
         Assert.That(model!.ValidateCallArgs, Is.EqualTo("request, loadedValue"));
     }
@@ -486,7 +486,7 @@ public class HandlerModelExtractionTests
             }
             """;
 
-        var model = HandlerGenerator.GetHandlerModel(GetSymbol(source, "WrongValidateHandler"), Location.None);
+        var model = HandlerModelFactory.GetHandlerModel(GetSymbol(source, "WrongValidateHandler"), Location.None);
 
         Assert.That(model!.Validate, Is.Null);
     }
