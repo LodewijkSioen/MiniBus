@@ -277,4 +277,29 @@ public class IntegrationTests
         var registration = result.GeneratedSources.Single(s => s.Contains("class GeneratedHandlerRegistrations", StringComparison.Ordinal));
         Assert.That(registration.Contains("IDispatcher<\n                    global::TestApp.SharedRequest,\n                    global::TestApp.SharedResponse>", StringComparison.Ordinal), Is.False);
     }
+
+    [Test]
+    public void ParameterlessLoad_WithFullyMatchedHandleInput_ReportsMBG006_AndSkipsDispatcherGeneration()
+    {
+        const string source = """
+            using MiniBus;
+            namespace TestApp;
+
+            [Handler]
+            public class NoRequestTypeHandler
+            {
+                public record Response(string Value);
+                public record Entity(string Value);
+
+                public Entity Load() => new Entity("value");
+
+                public Response Handle(Entity entity) => new Response(entity.Value);
+            }
+            """;
+
+        var result = GeneratorTestHelper.Run(source);
+
+        Assert.That(result.Diagnostics.Any(d => d.Id == "MBG006"), Is.True);
+        Assert.That(result.GeneratedSources.Any(s => s.Contains("NoRequestTypeHandlerDispatcher", StringComparison.Ordinal)), Is.False);
+    }
 }

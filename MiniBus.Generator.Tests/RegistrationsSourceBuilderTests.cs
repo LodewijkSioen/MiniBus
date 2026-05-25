@@ -18,13 +18,8 @@ public class RegistrationsSourceBuilderTests
             FullClassName: $"global::TestApp.{className}",
             FullRequestType: requestType,
             FullResponseType: responseType,
-            Load: null,
-            HandleCallArgs: "request",
-            HandleIsAsync: true,
-            Validate: null,
-            ValidateCallArgs: "",
-            UnsupportedHandleParameters: ImmutableArray<string>.Empty,
-            UnsupportedValidateParameters: ImmutableArray<string>.Empty,
+            Phases: HandlerPhases.From(
+                new HandleMethodPhase(isAsync: true, fullResponseType: responseType, callArgs: "request", unsupportedParameters: ImmutableArray<string>.Empty)),
             IsGenericHandler: false,
             IsNestedHandler: false,
             Location: Location.None);

@@ -67,10 +67,10 @@ public class HandlerModelExtractionTests
             Assert.That(model.FullClassName, Is.EqualTo("global::TestApp.OrderHandler"));
             Assert.That(model.FullRequestType, Is.EqualTo("global::TestApp.OrderHandler.Request"));
             Assert.That(model.FullResponseType, Is.EqualTo("global::TestApp.OrderHandler.Response"));
-            Assert.That(model.HandleIsAsync, Is.True);
-            Assert.That(model.HandleCallArgs, Is.EqualTo("request"));
-            Assert.That(model.Load, Is.Null);
-            Assert.That(model.Validate, Is.Null);
+            Assert.That(model.Phases.GetRequiredPhase<HandleMethodPhase>().IsAsync, Is.True);
+            Assert.That(model.Phases.GetRequiredPhase<HandleMethodPhase>().CallArgs, Is.EqualTo("request"));
+            Assert.That(model.Phases.TryGetPhase<LoadMethodPhase>(), Is.Null);
+            Assert.That(model.Phases.TryGetPhase<ValidateMethodPhase>(), Is.Null);
         });
     }
 
@@ -91,7 +91,7 @@ public class HandlerModelExtractionTests
 
         var model = HandlerModelFactory.GetHandlerModel(GetSymbol(source, "SyncHandler"), Location.None);
 
-        Assert.That(model!.HandleIsAsync, Is.False);
+        Assert.That(model!.Phases.GetRequiredPhase<HandleMethodPhase>().IsAsync, Is.False);
     }
 
     [Test]
@@ -136,7 +136,7 @@ public class HandlerModelExtractionTests
     // ── Load ──────────────────────────────────────────────────────────────
 
     [Test]
-    public void AsyncNullableScalarLoad_LoadInfoIsCorrect()
+    public void AsyncNullableScalarLoad_LoadMethodPhaseIsCorrect()
     {
         const string source = """
             using MiniBus;
@@ -158,12 +158,12 @@ public class HandlerModelExtractionTests
 
         Assert.Multiple(() =>
         {
-            Assert.That(model!.Load, Is.Not.Null);
-            Assert.That(model.Load!.IsAsync, Is.True);
-            Assert.That(model.Load.IsTuple, Is.False);
-            Assert.That(model.Load.Elements, Has.Length.EqualTo(1));
-            Assert.That(model.Load.Elements[0].LocalName, Is.EqualTo("loaded"));
-            Assert.That(model.Load.Elements[0].IsNullable, Is.True);
+            Assert.That(model!.Phases.TryGetPhase<LoadMethodPhase>(), Is.Not.Null);
+            Assert.That(model.Phases.TryGetPhase<LoadMethodPhase>()!.IsAsync, Is.True);
+            Assert.That(model.Phases.TryGetPhase<LoadMethodPhase>()!.IsTuple, Is.False);
+            Assert.That(model.Phases.TryGetPhase<LoadMethodPhase>()!.Elements, Has.Length.EqualTo(1));
+            Assert.That(model.Phases.TryGetPhase<LoadMethodPhase>()!.Elements[0].LocalName, Is.EqualTo("loaded"));
+            Assert.That(model.Phases.TryGetPhase<LoadMethodPhase>()!.Elements[0].IsNullable, Is.True);
         });
     }
 
@@ -189,8 +189,8 @@ public class HandlerModelExtractionTests
 
         Assert.Multiple(() =>
         {
-            Assert.That(model!.Load!.IsAsync, Is.False);
-            Assert.That(model.Load.Elements[0].IsNullable, Is.True);
+            Assert.That(model!.Phases.TryGetPhase<LoadMethodPhase>()!.IsAsync, Is.False);
+            Assert.That(model.Phases.TryGetPhase<LoadMethodPhase>()!.Elements[0].IsNullable, Is.True);
         });
     }
 
@@ -216,12 +216,12 @@ public class HandlerModelExtractionTests
 
         Assert.Multiple(() =>
         {
-            Assert.That(model!.Load, Is.Not.Null);
-            Assert.That(model.Load!.IsTuple, Is.False);
-            Assert.That(model.Load.Elements, Has.Length.EqualTo(1));
-            Assert.That(model.Load.Elements[0].LocalName, Is.EqualTo("loaded"));
-            Assert.That(model.Load.Elements[0].IsNullable, Is.False);
-            Assert.That(model.HandleCallArgs, Is.EqualTo("loaded"));
+            Assert.That(model!.Phases.TryGetPhase<LoadMethodPhase>(), Is.Not.Null);
+            Assert.That(model.Phases.TryGetPhase<LoadMethodPhase>()!.IsTuple, Is.False);
+            Assert.That(model.Phases.TryGetPhase<LoadMethodPhase>()!.Elements, Has.Length.EqualTo(1));
+            Assert.That(model.Phases.TryGetPhase<LoadMethodPhase>()!.Elements[0].LocalName, Is.EqualTo("loaded"));
+            Assert.That(model.Phases.TryGetPhase<LoadMethodPhase>()!.Elements[0].IsNullable, Is.False);
+            Assert.That(model.Phases.GetRequiredPhase<HandleMethodPhase>().CallArgs, Is.EqualTo("loaded"));
         });
     }
 
@@ -273,12 +273,12 @@ public class HandlerModelExtractionTests
 
         Assert.Multiple(() =>
         {
-            Assert.That(model!.Load!.IsTuple, Is.True);
-            Assert.That(model.Load.Elements, Has.Length.EqualTo(2));
-            Assert.That(model.Load.Elements[0].LocalName, Is.EqualTo("entity"));
-            Assert.That(model.Load.Elements[0].IsNullable, Is.True);
-            Assert.That(model.Load.Elements[1].LocalName, Is.EqualTo("config"));
-            Assert.That(model.Load.Elements[1].IsNullable, Is.True);
+            Assert.That(model!.Phases.TryGetPhase<LoadMethodPhase>()!.IsTuple, Is.True);
+            Assert.That(model.Phases.TryGetPhase<LoadMethodPhase>()!.Elements, Has.Length.EqualTo(2));
+            Assert.That(model.Phases.TryGetPhase<LoadMethodPhase>()!.Elements[0].LocalName, Is.EqualTo("entity"));
+            Assert.That(model.Phases.TryGetPhase<LoadMethodPhase>()!.Elements[0].IsNullable, Is.True);
+            Assert.That(model.Phases.TryGetPhase<LoadMethodPhase>()!.Elements[1].LocalName, Is.EqualTo("config"));
+            Assert.That(model.Phases.TryGetPhase<LoadMethodPhase>()!.Elements[1].IsNullable, Is.True);
         });
     }
 
@@ -305,9 +305,9 @@ public class HandlerModelExtractionTests
 
         Assert.Multiple(() =>
         {
-            Assert.That(model!.Load!.IsTuple, Is.True);
-            Assert.That(model.Load.Elements[0].LocalName, Is.EqualTo("item1"));
-            Assert.That(model.Load.Elements[1].LocalName, Is.EqualTo("item2"));
+            Assert.That(model!.Phases.TryGetPhase<LoadMethodPhase>()!.IsTuple, Is.True);
+            Assert.That(model.Phases.TryGetPhase<LoadMethodPhase>()!.Elements[0].LocalName, Is.EqualTo("item1"));
+            Assert.That(model.Phases.TryGetPhase<LoadMethodPhase>()!.Elements[1].LocalName, Is.EqualTo("item2"));
         });
     }
 
@@ -336,8 +336,8 @@ public class HandlerModelExtractionTests
 
         Assert.Multiple(() =>
         {
-            Assert.That(model!.HandleCallArgs, Is.EqualTo("primary, secondary"));
-            Assert.That(model.ValidateCallArgs, Is.EqualTo("primary, secondary"));
+            Assert.That(model!.Phases.GetRequiredPhase<HandleMethodPhase>().CallArgs, Is.EqualTo("primary, secondary"));
+            Assert.That(model.Phases.TryGetPhase<ValidateMethodPhase>()!.CallArgs, Is.EqualTo("primary, secondary"));
         });
     }
 
@@ -364,7 +364,7 @@ public class HandlerModelExtractionTests
 
         var model = HandlerModelFactory.GetHandlerModel(GetSymbol(source, "LoadedArgHandler"), Location.None);
 
-        Assert.That(model!.HandleCallArgs, Is.EqualTo("loadedValue"));
+        Assert.That(model!.Phases.GetRequiredPhase<HandleMethodPhase>().CallArgs, Is.EqualTo("loadedValue"));
     }
 
     [Test]
@@ -388,13 +388,13 @@ public class HandlerModelExtractionTests
 
         var model = HandlerModelFactory.GetHandlerModel(GetSymbol(source, "BothArgsHandler"), Location.None);
 
-        Assert.That(model!.HandleCallArgs, Is.EqualTo("request, loadedValue"));
+        Assert.That(model!.Phases.GetRequiredPhase<HandleMethodPhase>().CallArgs, Is.EqualTo("request, loadedValue"));
     }
 
     // ── Validate ──────────────────────────────────────────────────────────
 
     [Test]
-    public void SyncValidate_ValidateInfoIsCorrect()
+    public void SyncValidate_ValidateMethodPhaseIsCorrect()
     {
         const string source = """
             using MiniBus;
@@ -414,9 +414,9 @@ public class HandlerModelExtractionTests
 
         Assert.Multiple(() =>
         {
-            Assert.That(model!.Validate, Is.Not.Null);
-            Assert.That(model.Validate!.IsAsync, Is.False);
-            Assert.That(model.ValidateCallArgs, Is.EqualTo("request"));
+            Assert.That(model!.Phases.TryGetPhase<ValidateMethodPhase>(), Is.Not.Null);
+            Assert.That(model.Phases.TryGetPhase<ValidateMethodPhase>()!.IsAsync, Is.False);
+            Assert.That(model.Phases.TryGetPhase<ValidateMethodPhase>()!.CallArgs, Is.EqualTo("request"));
         });
     }
 
@@ -440,7 +440,7 @@ public class HandlerModelExtractionTests
 
         var model = HandlerModelFactory.GetHandlerModel(GetSymbol(source, "AsyncValidateHandler"), Location.None);
 
-        Assert.That(model!.Validate!.IsAsync, Is.True);
+        Assert.That(model!.Phases.TryGetPhase<ValidateMethodPhase>()!.IsAsync, Is.True);
     }
 
     [Test]
@@ -468,10 +468,10 @@ public class HandlerModelExtractionTests
 
         Assert.Multiple(() =>
         {
-            Assert.That(model!.ValidateCallArgs, Is.EqualTo("request, loadedValue"));
-            Assert.That(model.Load, Is.Not.Null);
-            Assert.That(model.Validate, Is.Not.Null);
-            Assert.That(model.Load!.Order, Is.LessThan(model.Validate!.Order));
+            Assert.That(model!.Phases.TryGetPhase<ValidateMethodPhase>()!.CallArgs, Is.EqualTo("request, loadedValue"));
+            Assert.That(model.Phases.TryGetPhase<LoadMethodPhase>(), Is.Not.Null);
+            Assert.That(model.Phases.TryGetPhase<ValidateMethodPhase>(), Is.Not.Null);
+            Assert.That(model.Phases.TryGetPhase<LoadMethodPhase>()!.Order, Is.LessThan(model.Phases.TryGetPhase<ValidateMethodPhase>()!.Order));
         });
     }
 
@@ -501,10 +501,10 @@ public class HandlerModelExtractionTests
         Assert.Multiple(() =>
         {
             Assert.That(model, Is.Not.Null);
-            Assert.That(model!.ValidateCallArgs, Is.EqualTo("request"));
-            Assert.That(model.Load, Is.Not.Null);
-            Assert.That(model.Validate, Is.Not.Null);
-            Assert.That(model.Validate!.Order, Is.LessThan(model.Load!.Order));
+            Assert.That(model!.Phases.TryGetPhase<ValidateMethodPhase>()!.CallArgs, Is.EqualTo("request"));
+            Assert.That(model.Phases.TryGetPhase<LoadMethodPhase>(), Is.Not.Null);
+            Assert.That(model.Phases.TryGetPhase<ValidateMethodPhase>(), Is.Not.Null);
+            Assert.That(model.Phases.TryGetPhase<ValidateMethodPhase>()!.Order, Is.LessThan(model.Phases.TryGetPhase<LoadMethodPhase>()!.Order));
         });
     }
 
@@ -527,7 +527,7 @@ public class HandlerModelExtractionTests
 
         var model = HandlerModelFactory.GetHandlerModel(GetSymbol(source, "WrongValidateHandler"), Location.None);
 
-        Assert.That(model!.Validate, Is.Null);
+        Assert.That(model!.Phases.TryGetPhase<ValidateMethodPhase>(), Is.Null);
     }
 
     [Test]
@@ -554,8 +554,9 @@ public class HandlerModelExtractionTests
         {
             Assert.That(model, Is.Not.Null);
             Assert.That(model!.FullRequestType, Is.EqualTo("global::TestApp.ValidateRequestTypeHandler.Query"));
-            Assert.That(model.UnsupportedHandleParameters, Has.Length.EqualTo(1));
-            Assert.That(model.UnsupportedHandleParameters[0], Is.EqualTo("command: global::TestApp.ValidateRequestTypeHandler.Command"));
+            Assert.That(model.Phases.GetRequiredPhase<HandleMethodPhase>().UnsupportedParameters, Has.Length.EqualTo(1));
+            Assert.That(model.Phases.GetRequiredPhase<HandleMethodPhase>().UnsupportedParameters[0], Is.EqualTo("command: global::TestApp.ValidateRequestTypeHandler.Command"));
         });
     }
 }
+

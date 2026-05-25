@@ -12,33 +12,31 @@ public class DispatcherSourceBuilderTests
         string? ns = "TestApp",
         string className = "MyHandler",
         bool handleIsAsync = true,
-        LoadInfo? load = null,
-        ValidateInfo? validate = null,
+        LoadMethodPhase? load = null,
+        (bool IsAsync, int Order)? validate = null,
         string handleCallArgs = "request",
         string validateCallArgs = "")
     {
         var prefix = ns is not null ? $"global::{ns}." : "global::";
+        var handle = new HandleMethodPhase(handleIsAsync, $"{prefix}{className}.Response", handleCallArgs, ImmutableArray<string>.Empty);
+        ValidateMethodPhase? validateInfo = validate is null
+            ? null
+            : new ValidateMethodPhase(validate.Value.IsAsync, validate.Value.Order, validateCallArgs, ImmutableArray<string>.Empty);
         return new HandlerModel(
             Namespace: ns,
             ClassName: className,
             FullClassName: $"{prefix}{className}",
             FullRequestType: $"{prefix}{className}.Request",
             FullResponseType: $"{prefix}{className}.Response",
-            Load: load,
-            HandleCallArgs: handleCallArgs,
-            HandleIsAsync: handleIsAsync,
-            Validate: validate,
-            ValidateCallArgs: validateCallArgs,
-            UnsupportedHandleParameters: ImmutableArray<string>.Empty,
-            UnsupportedValidateParameters: ImmutableArray<string>.Empty,
+                Phases: HandlerPhases.From(handle, load, validateInfo),
             IsGenericHandler: false,
             IsNestedHandler: false,
             Location: Location.None);
     }
 
-    private static LoadInfo ScalarLoad(bool isAsync, bool isNullable) =>
-        new LoadInfo(IsAsync: isAsync, IsTuple: false, Order: 0,
-            Elements: ImmutableArray.Create(
+    private static LoadMethodPhase ScalarLoad(bool isAsync, bool isNullable) =>
+        new LoadMethodPhase(isAsync: isAsync, isTuple: false, order: 0,
+            elements: ImmutableArray.Create(
                 new LoadedElement("loaded", "global::TestApp.MyHandler.Entity", isNullable)));
 
     // ── Handle async / sync ───────────────────────────────────────────────
@@ -71,18 +69,23 @@ public class DispatcherSourceBuilderTests
     // ── Validate ──────────────────────────────────────────────────────────
 
     [Test]
-    public Task SyncLoad_SyncValidate_RequestArg() =>
-        Verify(DispatcherSourceBuilder.Build(Model(
-            load: ScalarLoad(false, true) with { Order = 1 },
-            validate: new ValidateInfo(IsAsync: false, Order: 0),
+    public Task SyncLoad_SyncValidate_RequestArg()
+    {
+        var load = ScalarLoad(false, true);
+        load.Order = 1;
+
+        return Verify(DispatcherSourceBuilder.Build(Model(
+            load: load,
+            validate: (IsAsync: false, Order: 0),
             handleCallArgs: "loadedValue",
             validateCallArgs: "request")));
+    }
 
     [Test]
     public Task SyncLoad_SyncValidate_LoadedArg() =>
         Verify(DispatcherSourceBuilder.Build(Model(
             load: ScalarLoad(false, true),
-            validate: new ValidateInfo(IsAsync: false, Order: 1),
+            validate: (IsAsync: false, Order: 1),
             handleCallArgs: "loadedValue",
             validateCallArgs: "loadedValue")));
 
@@ -90,7 +93,7 @@ public class DispatcherSourceBuilderTests
     public Task SyncLoad_SyncValidate_BothArgs() =>
         Verify(DispatcherSourceBuilder.Build(Model(
             load: ScalarLoad(false, true),
-            validate: new ValidateInfo(IsAsync: false, Order: 1),
+            validate: (IsAsync: false, Order: 1),
             handleCallArgs: "request, loadedValue",
             validateCallArgs: "request, loadedValue")));
 
@@ -98,7 +101,7 @@ public class DispatcherSourceBuilderTests
     public Task AsyncLoad_AsyncValidate_AsyncHandle() =>
         Verify(DispatcherSourceBuilder.Build(Model(
             load: ScalarLoad(true, true),
-            validate: new ValidateInfo(IsAsync: true, Order: 1),
+            validate: (IsAsync: true, Order: 1),
             handleCallArgs: "loadedValue",
             validateCallArgs: "loadedValue")));
 
@@ -107,9 +110,9 @@ public class DispatcherSourceBuilderTests
     [Test]
     public Task TupleLoad_AllNullableNamedElements() =>
         Verify(DispatcherSourceBuilder.Build(Model(
-            load: new LoadInfo(IsAsync: false, IsTuple: true,
-                Order: 0,
-                Elements: ImmutableArray.Create(
+            load: new LoadMethodPhase(isAsync: false, isTuple: true,
+                order: 0,
+                elements: ImmutableArray.Create(
                     new LoadedElement("entity", "global::TestApp.MyHandler.Entity", IsNullable: true),
                     new LoadedElement("config", "global::TestApp.MyHandler.Config", IsNullable: true))),
             handleCallArgs: "entityValue, configValue")));
@@ -117,9 +120,9 @@ public class DispatcherSourceBuilderTests
     [Test]
     public Task TupleLoad_PartialNullableUnnamedElements() =>
         Verify(DispatcherSourceBuilder.Build(Model(
-            load: new LoadInfo(IsAsync: false, IsTuple: true,
-                Order: 0,
-                Elements: ImmutableArray.Create(
+            load: new LoadMethodPhase(isAsync: false, isTuple: true,
+                order: 0,
+                elements: ImmutableArray.Create(
                     new LoadedElement("item1", "global::TestApp.MyHandler.Entity", IsNullable: true),
                     new LoadedElement("item2", "global::TestApp.MyHandler.Config", IsNullable: false))),
             handleCallArgs: "item1Value, item2")));
@@ -127,9 +130,9 @@ public class DispatcherSourceBuilderTests
     [Test]
     public Task TupleLoad_NoNullableElements_NoNullCheck() =>
         Verify(DispatcherSourceBuilder.Build(Model(
-            load: new LoadInfo(IsAsync: false, IsTuple: true,
-                Order: 0,
-                Elements: ImmutableArray.Create(
+            load: new LoadMethodPhase(isAsync: false, isTuple: true,
+                order: 0,
+                elements: ImmutableArray.Create(
                     new LoadedElement("entity", "global::TestApp.MyHandler.Entity", IsNullable: false),
                     new LoadedElement("config", "global::TestApp.MyHandler.Config", IsNullable: false))),
             handleCallArgs: "entity, config")));
@@ -139,18 +142,18 @@ public class DispatcherSourceBuilderTests
     [Test]
     public Task ScalarLoad_WithNotFoundMessage() =>
         Verify(DispatcherSourceBuilder.Build(
-            Model(load: new LoadInfo(IsAsync: false, IsTuple: false,
-                Order: 0,
-                Elements: ImmutableArray.Create(
+            Model(load: new LoadMethodPhase(isAsync: false, isTuple: false,
+                order: 0,
+                elements: ImmutableArray.Create(
                     new LoadedElement("loaded", "global::TestApp.MyHandler.Entity", IsNullable: true, NotFoundMessage: "Entity not found"))),
             handleCallArgs: "loadedValue")));
 
     [Test]
     public Task TupleLoad_PerElementNotFoundMessages() =>
         Verify(DispatcherSourceBuilder.Build(Model(
-            load: new LoadInfo(IsAsync: false, IsTuple: true,
-                Order: 0,
-                Elements: ImmutableArray.Create(
+            load: new LoadMethodPhase(isAsync: false, isTuple: true,
+                order: 0,
+                elements: ImmutableArray.Create(
                     new LoadedElement("entity", "global::TestApp.MyHandler.Entity", IsNullable: true, NotFoundMessage: "Entity not found"),
                     new LoadedElement("config", "global::TestApp.MyHandler.Config", IsNullable: true, NotFoundMessage: "Config not found"))),
             handleCallArgs: "entityValue, configValue")));

@@ -23,7 +23,6 @@ public static class HandlerModelFactory
         var isGenericHandler = classSymbol.Arity > 0 || HasGenericContainingType(classSymbol.ContainingType);
         var isNestedHandler = classSymbol.ContainingType is not null;
 
-        // Find all three methods upfront
         var handleMethod = classSymbol.GetMembers("Handle")
             .OfType<IMethodSymbol>()
             .FirstOrDefault(static m => !m.IsStatic && m.Parameters.Length >= 1);
@@ -31,69 +30,53 @@ public static class HandlerModelFactory
 
         var loadMethod = classSymbol.GetMembers("Load")
             .OfType<IMethodSymbol>()
-            .FirstOrDefault(static m => !m.IsStatic && m.Parameters.Length >= 1);
+            .FirstOrDefault(static m => !m.IsStatic);
 
-        var validateMethod = classSymbol.GetMembers("Validate")
+        var rawValidateMethod = classSymbol.GetMembers("Validate")
             .OfType<IMethodSymbol>()
             .FirstOrDefault(static m => !m.IsStatic);
 
-        // Unwrap Handle return type to determine TResponse
-        var (responseType, handleIsAsync) = UnwrapTask(handleMethod.ReturnType);
+        var handlePhase = new HandleMethodPhase(handleMethod, fmt);
+        var loadPhase = loadMethod is null ? null : new LoadMethodPhase(loadMethod, fmt);
 
-        // Extract Load info and build the loaded-by-type lookup
-        var (loadInfo, loadedByFqn) = ExtractLoadInfo(loadMethod, fmt);
-
-        // Request type: first param of Load (if present), else first param of Validate (if present), else first param of Handle
-        var requestTypeSymbol = loadMethod is not null
-            ? loadMethod.Parameters[0].Type
-            : validateMethod is { Parameters.Length: >= 1 }
-                ? validateMethod.Parameters[0].Type
-                : handleMethod.Parameters[0].Type;
-        var requestFqn = requestTypeSymbol.ToDisplayString(fmt);
-
-        // Build call args for Handle
-        var (handleArgsList, unsupportedHandleParameters) = BuildCallArgs(handleMethod.Parameters, loadedByFqn, requestFqn, fmt);
-
-        // Detect optional Validate method (must return ValidationResult)
-        ValidateInfo? validateInfo = null;
-        var validateArgsList = new List<string>();
-        var unsupportedValidateParameters = ImmutableArray<string>.Empty;
-
-        if (validateMethod is not null)
+        ValidateMethodPhase? validatePhase = null;
+        if (rawValidateMethod is not null)
         {
-            var (validateReturnInner, validateAsync) = UnwrapTask(validateMethod.ReturnType);
-            if (validateReturnInner.ToDisplayString(fmt) == "global::MiniBus.ValidationResult")
-            {
-                validateInfo = new ValidateInfo(IsAsync: validateAsync, Order: 0);
-                var (args, unsupported) = BuildCallArgs(validateMethod.Parameters, loadedByFqn, requestFqn, fmt);
-                validateArgsList = args;
-                unsupportedValidateParameters = unsupported;
-            }
+            var candidate = new ValidateMethodPhase(rawValidateMethod, fmt);
+            if (candidate.ReturnsValidationResult)
+                validatePhase = candidate;
         }
 
-        // Assign phase order values based on argument dependencies.
-        if (loadInfo is not null && validateInfo is not null)
+        var preHandleCandidates = ImmutableArray.CreateBuilder<IPreHandlePhaseInfo>();
+        if (loadPhase is not null)
+            preHandleCandidates.Add(loadPhase);
+        if (validatePhase is not null)
+            preHandleCandidates.Add(validatePhase);
+
+        var orderedPreHandle = OrderPreHandlePhases(preHandleCandidates.ToImmutable());
+        var orderedMethods = orderedPreHandle.Cast<IMethodPhaseInfo>()
+            .Append(handlePhase)
+            .ToArray();
+
+        var requestType = InferRequestType(orderedMethods, out var inferredRequestType);
+        var extractionDiagnostics = ImmutableArray<Diagnostic>.Empty;
+        if (!requestType)
         {
-            var validateDependsOnLoad = ValidateDependsOnLoadOutputs(validateArgsList, loadInfo.Elements);
-            if (validateDependsOnLoad)
-            {
-                loadInfo = loadInfo with { Order = 0 };
-                validateInfo = validateInfo with { Order = 1 };
-            }
-            else
-            {
-                validateInfo = validateInfo with { Order = 0 };
-                loadInfo = loadInfo with { Order = 1 };
-            }
+            extractionDiagnostics = ImmutableArray.Create(
+                Diagnostics.RequestTypeCannotBeInferred(
+                    location: location,
+                    fullHandlerName: classSymbol.ToDisplayString(fmt)));
+            inferredRequestType = FallbackRequestType(handleMethod, loadMethod, rawValidateMethod, fmt);
         }
 
-        // Enrich nullable LoadedElements with [Required] error messages from Handle + Validate parameters
-        if (loadInfo is not null)
+        BindCallArguments(orderedPreHandle, handlePhase, inferredRequestType!, fmt);
+
+        if (loadPhase is not null)
         {
-            var allMethodParams = validateMethod is not null
-                ? handleMethod.Parameters.AddRange(validateMethod.Parameters)
+            var allMethodParams = validatePhase is not null
+                ? handleMethod.Parameters.AddRange(validatePhase.Parameters)
                 : handleMethod.Parameters;
-            loadInfo = EnrichWithNotFoundMessages(loadInfo, allMethodParams, fmt);
+            loadPhase.Elements = EnrichWithNotFoundMessages(loadPhase.Elements, allMethodParams, fmt);
         }
 
         var ns = classSymbol.ContainingNamespace.IsGlobalNamespace
@@ -104,83 +87,144 @@ public static class HandlerModelFactory
             Namespace: ns,
             ClassName: classSymbol.Name,
             FullClassName: classSymbol.ToDisplayString(fmt),
-            FullRequestType: requestFqn,
-            FullResponseType: responseType.ToDisplayString(fmt),
-            Load: loadInfo,
-            HandleCallArgs: string.Join(", ", handleArgsList),
-            HandleIsAsync: handleIsAsync,
-            Validate: validateInfo,
-            ValidateCallArgs: string.Join(", ", validateArgsList),
-            UnsupportedHandleParameters: unsupportedHandleParameters,
-            UnsupportedValidateParameters: unsupportedValidateParameters,
+            FullRequestType: inferredRequestType!,
+            FullResponseType: handlePhase.FullResponseType,
+            Phases: HandlerPhases.From(handlePhase, loadPhase, validatePhase),
             IsGenericHandler: isGenericHandler,
             IsNestedHandler: isNestedHandler,
-            Location: location);
+            Location: location)
+        {
+            ExtractionDiagnostics = extractionDiagnostics
+        };
     }
 
-    private static (ITypeSymbol Inner, bool IsAsync) UnwrapTask(ITypeSymbol returnType)
+    private static ImmutableArray<IPreHandlePhaseInfo> OrderPreHandlePhases(
+        ImmutableArray<IPreHandlePhaseInfo> phases)
     {
-        if (returnType is INamedTypeSymbol { Name: "Task" } task && task.TypeArguments.Length == 1)
-            return (task.TypeArguments[0], true);
-        return (returnType, false);
+        if (phases.IsDefaultOrEmpty)
+            return ImmutableArray<IPreHandlePhaseInfo>.Empty;
+
+        var pending = phases
+            .Select((phase, index) => new PendingPhase(phase, index))
+            .ToList();
+        var ordered = new List<IPreHandlePhaseInfo>(pending.Count);
+
+        while (pending.Count > 0)
+        {
+            var ready = pending
+                .Where(candidate => !pending.Any(other =>
+                    !ReferenceEquals(candidate, other) && DependsOn(candidate.Phase, other.Phase)))
+                .OrderBy(candidate => HasOutputs(candidate.Phase))
+                .ThenBy(candidate => candidate.Phase.TieBreak)
+                .ThenBy(candidate => candidate.SourceIndex)
+                .ToList();
+
+            var next = ready.Count > 0
+                ? ready[0]
+                : pending
+                    .OrderBy(candidate => HasOutputs(candidate.Phase))
+                    .ThenBy(candidate => candidate.Phase.TieBreak)
+                    .ThenBy(candidate => candidate.SourceIndex)
+                    .First();
+
+            pending.Remove(next);
+            ordered.Add(next.Phase);
+        }
+
+        for (var i = 0; i < ordered.Count; i++)
+        {
+            ordered[i].Order = i;
+        }
+
+        return ordered.ToImmutableArray();
     }
 
-    private static (LoadInfo? LoadInfo, Dictionary<string, List<string>> LoadedByFqn) ExtractLoadInfo(
+    private static bool DependsOn(IPreHandlePhaseInfo candidate, IPreHandlePhaseInfo dependency)
+    {
+        if (candidate is not IMethodPhaseInfo candidateMethod || dependency is not IMethodPhaseInfo dependencyMethod)
+            return false;
+
+        return candidateMethod.InputTypeFqns.Any(dependencyMethod.OutputTypeFqns.Contains);
+    }
+
+    private static bool HasOutputs(IPreHandlePhaseInfo phase) =>
+        phase is IMethodPhaseInfo methodPhase && !methodPhase.OutputTypeFqns.IsDefaultOrEmpty;
+
+    private sealed record PendingPhase(IPreHandlePhaseInfo Phase, int SourceIndex);
+
+    private static bool InferRequestType(
+        IEnumerable<IMethodPhaseInfo> orderedMethods,
+        out string? requestType)
+    {
+        var availableOutputs = new HashSet<string>(StringComparer.Ordinal);
+
+        foreach (var phase in orderedMethods)
+        {
+            foreach (var inputType in phase.InputTypeFqns)
+            {
+                if (!availableOutputs.Contains(inputType))
+                {
+                    requestType = inputType;
+                    return true;
+                }
+            }
+
+            foreach (var outputType in phase.OutputTypeFqns)
+                availableOutputs.Add(outputType);
+        }
+
+        requestType = null;
+        return false;
+    }
+
+    private static string FallbackRequestType(
+        IMethodSymbol handleMethod,
         IMethodSymbol? loadMethod,
+        IMethodSymbol? validateMethod,
         SymbolDisplayFormat fmt)
     {
-        var loadedByFqn = new Dictionary<string, List<string>>();
-        if (loadMethod is null)
-            return (null, loadedByFqn);
+        var requestTypeSymbol = loadMethod is { Parameters.Length: >= 1 }
+            ? loadMethod.Parameters[0].Type
+            : validateMethod is { Parameters.Length: >= 1 }
+                ? validateMethod.Parameters[0].Type
+                : handleMethod.Parameters[0].Type;
 
-        var (loadReturnInner, loadAsync) = UnwrapTask(loadMethod.ReturnType);
-
-        if (loadReturnInner is INamedTypeSymbol { IsTupleType: true } tupleType)
-        {
-            // Tuple load: (A? a, B? b) etc.
-            var elements = ImmutableArray.CreateBuilder<LoadedElement>();
-            foreach (var elem in tupleType.TupleElements)
-            {
-                var elemType = elem.Type;
-                bool isNullable = elemType.NullableAnnotation == NullableAnnotation.Annotated;
-                var nonNullType = isNullable
-                    ? elemType.WithNullableAnnotation(NullableAnnotation.NotAnnotated)
-                    : elemType;
-                var fqn = nonNullType.ToDisplayString(fmt);
-                // Camelcase the element name (Item1->item1, Entity->entity)
-                var rawName = elem.Name;
-                var localName = rawName.Length > 0 && char.IsUpper(rawName[0])
-                    ? char.ToLower(rawName[0]) + rawName.Substring(1)
-                    : rawName;
-                var loadedElem = new LoadedElement(localName, fqn, isNullable);
-                elements.Add(loadedElem);
-                AddToLoadedByFqn(loadedByFqn, fqn, loadedElem.NonNullLocalName);
-            }
-            return (new LoadInfo(IsAsync: loadAsync, IsTuple: true, Order: 0, Elements: elements.ToImmutable()), loadedByFqn);
-        }
-
-        // Scalar load: handles both T and T? return types
-        var scalarIsNullable = loadReturnInner.NullableAnnotation == NullableAnnotation.Annotated;
-        var nonNullable = scalarIsNullable
-            ? loadReturnInner.WithNullableAnnotation(NullableAnnotation.NotAnnotated)
-            : loadReturnInner;
-        var scalarFqn = nonNullable.ToDisplayString(fmt);
-        var scalarLoadedElem = new LoadedElement("loaded", scalarFqn, IsNullable: scalarIsNullable);
-        AddToLoadedByFqn(loadedByFqn, scalarFqn, scalarLoadedElem.NonNullLocalName);
-        return (new LoadInfo(IsAsync: loadAsync, IsTuple: false, Order: 0, Elements: ImmutableArray.Create(scalarLoadedElem)), loadedByFqn);
+        return requestTypeSymbol.ToDisplayString(fmt);
     }
 
-    private static void AddToLoadedByFqn(
-        Dictionary<string, List<string>> map,
-        string fqn,
-        string localName)
+    private static void BindCallArguments(
+        ImmutableArray<IPreHandlePhaseInfo> orderedPreHandle,
+        HandleMethodPhase handlePhase,
+        string requestType,
+        SymbolDisplayFormat format)
     {
-        if (!map.TryGetValue(fqn, out var names))
+        var loadedByType = new Dictionary<string, List<string>>(StringComparer.Ordinal);
+
+        foreach (var preHandle in orderedPreHandle)
         {
-            names = new List<string>();
-            map[fqn] = names;
+            if (preHandle is LoadMethodPhase loadPhase)
+            {
+                var (loadCallArgs, loadUnsupported) = BuildCallArgs(loadPhase.Parameters, loadedByType, requestType, format);
+                loadPhase.CallArgs = string.Join(", ", loadCallArgs);
+                loadPhase.UnsupportedParameters = loadUnsupported;
+
+                foreach (var element in loadPhase.Elements)
+                    AddToLoadedByType(loadedByType, element.FullType, element.NonNullLocalName);
+
+                continue;
+            }
+
+            if (preHandle is ValidateMethodPhase validatePhase)
+            {
+                var (validateCallArgs, validateUnsupported) = BuildCallArgs(validatePhase.Parameters, loadedByType, requestType, format);
+                validatePhase.CallArgs = string.Join(", ", validateCallArgs);
+                validatePhase.UnsupportedParameters = validateUnsupported;
+            }
         }
-        names.Add(localName);
+
+        var (handleCallArgs, handleUnsupported) = BuildCallArgs(handlePhase.Parameters, loadedByType, requestType, format);
+        handlePhase.CallArgs = string.Join(", ", handleCallArgs);
+        handlePhase.UnsupportedParameters = handleUnsupported;
     }
 
     private static (List<string> CallArgs, ImmutableArray<string> Unsupported) BuildCallArgs(
@@ -190,8 +234,9 @@ public static class HandlerModelFactory
         SymbolDisplayFormat format)
     {
         var callArgs = new List<string>();
-        var seenLoadedTypeCount = new Dictionary<string, int>();
+        var seenLoadedTypeCount = new Dictionary<string, int>(StringComparer.Ordinal);
         var unsupported = ImmutableArray.CreateBuilder<string>();
+
         foreach (var param in parameters)
         {
             var paramFqn = param.Type.ToDisplayString(format);
@@ -231,38 +276,39 @@ public static class HandlerModelFactory
         return (callArgs, unsupported.ToImmutable());
     }
 
-    private static LoadInfo EnrichWithNotFoundMessages(
-        LoadInfo loadInfo,
+    private static void AddToLoadedByType(
+        Dictionary<string, List<string>> map,
+        string fqn,
+        string localName)
+    {
+        if (!map.TryGetValue(fqn, out var names))
+        {
+            names = new List<string>();
+            map[fqn] = names;
+        }
+
+        names.Add(localName);
+    }
+
+    private static ImmutableArray<LoadedElement> EnrichWithNotFoundMessages(
+        ImmutableArray<LoadedElement> elements,
         ImmutableArray<IParameterSymbol> parameters,
         SymbolDisplayFormat fmt)
     {
         var enriched = ImmutableArray.CreateBuilder<LoadedElement>();
-        var anyEnriched = false;
-        foreach (var elem in loadInfo.Elements)
+        foreach (var element in elements)
         {
-            if (!elem.IsNullable)
+            if (!element.IsNullable)
             {
-                enriched.Add(elem);
+                enriched.Add(element);
                 continue;
             }
-            var msg = GetRequiredMessage(parameters, elem.FullType, fmt);
-            if (msg is not null)
-            {
-                enriched.Add(elem with { NotFoundMessage = msg });
-                anyEnriched = true;
-            }
-            else
-            {
-                enriched.Add(elem);
-            }
-        }
-        return anyEnriched ? new LoadInfo(loadInfo.IsAsync, loadInfo.IsTuple, loadInfo.Order, enriched.ToImmutable()) : loadInfo;
-    }
 
-    private static bool ValidateDependsOnLoadOutputs(List<string> validateCallArgs, ImmutableArray<LoadedElement> loadedElements)
-    {
-        var loadedArgNames = new HashSet<string>(loadedElements.Select(e => e.NonNullLocalName), StringComparer.Ordinal);
-        return validateCallArgs.Any(loadedArgNames.Contains);
+            var message = GetRequiredMessage(parameters, element.FullType, fmt);
+            enriched.Add(message is null ? element : element with { NotFoundMessage = message });
+        }
+
+        return enriched.ToImmutable();
     }
 
     private static string? GetRequiredMessage(
@@ -282,6 +328,7 @@ public static class HandlerModelFactory
                 .FirstOrDefault(static kv => kv.Key == "ErrorMessage");
             return msgArg.Value.Value as string;
         }
+
         return null;
     }
 

@@ -44,6 +44,14 @@ public static class Diagnostics
         defaultSeverity: DiagnosticSeverity.Warning,
         isEnabledByDefault: true);
 
+    private static readonly DiagnosticDescriptor RequestTypeCannotBeInferredDescriptor = new(
+        id: "MBG006",
+        title: "Request type cannot be inferred",
+        messageFormat: "Handler '{0}' request type cannot be inferred because all ordered method parameters match prior method outputs",
+        category: "MiniBus.Generator",
+        defaultSeverity: DiagnosticSeverity.Error,
+        isEnabledByDefault: true);
+
     public static Diagnostic DuplicateRequestType(
         Location location,
         string handlerName,
@@ -87,6 +95,14 @@ public static class Diagnostics
         string fullHandlerName) =>
         Diagnostic.Create(
             descriptor: NestedHandlerNotSupportedDescriptor,
+            location: location,
+            messageArgs: [fullHandlerName]);
+
+    public static Diagnostic RequestTypeCannotBeInferred(
+        Location location,
+        string fullHandlerName) =>
+        Diagnostic.Create(
+            descriptor: RequestTypeCannotBeInferredDescriptor,
             location: location,
             messageArgs: [fullHandlerName]);
 }
