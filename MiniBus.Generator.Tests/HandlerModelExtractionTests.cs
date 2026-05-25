@@ -466,7 +466,46 @@ public class HandlerModelExtractionTests
 
         var model = HandlerModelFactory.GetHandlerModel(GetSymbol(source, "BothValidateArgsHandler"), Location.None);
 
-        Assert.That(model!.ValidateCallArgs, Is.EqualTo("request, loadedValue"));
+        Assert.Multiple(() =>
+        {
+            Assert.That(model!.ValidateCallArgs, Is.EqualTo("request, loadedValue"));
+            Assert.That(model.Load, Is.Not.Null);
+            Assert.That(model.Validate, Is.Not.Null);
+            Assert.That(model.Load!.Order, Is.LessThan(model.Validate!.Order));
+        });
+    }
+
+    [Test]
+    public void ValidateOrder_RequestOnlyValidate_ComesBeforeLoad()
+    {
+        const string source = """
+            using MiniBus;
+            namespace TestApp;
+            [Handler]
+            public class RequestOnlyValidateHandler
+            {
+                public record Request(string Prefix);
+                public record Response(string Value);
+                public record Entity(string Data);
+                public System.Threading.Tasks.Task<Entity?> Load(Request request)
+                    => System.Threading.Tasks.Task.FromResult<Entity?>(null);
+                public ValidationResult Validate(Request request)
+                    => new ValidationResult();
+                public System.Threading.Tasks.Task<Response> Handle(Entity entity)
+                    => System.Threading.Tasks.Task.FromResult(new Response(entity.Data));
+            }
+            """;
+
+        var model = HandlerModelFactory.GetHandlerModel(GetSymbol(source, "RequestOnlyValidateHandler"), Location.None);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(model, Is.Not.Null);
+            Assert.That(model!.ValidateCallArgs, Is.EqualTo("request"));
+            Assert.That(model.Load, Is.Not.Null);
+            Assert.That(model.Validate, Is.Not.Null);
+            Assert.That(model.Validate!.Order, Is.LessThan(model.Load!.Order));
+        });
     }
 
     [Test]

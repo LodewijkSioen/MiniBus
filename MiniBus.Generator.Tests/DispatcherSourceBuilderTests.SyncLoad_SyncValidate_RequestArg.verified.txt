@@ -21,13 +21,13 @@ namespace TestApp
             global::MiniBus.Result<global::TestApp.MyHandler.Response>>
             Handle(global::TestApp.MyHandler.Request request)
         {
-            var loaded = _handler.Load(request);
-            if (loaded is not { } loadedValue)
-                return global::MiniBus.Result<global::TestApp.MyHandler.Response>.NotFound();
-
             var validationResult = _handler.Validate(request);
             if (!validationResult.IsValid())
                 return global::MiniBus.Result<global::TestApp.MyHandler.Response>.Invalid(validationResult);
+
+            var loaded = _handler.Load(request);
+            if (loaded is not { } loadedValue)
+                return global::MiniBus.Result<global::TestApp.MyHandler.Response>.NotFound();
 
             var response = await _handler.Handle(loadedValue);
             return global::MiniBus.Result<global::TestApp.MyHandler.Response>.Success(response);

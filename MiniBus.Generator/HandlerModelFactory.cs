@@ -64,10 +64,26 @@ public static class HandlerModelFactory
             var (validateReturnInner, validateAsync) = UnwrapTask(validateMethod.ReturnType);
             if (validateReturnInner.ToDisplayString(fmt) == "global::MiniBus.ValidationResult")
             {
-                validateInfo = new ValidateInfo(IsAsync: validateAsync);
+                validateInfo = new ValidateInfo(IsAsync: validateAsync, Order: 0);
                 var (args, unsupported) = BuildCallArgs(validateMethod.Parameters, loadedByFqn, requestFqn, fmt);
                 validateArgsList = args;
                 unsupportedValidateParameters = unsupported;
+            }
+        }
+
+        // Assign phase order values based on argument dependencies.
+        if (loadInfo is not null && validateInfo is not null)
+        {
+            var validateDependsOnLoad = ValidateDependsOnLoadOutputs(validateArgsList, loadInfo.Elements);
+            if (validateDependsOnLoad)
+            {
+                loadInfo = loadInfo with { Order = 0 };
+                validateInfo = validateInfo with { Order = 1 };
+            }
+            else
+            {
+                validateInfo = validateInfo with { Order = 0 };
+                loadInfo = loadInfo with { Order = 1 };
             }
         }
 
@@ -140,7 +156,7 @@ public static class HandlerModelFactory
                 elements.Add(loadedElem);
                 AddToLoadedByFqn(loadedByFqn, fqn, loadedElem.NonNullLocalName);
             }
-            return (new LoadInfo(IsAsync: loadAsync, IsTuple: true, Elements: elements.ToImmutable()), loadedByFqn);
+            return (new LoadInfo(IsAsync: loadAsync, IsTuple: true, Order: 0, Elements: elements.ToImmutable()), loadedByFqn);
         }
 
         // Scalar load: handles both T and T? return types
@@ -151,7 +167,7 @@ public static class HandlerModelFactory
         var scalarFqn = nonNullable.ToDisplayString(fmt);
         var scalarLoadedElem = new LoadedElement("loaded", scalarFqn, IsNullable: scalarIsNullable);
         AddToLoadedByFqn(loadedByFqn, scalarFqn, scalarLoadedElem.NonNullLocalName);
-        return (new LoadInfo(IsAsync: loadAsync, IsTuple: false, Elements: ImmutableArray.Create(scalarLoadedElem)), loadedByFqn);
+        return (new LoadInfo(IsAsync: loadAsync, IsTuple: false, Order: 0, Elements: ImmutableArray.Create(scalarLoadedElem)), loadedByFqn);
     }
 
     private static void AddToLoadedByFqn(
@@ -240,7 +256,13 @@ public static class HandlerModelFactory
                 enriched.Add(elem);
             }
         }
-        return anyEnriched ? new LoadInfo(loadInfo.IsAsync, loadInfo.IsTuple, enriched.ToImmutable()) : loadInfo;
+        return anyEnriched ? new LoadInfo(loadInfo.IsAsync, loadInfo.IsTuple, loadInfo.Order, enriched.ToImmutable()) : loadInfo;
+    }
+
+    private static bool ValidateDependsOnLoadOutputs(List<string> validateCallArgs, ImmutableArray<LoadedElement> loadedElements)
+    {
+        var loadedArgNames = new HashSet<string>(loadedElements.Select(e => e.NonNullLocalName), StringComparer.Ordinal);
+        return validateCallArgs.Any(loadedArgNames.Contains);
     }
 
     private static string? GetRequiredMessage(

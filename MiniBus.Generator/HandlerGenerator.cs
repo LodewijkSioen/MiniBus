@@ -20,9 +20,10 @@ public sealed record LoadedElement(
 public sealed record LoadInfo(
     bool IsAsync,
     bool IsTuple,
+    int Order,
     ImmutableArray<LoadedElement> Elements);
 
-public sealed record ValidateInfo(bool IsAsync);
+public sealed record ValidateInfo(bool IsAsync, int Order);
 
 public sealed record HandlerModel(
     string? Namespace,

@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 
@@ -40,37 +41,42 @@ public static class DispatcherSourceBuilder
         sb.AppendLine($"{i}        Handle({model.FullRequestType} request)");
         sb.AppendLine($"{i}    {{");
 
-        // ── Load phase ────────────────────────────────────────────────────────
-        if (model.Load is { } load)
-        {
-            var awaitPrefix = load.IsAsync ? "await " : "";
-            if (load.IsTuple)
-            {
-                var varNames = string.Join(", ", load.Elements.Select(e => e.LocalName));
-                sb.AppendLine($"{i}        var ({varNames}) = {awaitPrefix}_handler.Load(request);");
-            }
-            else
-            {
-                sb.AppendLine($"{i}        var {load.Elements[0].LocalName} = {awaitPrefix}_handler.Load(request);");
-            }
-            var nullableElements = load.Elements.Where(e => e.IsNullable).ToArray();
-            foreach (var e in nullableElements)
-            {
-                var notFoundArg = e.NotFoundMessage is not null ? $"\"{e.NotFoundMessage}\"" : "";
-                sb.AppendLine($"{i}        if ({e.LocalName} is not {{ }} {e.NonNullLocalName})");
-                sb.AppendLine($"{i}            return {taskWrap}global::MiniBus.Result<{model.FullResponseType}>.NotFound({notFoundArg}){taskClose};");
-            }
-            sb.AppendLine();
-        }
+        var preHandlePhases = new List<(int Order, int TieBreak, string Kind)>();
+        if (model.Load is not null) preHandlePhases.Add((model.Load.Order, 0, "load"));
+        if (model.Validate is not null) preHandlePhases.Add((model.Validate.Order, 1, "validate"));
 
-        // ── Validate phase ────────────────────────────────────────────────────
-        if (model.Validate is { } validate)
+        foreach (var phase in preHandlePhases.OrderBy(p => p.Order).ThenBy(p => p.TieBreak))
         {
-            var validateAwait = validate.IsAsync ? "await " : "";
-            sb.AppendLine($"{i}        var validationResult = {validateAwait}_handler.Validate({model.ValidateCallArgs});");
-            sb.AppendLine($"{i}        if (!validationResult.IsValid())");
-            sb.AppendLine($"{i}            return {taskWrap}global::MiniBus.Result<{model.FullResponseType}>.Invalid(validationResult){taskClose};");
-            sb.AppendLine();
+            if (phase.Kind == "load" && model.Load is { } load)
+            {
+                var awaitPrefix = load.IsAsync ? "await " : "";
+                if (load.IsTuple)
+                {
+                    var varNames = string.Join(", ", load.Elements.Select(e => e.LocalName));
+                    sb.AppendLine($"{i}        var ({varNames}) = {awaitPrefix}_handler.Load(request);");
+                }
+                else
+                {
+                    sb.AppendLine($"{i}        var {load.Elements[0].LocalName} = {awaitPrefix}_handler.Load(request);");
+                }
+                var nullableElements = load.Elements.Where(e => e.IsNullable).ToArray();
+                foreach (var e in nullableElements)
+                {
+                    var notFoundArg = e.NotFoundMessage is not null ? $"\"{e.NotFoundMessage}\"" : "";
+                    sb.AppendLine($"{i}        if ({e.LocalName} is not {{ }} {e.NonNullLocalName})");
+                    sb.AppendLine($"{i}            return {taskWrap}global::MiniBus.Result<{model.FullResponseType}>.NotFound({notFoundArg}){taskClose};");
+                }
+                sb.AppendLine();
+            }
+
+            if (phase.Kind == "validate" && model.Validate is { } validate)
+            {
+                var validateAwait = validate.IsAsync ? "await " : "";
+                sb.AppendLine($"{i}        var validationResult = {validateAwait}_handler.Validate({model.ValidateCallArgs});");
+                sb.AppendLine($"{i}        if (!validationResult.IsValid())");
+                sb.AppendLine($"{i}            return {taskWrap}global::MiniBus.Result<{model.FullResponseType}>.Invalid(validationResult){taskClose};");
+                sb.AppendLine();
+            }
         }
 
         // ── Handle phase ──────────────────────────────────────────────────────
