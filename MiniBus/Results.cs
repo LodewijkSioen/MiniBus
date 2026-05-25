@@ -36,7 +36,7 @@ public class Result<TResponse>
         Status = ResultStatus.NotFound,
         ValidationErrors = message is null
             ? new ValidationResult()
-            : new ValidationResult { new ValidationError(message) }
+            : new ValidationResult { new ValidationError(message, "notfound") }
     };
 
     public static Result<TResponse> Invalid(ValidationResult errors) => new()

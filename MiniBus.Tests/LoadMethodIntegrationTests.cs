@@ -1,4 +1,5 @@
 using Microsoft.Extensions.DependencyInjection;
+using System.ComponentModel.DataAnnotations;
 
 namespace MiniBus.Tests;
 
@@ -44,6 +45,34 @@ public class SyncLoadHandler
         => request.Id == 0 ? null : new Loaded(request.Id * 3);
 
     public Task<Response> Handle(Loaded loaded)
+        => Task.FromResult(new Response(loaded.Value));
+}
+
+[Handler]
+public class NotFoundMessageHandler
+{
+    public record Request(bool ReturnNull);
+    public record Response(string Value);
+    public record Loaded(string Value);
+
+    public Task<Loaded?> Load(Request request)
+        => Task.FromResult<Loaded?>(request.ReturnNull ? null : new Loaded("loaded!"));
+
+    public Task<Response> Handle([Required(ErrorMessage = "Entity not found")] Loaded loaded)
+        => Task.FromResult(new Response(loaded.Value));
+}
+
+[Handler]
+public class RequiredNoMessageHandler
+{
+    public record Request(bool ReturnNull);
+    public record Response(string Value);
+    public record Loaded(string Value);
+
+    public Task<Loaded?> Load(Request request)
+        => Task.FromResult<Loaded?>(request.ReturnNull ? null : new Loaded("loaded!"));
+
+    public Task<Response> Handle([Required] Loaded loaded)
         => Task.FromResult(new Response(loaded.Value));
 }
 
@@ -110,5 +139,33 @@ public class LoadMethodIntegrationTests
 
         Assert.That(result.IsSuccess, Is.True);
         Assert.That(result.Response!.Value, Is.EqualTo(12));
+    }
+
+    [Test]
+    public async Task LoadReturnsNull_RequiredWithMessage_NotFoundHasMessageAndCode()
+    {
+        using var scope = AppUnderTest.Services.CreateScope();
+        var bus = scope.ServiceProvider.GetRequiredService<MiniBus>();
+
+        var result = await bus.Handle(new NotFoundMessageHandler.Request(ReturnNull: true));
+
+        Assert.That(result.IsSuccess, Is.False);
+        Assert.That(result.Status, Is.EqualTo(global::MiniBus.ResultStatus.NotFound));
+        Assert.That(result.ValidationErrors, Has.Count.EqualTo(1));
+        Assert.That(result.ValidationErrors[0].Message, Is.EqualTo("Entity not found"));
+        Assert.That(result.ValidationErrors[0].Code, Is.EqualTo("notfound"));
+    }
+
+    [Test]
+    public async Task LoadReturnsNull_RequiredWithoutMessage_ValidationErrorsIsEmpty()
+    {
+        using var scope = AppUnderTest.Services.CreateScope();
+        var bus = scope.ServiceProvider.GetRequiredService<MiniBus>();
+
+        var result = await bus.Handle(new RequiredNoMessageHandler.Request(ReturnNull: true));
+
+        Assert.That(result.IsSuccess, Is.False);
+        Assert.That(result.Status, Is.EqualTo(global::MiniBus.ResultStatus.NotFound));
+        Assert.That(result.ValidationErrors, Is.Empty);
     }
 }
