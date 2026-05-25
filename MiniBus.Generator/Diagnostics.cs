@@ -2,7 +2,7 @@ using Microsoft.CodeAnalysis;
 
 namespace MiniBus.Generator;
 
-public static class GeneratorDiagnostics
+public static class Diagnostics
 {
     private static readonly DiagnosticDescriptor DuplicateRequestTypeDescriptor = new(
         id: "MBG001",

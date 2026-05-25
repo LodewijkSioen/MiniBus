@@ -67,25 +67,25 @@ public class HandlerGenerator : IIncrementalGenerator
         {
             if (model is null) return;
             foreach (var unsupported in model.UnsupportedHandleParameters)
-                spc.ReportDiagnostic(GeneratorDiagnostics.UnsupportedParameter(
+                spc.ReportDiagnostic(Diagnostics.UnsupportedParameter(
                     location: model.Location,
                     handlerName: model.ClassName,
                     parameterNameAndType: unsupported,
                     methodName: "Handle",
                     requestType: model.FullRequestType));
             foreach (var unsupported in model.UnsupportedValidateParameters)
-                spc.ReportDiagnostic(GeneratorDiagnostics.UnsupportedParameter(
+                spc.ReportDiagnostic(Diagnostics.UnsupportedParameter(
                     location: model.Location,
                     handlerName: model.ClassName,
                     parameterNameAndType: unsupported,
                     methodName: "Validate",
                     requestType: model.FullRequestType));
             if (model.IsGenericHandler)
-                spc.ReportDiagnostic(GeneratorDiagnostics.GenericHandlerNotSupported(
+                spc.ReportDiagnostic(Diagnostics.GenericHandlerNotSupported(
                     location: model.Location,
                     fullHandlerName: model.FullClassName));
             if (model.IsNestedHandler)
-                spc.ReportDiagnostic(GeneratorDiagnostics.NestedHandlerNotSupported(
+                spc.ReportDiagnostic(Diagnostics.NestedHandlerNotSupported(
                     location: model.Location,
                     fullHandlerName: model.FullClassName));
             if (model.HasUnsupportedParameters || model.IsGenericHandler || model.IsNestedHandler) return;
@@ -106,7 +106,7 @@ public class HandlerGenerator : IIncrementalGenerator
             {
                 conflicting.Add(group.Key);
                 foreach (var m in group)
-                    spc.ReportDiagnostic(GeneratorDiagnostics.DuplicateRequestType(
+                    spc.ReportDiagnostic(Diagnostics.DuplicateRequestType(
                         location: m.Location,
                         handlerName: m.ClassName,
                         requestType: m.FullRequestType));
@@ -117,7 +117,7 @@ public class HandlerGenerator : IIncrementalGenerator
             {
                 excludedDispatcherPairs.Add(group.Key);
                 foreach (var m in group)
-                    spc.ReportDiagnostic(GeneratorDiagnostics.DuplicateRequestResponsePair(
+                    spc.ReportDiagnostic(Diagnostics.DuplicateRequestResponsePair(
                         location: m.Location,
                         handlerName: m.ClassName,
                         requestType: m.FullRequestType,
