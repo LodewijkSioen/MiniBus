@@ -56,8 +56,9 @@ public static class DispatcherSourceBuilder
             var nullableElements = load.Elements.Where(e => e.IsNullable).ToArray();
             foreach (var e in nullableElements)
             {
+                var notFoundArg = e.NotFoundMessage is not null ? $"\"{e.NotFoundMessage}\"" : "";
                 sb.AppendLine($"{i}        if ({e.LocalName} is not {{ }} {e.NonNullLocalName})");
-                sb.AppendLine($"{i}            return {taskWrap}global::MiniBus.Result<{model.FullResponseType}>.NotFound(){taskClose};");
+                sb.AppendLine($"{i}            return {taskWrap}global::MiniBus.Result<{model.FullResponseType}>.NotFound({notFoundArg}){taskClose};");
             }
             sb.AppendLine();
         }

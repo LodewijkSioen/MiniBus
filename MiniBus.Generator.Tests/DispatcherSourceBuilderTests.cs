@@ -131,6 +131,25 @@ public class DispatcherSourceBuilderTests
                     new LoadedElement("config", "global::TestApp.MyHandler.Config", IsNullable: false))),
             handleCallArgs: "entity, config")));
 
+    // ── NotFound message ──────────────────────────────────────────────────
+
+    [Test]
+    public Task ScalarLoad_WithNotFoundMessage() =>
+        Verify(DispatcherSourceBuilder.Build(
+            Model(load: new LoadInfo(IsAsync: false, IsTuple: false,
+                Elements: ImmutableArray.Create(
+                    new LoadedElement("loaded", "global::TestApp.MyHandler.Entity", IsNullable: true, NotFoundMessage: "Entity not found"))),
+            handleCallArgs: "loadedValue")));
+
+    [Test]
+    public Task TupleLoad_PerElementNotFoundMessages() =>
+        Verify(DispatcherSourceBuilder.Build(Model(
+            load: new LoadInfo(IsAsync: false, IsTuple: true,
+                Elements: ImmutableArray.Create(
+                    new LoadedElement("entity", "global::TestApp.MyHandler.Entity", IsNullable: true, NotFoundMessage: "Entity not found"),
+                    new LoadedElement("config", "global::TestApp.MyHandler.Config", IsNullable: true, NotFoundMessage: "Config not found"))),
+            handleCallArgs: "entityValue, configValue")));
+
     // ── Namespace ─────────────────────────────────────────────────────────
 
     [Test]

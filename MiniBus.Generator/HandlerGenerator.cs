@@ -12,7 +12,8 @@ namespace MiniBus.Generator;
 public sealed record LoadedElement(
     string LocalName,    // local variable name in generated code
     string FullType,     // non-nullable, global::-prefixed
-    bool IsNullable)     // whether a null-check should be emitted
+    bool IsNullable,     // whether a null-check should be emitted
+    string? NotFoundMessage = null)  // message for Result.NotFound() when null
 {
     // For nullable elements, a non-nullable pattern variable captured after the null check
     public string NonNullLocalName => IsNullable ? LocalName + "Value" : LocalName;
@@ -345,6 +346,55 @@ public class HandlerGenerator : IIncrementalGenerator
                 validateArgsList = args;
                 unsupportedValidateParameters = unsupported;
             }
+        }
+
+        // ── Enrich nullable LoadedElements with [Required] messages ─────────────
+        if (loadInfo is not null)
+        {
+            static string? GetRequiredMessage(
+                ImmutableArray<IParameterSymbol> parameters,
+                string loadedFqn,
+                SymbolDisplayFormat format)
+            {
+                foreach (var param in parameters)
+                {
+                    if (param.Type.ToDisplayString(format) != loadedFqn) continue;
+                    var req = param.GetAttributes().FirstOrDefault(static a =>
+                        a.AttributeClass?.Name == "RequiredAttribute"
+                        && a.AttributeClass.ContainingNamespace?.ToDisplayString()
+                            == "System.ComponentModel.DataAnnotations");
+                    if (req is null) continue;
+                    var msgArg = req.NamedArguments
+                        .FirstOrDefault(static kv => kv.Key == "ErrorMessage");
+                    return msgArg.Value.Value as string;
+                }
+                return null;
+            }
+
+            var enriched = ImmutableArray.CreateBuilder<LoadedElement>();
+            var anyEnriched = false;
+            foreach (var elem in loadInfo.Elements)
+            {
+                if (!elem.IsNullable)
+                {
+                    enriched.Add(elem);
+                    continue;
+                }
+                var msg = GetRequiredMessage(handleMethod.Parameters, elem.FullType, fmt);
+                if (msg is null && validateMethod is not null)
+                    msg = GetRequiredMessage(validateMethod.Parameters, elem.FullType, fmt);
+                if (msg is not null)
+                {
+                    enriched.Add(elem with { NotFoundMessage = msg });
+                    anyEnriched = true;
+                }
+                else
+                {
+                    enriched.Add(elem);
+                }
+            }
+            if (anyEnriched)
+                loadInfo = new LoadInfo(loadInfo.IsAsync, loadInfo.IsTuple, enriched.ToImmutable());
         }
 
         var ns = classSymbol.ContainingNamespace.IsGlobalNamespace
