@@ -1,0 +1,81 @@
+﻿{
+  Item1: {
+    Namespace: TestApp,
+    ClassName: SyncLoadHandler,
+    FullClassName: global::TestApp.SyncLoadHandler,
+    FullRequestType: global::TestApp.SyncLoadHandler.Request,
+    FullResponseType: global::TestApp.SyncLoadHandler.Response,
+    Phases: [
+      {
+        MethodName: Load,
+        IsAsync: false,
+        Parameters: [
+          {
+            LocalName: request,
+            FullType: global::TestApp.SyncLoadHandler.Request,
+            IsNullable: false,
+            NotNullMessage: request cannot be null
+          }
+        ],
+        Returns: [
+          {
+            LocalName: fromLoad,
+            FullType: global::TestApp.SyncLoadHandler.Entity,
+            IsNullable: true,
+            NonNullLocalName: fromLoadValue,
+            IsValidationResult: false
+          }
+        ]
+      },
+      {
+        Type: Handle,
+        MethodName: Handle,
+        IsAsync: true,
+        Parameters: [
+          {
+            LocalName: entity,
+            FullType: global::TestApp.SyncLoadHandler.Entity,
+            IsNullable: false,
+            NotNullMessage: entity cannot be null
+          }
+        ],
+        Returns: [
+          {
+            LocalName: fromHandle,
+            FullType: global::TestApp.SyncLoadHandler.Response,
+            IsNullable: false,
+            NonNullLocalName: fromHandle,
+            IsValidationResult: false
+          }
+        ]
+      }
+    ],
+    LocalVariables: [
+      {
+        LocalName: fromLoadValue,
+        FullType: global::TestApp.SyncLoadHandler.Entity,
+        CheckNullability: true,
+        IfNullErrorMessage: entity cannot be null
+      },
+      {
+        LocalName: fromLoadValue,
+        FullType: global::TestApp.SyncLoadHandler.Entity,
+        CheckNullability: false
+      },
+      {
+        LocalName: fromHandle,
+        FullType: global::TestApp.SyncLoadHandler.Response,
+        CheckNullability: false
+      },
+      {
+        LocalName: request,
+        FullType: global::TestApp.SyncLoadHandler.Request,
+        CheckNullability: false
+      }
+    ],
+    Location: ,
+    DispatcherFullName: global::TestApp.SyncLoadHandlerDispatcher,
+    DispatcherKey: global::TestApp.SyncLoadHandler.Request|global::TestApp.SyncLoadHandler.Response,
+    IsAnyAsync: true
+  }
+}

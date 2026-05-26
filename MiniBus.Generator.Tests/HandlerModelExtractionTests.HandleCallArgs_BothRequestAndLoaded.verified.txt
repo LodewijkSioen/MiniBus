@@ -1,0 +1,87 @@
+﻿{
+  Item1: {
+    Namespace: TestApp,
+    ClassName: BothArgsHandler,
+    FullClassName: global::TestApp.BothArgsHandler,
+    FullRequestType: global::TestApp.BothArgsHandler.Request,
+    FullResponseType: global::TestApp.BothArgsHandler.Response,
+    Phases: [
+      {
+        MethodName: Load,
+        IsAsync: true,
+        Parameters: [
+          {
+            LocalName: request,
+            FullType: global::TestApp.BothArgsHandler.Request,
+            IsNullable: false,
+            NotNullMessage: request cannot be null
+          }
+        ],
+        Returns: [
+          {
+            LocalName: fromLoad,
+            FullType: global::TestApp.BothArgsHandler.Entity,
+            IsNullable: true,
+            NonNullLocalName: fromLoadValue,
+            IsValidationResult: false
+          }
+        ]
+      },
+      {
+        Type: Handle,
+        MethodName: Handle,
+        IsAsync: true,
+        Parameters: [
+          {
+            LocalName: request,
+            FullType: global::TestApp.BothArgsHandler.Request,
+            IsNullable: false,
+            NotNullMessage: request cannot be null
+          },
+          {
+            LocalName: entity,
+            FullType: global::TestApp.BothArgsHandler.Entity,
+            IsNullable: false,
+            NotNullMessage: entity cannot be null
+          }
+        ],
+        Returns: [
+          {
+            LocalName: fromHandle,
+            FullType: global::TestApp.BothArgsHandler.Response,
+            IsNullable: false,
+            NonNullLocalName: fromHandle,
+            IsValidationResult: false
+          }
+        ]
+      }
+    ],
+    LocalVariables: [
+      {
+        LocalName: fromLoadValue,
+        FullType: global::TestApp.BothArgsHandler.Entity,
+        CheckNullability: true,
+        IfNullErrorMessage: entity cannot be null
+      },
+      {
+        LocalName: fromLoadValue,
+        FullType: global::TestApp.BothArgsHandler.Entity,
+        CheckNullability: false
+      },
+      {
+        LocalName: fromHandle,
+        FullType: global::TestApp.BothArgsHandler.Response,
+        CheckNullability: false
+      },
+      {
+        LocalName: request,
+        FullType: global::TestApp.BothArgsHandler.Request,
+        CheckNullability: false
+      }
+    ],
+    Location: ,
+    DispatcherFullName: global::TestApp.BothArgsHandlerDispatcher,
+    DispatcherKey: global::TestApp.BothArgsHandler.Request|global::TestApp.BothArgsHandler.Response,
+    IsAnyAsync: true
+  }
+}

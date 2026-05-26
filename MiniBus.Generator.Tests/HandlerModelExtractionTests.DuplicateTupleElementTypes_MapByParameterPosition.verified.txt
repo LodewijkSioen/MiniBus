@@ -1,0 +1,137 @@
+﻿{
+  Item1: {
+    Namespace: TestApp,
+    ClassName: DuplicateTupleTypesHandler,
+    FullClassName: global::TestApp.DuplicateTupleTypesHandler,
+    FullRequestType: global::TestApp.DuplicateTupleTypesHandler.Request,
+    FullResponseType: global::TestApp.DuplicateTupleTypesHandler.Response,
+    Phases: [
+      {
+        MethodName: Load,
+        IsAsync: false,
+        Parameters: [
+          {
+            LocalName: request,
+            FullType: global::TestApp.DuplicateTupleTypesHandler.Request,
+            IsNullable: false,
+            NotNullMessage: request cannot be null
+          }
+        ],
+        Returns: [
+          {
+            LocalName: primaryLoad,
+            FullType: global::TestApp.DuplicateTupleTypesHandler.Entity,
+            IsNullable: false,
+            NonNullLocalName: primaryLoad,
+            IsValidationResult: false
+          },
+          {
+            LocalName: secondaryLoad,
+            FullType: global::TestApp.DuplicateTupleTypesHandler.Entity,
+            IsNullable: false,
+            NonNullLocalName: secondaryLoad,
+            IsValidationResult: false
+          }
+        ]
+      },
+      {
+        MethodName: Validate,
+        IsAsync: false,
+        Parameters: [
+          {
+            LocalName: first,
+            FullType: global::TestApp.DuplicateTupleTypesHandler.Entity,
+            IsNullable: false,
+            NotNullMessage: first cannot be null
+          },
+          {
+            LocalName: second,
+            FullType: global::TestApp.DuplicateTupleTypesHandler.Entity,
+            IsNullable: false,
+            NotNullMessage: second cannot be null
+          }
+        ],
+        Returns: [
+          {
+            LocalName: fromValidate,
+            FullType: global::MiniBus.ValidationResult,
+            IsNullable: false,
+            NonNullLocalName: fromValidate,
+            IsValidationResult: true
+          }
+        ]
+      },
+      {
+        Type: Handle,
+        MethodName: Handle,
+        IsAsync: true,
+        Parameters: [
+          {
+            LocalName: first,
+            FullType: global::TestApp.DuplicateTupleTypesHandler.Entity,
+            IsNullable: false,
+            NotNullMessage: first cannot be null
+          },
+          {
+            LocalName: second,
+            FullType: global::TestApp.DuplicateTupleTypesHandler.Entity,
+            IsNullable: false,
+            NotNullMessage: second cannot be null
+          }
+        ],
+        Returns: [
+          {
+            LocalName: fromHandle,
+            FullType: global::TestApp.DuplicateTupleTypesHandler.Response,
+            IsNullable: false,
+            NonNullLocalName: fromHandle,
+            IsValidationResult: false
+          }
+        ]
+      }
+    ],
+    LocalVariables: [
+      {
+        LocalName: primaryLoad,
+        FullType: global::TestApp.DuplicateTupleTypesHandler.Entity,
+        CheckNullability: false,
+        IfNullErrorMessage: first cannot be null
+      },
+      {
+        LocalName: primaryLoad,
+        FullType: global::TestApp.DuplicateTupleTypesHandler.Entity,
+        CheckNullability: false
+      },
+      {
+        LocalName: secondaryLoad,
+        FullType: global::TestApp.DuplicateTupleTypesHandler.Entity,
+        CheckNullability: false,
+        IfNullErrorMessage: first cannot be null
+      },
+      {
+        LocalName: secondaryLoad,
+        FullType: global::TestApp.DuplicateTupleTypesHandler.Entity,
+        CheckNullability: false
+      },
+      {
+        LocalName: fromValidate,
+        FullType: global::MiniBus.ValidationResult,
+        CheckNullability: false
+      },
+      {
+        LocalName: fromHandle,
+        FullType: global::TestApp.DuplicateTupleTypesHandler.Response,
+        CheckNullability: false
+      },
+      {
+        LocalName: request,
+        FullType: global::TestApp.DuplicateTupleTypesHandler.Request,
+        CheckNullability: false
+      }
+    ],
+    Location: ,
+    DispatcherFullName: global::TestApp.DuplicateTupleTypesHandlerDispatcher,
+    DispatcherKey: global::TestApp.DuplicateTupleTypesHandler.Request|global::TestApp.DuplicateTupleTypesHandler.Response,
+    IsAnyAsync: true
+  }
+}

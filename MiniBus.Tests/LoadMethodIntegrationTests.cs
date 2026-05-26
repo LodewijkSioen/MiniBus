@@ -166,6 +166,8 @@ public class LoadMethodIntegrationTests
 
         Assert.That(result.IsSuccess, Is.False);
         Assert.That(result.Status, Is.EqualTo(global::MiniBus.ResultStatus.NotFound));
-        Assert.That(result.ValidationErrors, Is.Empty);
+        Assert.That(result.ValidationErrors, Has.Count.EqualTo(1));
+        Assert.That(result.ValidationErrors[0].Message, Is.EqualTo("loaded cannot be null"));
+        Assert.That(result.ValidationErrors[0].Code, Is.EqualTo("notfound"));
     }
 }

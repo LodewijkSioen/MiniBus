@@ -2,63 +2,9 @@ using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using System.Security.Cryptography;
 using System.Text;
-using System.Collections.Immutable;
 using System.Linq;
 
 namespace MiniBus.Generator;
-
-public sealed record HandlerPhases(ImmutableArray<IHandlerPhaseInfo> All)
-{
-    public static HandlerPhases From(params IHandlerPhaseInfo?[] phases)
-    {
-        var items = phases
-            .Where(static p => p is not null)
-            .Cast<IHandlerPhaseInfo>()
-            .ToImmutableArray();
-
-        return new HandlerPhases(items);
-    }
-
-    public TPhase? TryGetPhase<TPhase>() where TPhase : class, IHandlerPhaseInfo =>
-        All.OfType<TPhase>().FirstOrDefault();
-
-    public TPhase GetRequiredPhase<TPhase>() where TPhase : class, IHandlerPhaseInfo =>
-        TryGetPhase<TPhase>() ?? throw new System.InvalidOperationException($"Missing required phase: {typeof(TPhase).Name}");
-
-    public ImmutableArray<IPreHandlePhaseInfo> GetPreHandlePhases()
-    {
-        return All.OfType<IPreHandlePhaseInfo>().ToImmutableArray();
-    }
-
-    public ImmutableArray<IInvocablePhaseInfo> GetInvocablePhases()
-    {
-        return All.OfType<IInvocablePhaseInfo>().ToImmutableArray();
-    }
-
-    public bool IsAnyAsync => All.OfType<IAsyncPhaseInfo>().Any(static p => p.IsAsync);
-    public bool HasUnsupportedParameters => GetInvocablePhases().Any(static p => !p.UnsupportedParameters.IsEmpty);
-}
-
-public sealed record HandlerModel(
-    string? Namespace,
-    string ClassName,
-    string FullClassName,
-    string FullRequestType,
-    string FullResponseType,
-    HandlerPhases Phases,
-    bool IsGenericHandler,
-    bool IsNestedHandler,
-    Location Location)
-{
-    public ImmutableArray<Diagnostic> ExtractionDiagnostics { get; init; } = ImmutableArray<Diagnostic>.Empty;
-
-    // "global::TestApp.DummyHandler" + "Dispatcher" = "global::TestApp.DummyHandlerDispatcher"
-    public string DispatcherFullName => FullClassName + "Dispatcher";
-    public string DispatcherKey => $"{FullRequestType}|{FullResponseType}";
-    public bool IsAnyAsync => Phases.IsAnyAsync;
-    public bool HasUnsupportedParameters => Phases.HasUnsupportedParameters;
-    public bool HasErrors => ExtractionDiagnostics.Any(static d => d.Severity == DiagnosticSeverity.Error);
-}
 
 [Generator]
 public class HandlerGenerator : IIncrementalGenerator
@@ -67,51 +13,33 @@ public class HandlerGenerator : IIncrementalGenerator
 
     public void Initialize(IncrementalGeneratorInitializationContext context)
     {
-        var handlerModels = context.SyntaxProvider
+        var results = context.SyntaxProvider
             .ForAttributeWithMetadataName(
                 HandlerAttributeFqn,
                 predicate: static (node, _) => node is ClassDeclarationSyntax,
-                transform: static (ctx, ct) => HandlerModelFactory.GetHandlerModel(ctx, ct))
-            .Where(static m => m is not null);
+                transform: static (ctx, ct) => HandlerModelFactory.GetHandlerModel(ctx, ct));
 
         // One file per handler: dispatcher class + typed MiniBus extension method
-        context.RegisterSourceOutput(handlerModels, static (spc, model) =>
+        context.RegisterSourceOutput(results, static (spc, result) =>
         {
-            if (model is null) return;
-
-            foreach (var diagnostic in model.ExtractionDiagnostics)
+            foreach (var diagnostic in result.diagnostics)
                 spc.ReportDiagnostic(diagnostic);
-
-            foreach (var phase in model.Phases.GetInvocablePhases())
+            if (result.model is not {  } model)
             {
-                foreach (var unsupported in phase.UnsupportedParameters)
-                    spc.ReportDiagnostic(Diagnostics.UnsupportedParameter(
-                        location: model.Location,
-                        handlerName: model.ClassName,
-                        parameterNameAndType: unsupported,
-                        methodName: phase.MethodName,
-                        requestType: model.FullRequestType));
+                return;
             }
-            if (model.IsGenericHandler)
-                spc.ReportDiagnostic(Diagnostics.GenericHandlerNotSupported(
-                    location: model.Location,
-                    fullHandlerName: model.FullClassName));
-            if (model.IsNestedHandler)
-                spc.ReportDiagnostic(Diagnostics.NestedHandlerNotSupported(
-                    location: model.Location,
-                    fullHandlerName: model.FullClassName));
-            if (model.HasErrors || model.HasUnsupportedParameters || model.IsGenericHandler || model.IsNestedHandler) return;
+
             spc.AddSource(CreateDispatcherHintName(model), DispatcherSourceBuilder.Build(model));
         });
 
         // One file for all handlers: AddGeneratedHandlers() DI registration
-        context.RegisterSourceOutput(handlerModels.Collect(), static (spc, models) =>
+        context.RegisterSourceOutput(results.Collect(), static (spc, result) =>
         {
-            var valid = models
-                .Where(static m => m is not null)
-                .Select(static m => m!)
-                .Where(static m => !m.HasErrors && !m.HasUnsupportedParameters && !m.IsGenericHandler && !m.IsNestedHandler)
+            var valid = result
+                .Where(static m => m.model is not null)
+                .Select(static m => m.model!)
                 .ToArray();
+
             // Detect handlers that share a request type — extension methods would collide (CS0111)
             var conflicting = new System.Collections.Generic.HashSet<string>();
             foreach (var group in valid.GroupBy(static m => m.FullRequestType).Where(static g => g.Count() > 1))

@@ -1,0 +1,17 @@
+﻿{
+  Item2: [
+    {
+      Message: Handler 'ValidateRequestTypeHandler' has unsupported parameter 'unknown' in Handle. Parameters must match type 'global::TestApp.ValidateRequestTypeHandler.Unknown'.,
+      Severity: Warning,
+      WarningLevel: 1,
+      Descriptor: {
+        Id: MBG002,
+        Title: Unsupported handler parameter,
+        MessageFormat: Handler '{0}' has unsupported parameter '{1}' in {2}. Parameters must match type '{3}'.,
+        Category: MiniBus.Generator,
+        DefaultSeverity: Warning,
+        IsEnabledByDefault: true
+      }
+    }
+  ]
+}

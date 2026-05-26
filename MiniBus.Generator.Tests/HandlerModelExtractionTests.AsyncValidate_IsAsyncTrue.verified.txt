@@ -1,0 +1,75 @@
+﻿{
+  Item1: {
+    Namespace: TestApp,
+    ClassName: AsyncValidateHandler,
+    FullClassName: global::TestApp.AsyncValidateHandler,
+    FullRequestType: global::TestApp.AsyncValidateHandler.Request,
+    FullResponseType: global::TestApp.AsyncValidateHandler.Response,
+    Phases: [
+      {
+        MethodName: Validate,
+        IsAsync: true,
+        Parameters: [
+          {
+            LocalName: request,
+            FullType: global::TestApp.AsyncValidateHandler.Request,
+            IsNullable: false,
+            NotNullMessage: request cannot be null
+          }
+        ],
+        Returns: [
+          {
+            LocalName: fromValidate,
+            FullType: global::MiniBus.ValidationResult,
+            IsNullable: false,
+            NonNullLocalName: fromValidate,
+            IsValidationResult: true
+          }
+        ]
+      },
+      {
+        Type: Handle,
+        MethodName: Handle,
+        IsAsync: true,
+        Parameters: [
+          {
+            LocalName: request,
+            FullType: global::TestApp.AsyncValidateHandler.Request,
+            IsNullable: false,
+            NotNullMessage: request cannot be null
+          }
+        ],
+        Returns: [
+          {
+            LocalName: fromHandle,
+            FullType: global::TestApp.AsyncValidateHandler.Response,
+            IsNullable: false,
+            NonNullLocalName: fromHandle,
+            IsValidationResult: false
+          }
+        ]
+      }
+    ],
+    LocalVariables: [
+      {
+        LocalName: fromValidate,
+        FullType: global::MiniBus.ValidationResult,
+        CheckNullability: false
+      },
+      {
+        LocalName: fromHandle,
+        FullType: global::TestApp.AsyncValidateHandler.Response,
+        CheckNullability: false
+      },
+      {
+        LocalName: request,
+        FullType: global::TestApp.AsyncValidateHandler.Request,
+        CheckNullability: false
+      }
+    ],
+    Location: ,
+    DispatcherFullName: global::TestApp.AsyncValidateHandlerDispatcher,
+    DispatcherKey: global::TestApp.AsyncValidateHandler.Request|global::TestApp.AsyncValidateHandler.Response,
+    IsAnyAsync: true
+  }
+}

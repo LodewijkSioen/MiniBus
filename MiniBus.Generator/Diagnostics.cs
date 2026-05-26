@@ -15,7 +15,7 @@ public static class Diagnostics
     private static readonly DiagnosticDescriptor UnsupportedParameterDescriptor = new(
         id: "MBG002",
         title: "Unsupported handler parameter",
-        messageFormat: "Handler '{0}' has unsupported parameter '{1}' in {2}. Parameters must match request type '{3}' or a loaded value type.",
+        messageFormat: "Handler '{0}' has unsupported parameter '{1}' in {2}. Parameters must match type '{3}'.",
         category: "MiniBus.Generator",
         defaultSeverity: DiagnosticSeverity.Warning,
         isEnabledByDefault: true);

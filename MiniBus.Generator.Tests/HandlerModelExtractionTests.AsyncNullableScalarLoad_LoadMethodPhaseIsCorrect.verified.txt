@@ -1,0 +1,81 @@
+﻿{
+  Item1: {
+    Namespace: TestApp,
+    ClassName: EntityHandler,
+    FullClassName: global::TestApp.EntityHandler,
+    FullRequestType: global::TestApp.EntityHandler.Request,
+    FullResponseType: global::TestApp.EntityHandler.Response,
+    Phases: [
+      {
+        MethodName: Load,
+        IsAsync: true,
+        Parameters: [
+          {
+            LocalName: request,
+            FullType: global::TestApp.EntityHandler.Request,
+            IsNullable: false,
+            NotNullMessage: request cannot be null
+          }
+        ],
+        Returns: [
+          {
+            LocalName: fromLoad,
+            FullType: global::TestApp.EntityHandler.Entity,
+            IsNullable: true,
+            NonNullLocalName: fromLoadValue,
+            IsValidationResult: false
+          }
+        ]
+      },
+      {
+        Type: Handle,
+        MethodName: Handle,
+        IsAsync: true,
+        Parameters: [
+          {
+            LocalName: entity,
+            FullType: global::TestApp.EntityHandler.Entity,
+            IsNullable: false,
+            NotNullMessage: entity cannot be null
+          }
+        ],
+        Returns: [
+          {
+            LocalName: fromHandle,
+            FullType: global::TestApp.EntityHandler.Response,
+            IsNullable: false,
+            NonNullLocalName: fromHandle,
+            IsValidationResult: false
+          }
+        ]
+      }
+    ],
+    LocalVariables: [
+      {
+        LocalName: fromLoadValue,
+        FullType: global::TestApp.EntityHandler.Entity,
+        CheckNullability: true,
+        IfNullErrorMessage: entity cannot be null
+      },
+      {
+        LocalName: fromLoadValue,
+        FullType: global::TestApp.EntityHandler.Entity,
+        CheckNullability: false
+      },
+      {
+        LocalName: fromHandle,
+        FullType: global::TestApp.EntityHandler.Response,
+        CheckNullability: false
+      },
+      {
+        LocalName: request,
+        FullType: global::TestApp.EntityHandler.Request,
+        CheckNullability: false
+      }
+    ],
+    Location: ,
+    DispatcherFullName: global::TestApp.EntityHandlerDispatcher,
+    DispatcherKey: global::TestApp.EntityHandler.Request|global::TestApp.EntityHandler.Response,
+    IsAnyAsync: true
+  }
+}
