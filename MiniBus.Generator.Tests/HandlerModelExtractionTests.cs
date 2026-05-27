@@ -267,7 +267,7 @@ public class HandlerModelExtractionTests
     }
 
     [Test]
-    public async Task DuplicateTupleElementTypes_MapByParameterPosition()
+    public async Task DuplicateTupleElementTypes_ReportsMBG007_AndReturnsNullModel()
     {
         const string source = """
             using MiniBus;

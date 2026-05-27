@@ -85,11 +85,6 @@
         IfNullErrorMessage: entity cannot be null
       },
       {
-        LocalName: fromLoadValue,
-        FullType: global::TestApp.BothValidateArgsHandler.Entity,
-        CheckNullability: false
-      },
-      {
         LocalName: fromValidate,
         FullType: global::MiniBus.ValidationResult,
         CheckNullability: false

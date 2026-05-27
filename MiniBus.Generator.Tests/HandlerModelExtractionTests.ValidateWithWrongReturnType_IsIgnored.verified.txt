@@ -7,27 +7,6 @@
     FullResponseType: global::TestApp.WrongValidateHandler.Response,
     Phases: [
       {
-        MethodName: Validate,
-        IsAsync: false,
-        Parameters: [
-          {
-            LocalName: request,
-            FullType: global::TestApp.WrongValidateHandler.Request,
-            IsNullable: false,
-            NotNullMessage: request cannot be null
-          }
-        ],
-        Returns: [
-          {
-            LocalName: fromValidate,
-            FullType: string,
-            IsNullable: false,
-            NonNullLocalName: fromValidate,
-            IsValidationResult: false
-          }
-        ]
-      },
-      {
         Type: Handle,
         MethodName: Handle,
         IsAsync: true,
@@ -51,11 +30,6 @@
       }
     ],
     LocalVariables: [
-      {
-        LocalName: fromValidate,
-        FullType: string,
-        CheckNullability: false
-      },
       {
         LocalName: fromHandle,
         FullType: global::TestApp.WrongValidateHandler.Response,

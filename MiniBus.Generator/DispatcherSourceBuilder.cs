@@ -66,7 +66,7 @@ public static class DispatcherSourceBuilder
     private static void BuildPrePhase(StringBuilder sb, HandlerModel model, MethodPhase prePhase, string taskWrap, string taskClose, string indent)
     {
         var awaitPrefix = prePhase.IsAsync ? "await " : "";
-        var callArguments = string.Join(" ,", BuildCallArguments(prePhase, model.LocalVariables));
+        var callArguments = string.Join(", ", BuildCallArguments(prePhase, model.LocalVariables));
         if (prePhase.Returns.Length > 1)
         {
             var varNames = string.Join(", ", prePhase.Returns.Select(e => e.LocalName));
@@ -106,7 +106,7 @@ public static class DispatcherSourceBuilder
     private static void BuildHandlePhase(StringBuilder sb, HandlerModel model, MethodPhase handle, string taskWrap, string taskClose, string indent)
     {
         var handleAwait = handle.IsAsync ? "await " : "";
-        var callArguments = string.Join(" ,", BuildCallArguments(handle, model.LocalVariables));
+        var callArguments = string.Join(", ", BuildCallArguments(handle, model.LocalVariables));
         sb.AppendLine($"{indent}        var response = {handleAwait}_handler.Handle({callArguments});");
         sb.AppendLine($"{indent}        return {taskWrap}global::MiniBus.Result<{model.FullResponseType}>.Success(response){taskClose};");
     }
@@ -115,8 +115,9 @@ public static class DispatcherSourceBuilder
     {
         foreach (var parameter in phase.Parameters)
         {
-            var match = returnElements.FirstOrDefault(r => r.FullType == parameter.FullType);
-            yield return match?.LocalName ?? "unknown";
+            yield return returnElements
+                .Single(local => local.FullType == parameter.FullType)
+                .LocalName;
         }
     }
 }

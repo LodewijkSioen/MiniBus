@@ -25,11 +25,19 @@ public class Result<TResponse>
 
     public ValidationResult ValidationErrors { get; init; }
 
-    public static Result<TResponse> Success(TResponse response) => new()
+    public static Result<TResponse> Success(TResponse response)
     {
-        Status = ResultStatus.Ok,
-        Response = response
-    };
+        if (response is null)
+        {
+            throw new ArgumentNullException(nameof(response));
+        }
+
+        return new()
+        {
+            Status = ResultStatus.Ok,
+            Response = response
+        };
+    }
 
     public static Result<TResponse> NotFound(string? message = null) => new()
     {
@@ -39,11 +47,19 @@ public class Result<TResponse>
             : new ValidationResult { new ValidationError(message, "notfound") }
     };
 
-    public static Result<TResponse> Invalid(ValidationResult errors) => new()
+    public static Result<TResponse> Invalid(ValidationResult errors)
     {
-        Status = ResultStatus.Invalid,
-        ValidationErrors = errors
-    };
+        if (errors is null)
+        {
+            throw new ArgumentNullException(nameof(errors));
+        }
+
+        return new()
+        {
+            Status = ResultStatus.Invalid,
+            ValidationErrors = errors
+        };
+    }
 }
 
 public class ValidationResult : List<ValidationError>

@@ -38,14 +38,18 @@ public class HandlerGenerator : IIncrementalGenerator
             var valid = result
                 .Where(static m => m.model is not null)
                 .Select(static m => m.model!)
+                .OrderBy(static m => m.FullClassName, System.StringComparer.Ordinal)
                 .ToArray();
 
             // Detect handlers that share a request type — extension methods would collide (CS0111)
             var conflicting = new System.Collections.Generic.HashSet<string>();
-            foreach (var group in valid.GroupBy(static m => m.FullRequestType).Where(static g => g.Count() > 1))
+            foreach (var group in valid
+                .GroupBy(static m => m.FullRequestType)
+                .Where(static g => g.Count() > 1)
+                .OrderBy(static g => g.Key, System.StringComparer.Ordinal))
             {
                 conflicting.Add(group.Key);
-                foreach (var m in group)
+                foreach (var m in group.OrderBy(static m => m.FullClassName, System.StringComparer.Ordinal))
                     spc.ReportDiagnostic(Diagnostics.DuplicateRequestType(
                         location: m.Location,
                         handlerName: m.ClassName,
@@ -53,10 +57,13 @@ public class HandlerGenerator : IIncrementalGenerator
             }
 
             var excludedDispatcherPairs = new System.Collections.Generic.HashSet<string>();
-            foreach (var group in valid.GroupBy(static m => m.DispatcherKey).Where(static g => g.Count() > 1))
+            foreach (var group in valid
+                .GroupBy(static m => m.DispatcherKey)
+                .Where(static g => g.Count() > 1)
+                .OrderBy(static g => g.Key, System.StringComparer.Ordinal))
             {
                 excludedDispatcherPairs.Add(group.Key);
-                foreach (var m in group)
+                foreach (var m in group.OrderBy(static m => m.FullClassName, System.StringComparer.Ordinal))
                     spc.ReportDiagnostic(Diagnostics.DuplicateRequestResponsePair(
                         location: m.Location,
                         handlerName: m.ClassName,

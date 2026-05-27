@@ -58,11 +58,6 @@
         IfNullErrorMessage: entity cannot be null
       },
       {
-        LocalName: fromLoad,
-        FullType: global::TestApp.NonNullLoadHandler.Entity,
-        CheckNullability: false
-      },
-      {
         LocalName: fromHandle,
         FullType: global::TestApp.NonNullLoadHandler.Response,
         CheckNullability: false

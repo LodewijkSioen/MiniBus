@@ -71,20 +71,10 @@
         IfNullErrorMessage: entity cannot be null
       },
       {
-        LocalName: item1LoadValue,
-        FullType: global::TestApp.UnnamedTupleHandler.Entity,
-        CheckNullability: false
-      },
-      {
         LocalName: item2LoadValue,
         FullType: global::TestApp.UnnamedTupleHandler.Config,
         CheckNullability: true,
         IfNullErrorMessage: config cannot be null
-      },
-      {
-        LocalName: item2LoadValue,
-        FullType: global::TestApp.UnnamedTupleHandler.Config,
-        CheckNullability: false
       },
       {
         LocalName: fromHandle,

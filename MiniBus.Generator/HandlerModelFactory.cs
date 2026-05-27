@@ -88,7 +88,7 @@ public static class HandlerModelFactory
 
         var validateMethod = classSymbol.GetMembers("Validate")
             .OfType<IMethodSymbol>()
-            .FirstOrDefault(static m => !m.IsStatic);
+            .FirstOrDefault(m => !m.IsStatic && IsSupportedValidateMethod(m, fmt));
 
         var handlePhase = new MethodPhase(PhaseType.Handle, handleMethod, fmt);
         var loadPhase = loadMethod is null ? null : new MethodPhase(PhaseType.Before, loadMethod, fmt);
@@ -123,6 +123,13 @@ public static class HandlerModelFactory
             ..returnVariables,
             new("request", requestType!, false, null)
         ]);
+        if (!ValidateUniqueLocalVariableTypes(classSymbol.Name, location, localVariables, out var duplicateLocalTypeDiagnostics))
+        {
+            diagnostics = [..duplicateLocalTypeDiagnostics];
+            handlerModel = null;
+            return false;
+        }
+
         if (!ValidateVariables(classSymbol.Name, location, localVariables, orderedMethods, out var invalidVariables))
         {
             diagnostics = [..invalidVariables];
@@ -164,6 +171,22 @@ public static class HandlerModelFactory
 
         diagnostics = diag;
         return !diagnostics.Any();
+    }
+
+    private static bool ValidateUniqueLocalVariableTypes(
+        string handlerName,
+        Location location,
+        ImmutableArray<LocalVariable> localVariables,
+        out IEnumerable<Diagnostic> diagnostics)
+    {
+        var duplicateTypeDiagnostics = localVariables
+            .GroupBy(static local => local.FullType)
+            .Where(static group => group.Count() > 1)
+            .Select(group => Diagnostics.DuplicateLocalVariableType(location, handlerName, group.Key))
+            .ToList();
+
+        diagnostics = duplicateTypeDiagnostics;
+        return duplicateTypeDiagnostics.Count == 0;
     }
 
     private static ImmutableArray<MethodPhase> OrderPhases(
@@ -214,19 +237,20 @@ public static class HandlerModelFactory
 
         foreach (var returnValue in allReturns)
         {
+            var checkNullability = false;
+            string? ifNullErrorMessage = null;
+
             if (allParams.TryGetValue(returnValue.FullType, out var parameter))
             {
-                yield return new(
-                    returnValue.NonNullLocalName, 
-                    returnValue.FullType, 
-                    returnValue.IsNullable && !parameter.IsNullable,
-                    parameter.NotNullMessage);
+                checkNullability = returnValue.IsNullable && !parameter.IsNullable;
+                ifNullErrorMessage = parameter.NotNullMessage;
             }
+
             yield return new(
                 returnValue.NonNullLocalName,
                 returnValue.FullType,
-                false,
-                null);
+                checkNullability,
+                ifNullErrorMessage);
         }
 
         // TODO
@@ -286,5 +310,16 @@ public static class HandlerModelFactory
         }
 
         return false;
+    }
+
+    private static bool IsSupportedValidateMethod(IMethodSymbol method, SymbolDisplayFormat format)
+    {
+        var returnType = method.ReturnType;
+        if (returnType is INamedTypeSymbol { Name: "Task", TypeArguments.Length: 1 } taskType)
+        {
+            returnType = taskType.TypeArguments[0];
+        }
+
+        return returnType.ToDisplayString(format) == "global::MiniBus.ValidationResult";
     }
 }

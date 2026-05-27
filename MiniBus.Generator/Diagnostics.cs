@@ -52,6 +52,14 @@ public static class Diagnostics
         defaultSeverity: DiagnosticSeverity.Error,
         isEnabledByDefault: true);
 
+    private static readonly DiagnosticDescriptor DuplicateLocalVariableTypeDescriptor = new(
+        id: "MBG007",
+        title: "Duplicate local variable type",
+        messageFormat: "Handler '{0}' produces duplicate local variable type '{1}'. A handler can only contain one local variable per type.",
+        category: "MiniBus.Generator",
+        defaultSeverity: DiagnosticSeverity.Error,
+        isEnabledByDefault: true);
+
     public static Diagnostic DuplicateRequestType(
         Location location,
         string handlerName,
@@ -105,4 +113,13 @@ public static class Diagnostics
             descriptor: RequestTypeCannotBeInferredDescriptor,
             location: location,
             messageArgs: [fullHandlerName]);
+
+    public static Diagnostic DuplicateLocalVariableType(
+        Location location,
+        string handlerName,
+        string duplicateType) =>
+        Diagnostic.Create(
+            descriptor: DuplicateLocalVariableTypeDescriptor,
+            location: location,
+            messageArgs: [handlerName, duplicateType]);
 }
