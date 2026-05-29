@@ -165,6 +165,108 @@ public class IntegrationTests
     }
 
     [Test]
+    public void DuplicateSameTypeLoadOutputs_ReportsMBG007_AndSkipsDispatcherGeneration()
+    {
+        const string source = """
+            using MiniBus;
+            namespace TestApp;
+
+            [Handler]
+            public class DuplicateTypeFlowHandler
+            {
+                public record Request(int Id);
+                public record Response(string Value);
+                public record Entity(string Value);
+
+                public (Entity primary, Entity secondary) Load(Request request)
+                    => (new Entity("a"), new Entity("b"));
+
+                public ValidationResult Validate(Entity first, Entity second)
+                    => new ValidationResult();
+
+                public Response Handle(Entity first, Entity second)
+                    => new Response(first.Value + second.Value);
+            }
+            """;
+
+        var result = GeneratorTestHelper.Run(source);
+
+        Assert.That(result.Diagnostics.Any(d => d.Id == "MBG007"), Is.True);
+        Assert.That(result.GeneratedSources.Any(s => s.Contains("DuplicateTypeFlowHandlerDispatcher", StringComparison.Ordinal)), Is.False);
+    }
+
+    [Test]
+    public void WrongValidateReturnType_IsIgnored_AndDispatcherIsGenerated()
+    {
+        const string source = """
+            using MiniBus;
+            namespace TestApp;
+
+            [Handler]
+            public class WrongValidateReturnHandler
+            {
+                public record Request(int Id);
+                public record Response(string Value);
+
+                public string Validate(Request request) => "ignored";
+
+                public Response Handle(Request request)
+                    => new Response(request.Id.ToString());
+            }
+            """;
+
+        var result = GeneratorTestHelper.Run(source);
+
+        Assert.That(result.Diagnostics.Any(d => d.Severity == Microsoft.CodeAnalysis.DiagnosticSeverity.Error), Is.False);
+        Assert.That(result.GeneratedSources.Any(s => s.Contains("WrongValidateReturnHandlerDispatcher", StringComparison.Ordinal)), Is.True);
+    }
+
+    [Test]
+    public void DuplicateRequestType_Diagnostics_AreDeterministicallyOrdered()
+    {
+        const string source = """
+            using MiniBus;
+            namespace TestApp;
+
+            public record SharedRequest(int Id);
+
+            [Handler]
+            public class ZetaHandler
+            {
+                public record Response;
+                public Response Handle(SharedRequest request) => new Response();
+            }
+
+            [Handler]
+            public class AlphaHandler
+            {
+                public record Response;
+                public Response Handle(SharedRequest request) => new Response();
+            }
+
+            [Handler]
+            public class BetaHandler
+            {
+                public record Response;
+                public Response Handle(SharedRequest request) => new Response();
+            }
+            """;
+
+        var result = GeneratorTestHelper.Run(source);
+
+        var mbg001Messages = result.Diagnostics
+            .Where(d => d.Id == "MBG001")
+            .Select(d => d.GetMessage())
+            .Distinct(StringComparer.Ordinal)
+            .ToArray();
+
+        Assert.That(mbg001Messages, Has.Length.EqualTo(3));
+        Assert.That(mbg001Messages[0], Does.Contain("AlphaHandler"));
+        Assert.That(mbg001Messages[1], Does.Contain("BetaHandler"));
+        Assert.That(mbg001Messages[2], Does.Contain("ZetaHandler"));
+    }
+
+    [Test]
     public void GenericHandler_ReportsMBG004_AndSkipsDispatcherGeneration()
     {
         const string source = """
@@ -276,5 +378,30 @@ public class IntegrationTests
         Assert.That(result.Diagnostics.Any(d => d.Id == "MBG003"), Is.True);
         var registration = result.GeneratedSources.Single(s => s.Contains("class GeneratedHandlerRegistrations", StringComparison.Ordinal));
         Assert.That(registration.Contains("IDispatcher<\n                    global::TestApp.SharedRequest,\n                    global::TestApp.SharedResponse>", StringComparison.Ordinal), Is.False);
+    }
+
+    [Test]
+    public void ParameterlessLoad_WithFullyMatchedHandleInput_ReportsMBG006_AndSkipsDispatcherGeneration()
+    {
+        const string source = """
+            using MiniBus;
+            namespace TestApp;
+
+            [Handler]
+            public class NoRequestTypeHandler
+            {
+                public record Response(string Value);
+                public record Entity(string Value);
+
+                public Entity Load() => new Entity("value");
+
+                public Response Handle(Entity entity) => new Response(entity.Value);
+            }
+            """;
+
+        var result = GeneratorTestHelper.Run(source);
+
+        Assert.That(result.Diagnostics.Any(d => d.Id == "MBG006"), Is.True);
+        Assert.That(result.GeneratedSources.Any(s => s.Contains("NoRequestTypeHandlerDispatcher", StringComparison.Ordinal)), Is.False);
     }
 }

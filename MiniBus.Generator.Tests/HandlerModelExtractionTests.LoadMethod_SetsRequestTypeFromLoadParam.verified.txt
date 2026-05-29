@@ -1,0 +1,76 @@
+﻿{
+  Item1: {
+    Namespace: TestApp,
+    ClassName: LoadRequestHandler,
+    FullClassName: global::TestApp.LoadRequestHandler,
+    FullRequestType: global::TestApp.LoadRequestHandler.Query,
+    FullResponseType: global::TestApp.LoadRequestHandler.Response,
+    Phases: [
+      {
+        MethodName: Load,
+        IsAsync: true,
+        Parameters: [
+          {
+            LocalName: query,
+            FullType: global::TestApp.LoadRequestHandler.Query,
+            IsNullable: false,
+            NotNullMessage: query cannot be null
+          }
+        ],
+        Returns: [
+          {
+            LocalName: fromLoad,
+            FullType: global::TestApp.LoadRequestHandler.Entity,
+            IsNullable: true,
+            NonNullLocalName: fromLoadValue,
+            IsValidationResult: false
+          }
+        ]
+      },
+      {
+        Type: Handle,
+        MethodName: Handle,
+        IsAsync: true,
+        Parameters: [
+          {
+            LocalName: entity,
+            FullType: global::TestApp.LoadRequestHandler.Entity,
+            IsNullable: false,
+            NotNullMessage: entity cannot be null
+          }
+        ],
+        Returns: [
+          {
+            LocalName: fromHandle,
+            FullType: global::TestApp.LoadRequestHandler.Response,
+            IsNullable: false,
+            NonNullLocalName: fromHandle,
+            IsValidationResult: false
+          }
+        ]
+      }
+    ],
+    LocalVariables: [
+      {
+        LocalName: fromLoadValue,
+        FullType: global::TestApp.LoadRequestHandler.Entity,
+        CheckNullability: true,
+        IfNullErrorMessage: entity cannot be null
+      },
+      {
+        LocalName: fromHandle,
+        FullType: global::TestApp.LoadRequestHandler.Response,
+        CheckNullability: false
+      },
+      {
+        LocalName: request,
+        FullType: global::TestApp.LoadRequestHandler.Query,
+        CheckNullability: false
+      }
+    ],
+    Location: ,
+    DispatcherFullName: global::TestApp.LoadRequestHandlerDispatcher,
+    DispatcherKey: global::TestApp.LoadRequestHandler.Query|global::TestApp.LoadRequestHandler.Response,
+    IsAnyAsync: true
+  }
+}

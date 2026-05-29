@@ -1,0 +1,49 @@
+﻿{
+  Item1: {
+    Namespace: TestApp,
+    ClassName: OrderHandler,
+    FullClassName: global::TestApp.OrderHandler,
+    FullRequestType: global::TestApp.OrderHandler.Request,
+    FullResponseType: global::TestApp.OrderHandler.Response,
+    Phases: [
+      {
+        Type: Handle,
+        MethodName: Handle,
+        IsAsync: true,
+        Parameters: [
+          {
+            LocalName: request,
+            FullType: global::TestApp.OrderHandler.Request,
+            IsNullable: false,
+            NotNullMessage: request cannot be null
+          }
+        ],
+        Returns: [
+          {
+            LocalName: fromHandle,
+            FullType: global::TestApp.OrderHandler.Response,
+            IsNullable: false,
+            NonNullLocalName: fromHandle,
+            IsValidationResult: false
+          }
+        ]
+      }
+    ],
+    LocalVariables: [
+      {
+        LocalName: fromHandle,
+        FullType: global::TestApp.OrderHandler.Response,
+        CheckNullability: false
+      },
+      {
+        LocalName: request,
+        FullType: global::TestApp.OrderHandler.Request,
+        CheckNullability: false
+      }
+    ],
+    Location: ,
+    DispatcherFullName: global::TestApp.OrderHandlerDispatcher,
+    DispatcherKey: global::TestApp.OrderHandler.Request|global::TestApp.OrderHandler.Response,
+    IsAnyAsync: true
+  }
+}

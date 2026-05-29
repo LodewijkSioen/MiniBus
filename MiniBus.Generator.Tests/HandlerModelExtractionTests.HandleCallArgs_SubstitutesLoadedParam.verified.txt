@@ -1,0 +1,76 @@
+﻿{
+  Item1: {
+    Namespace: TestApp,
+    ClassName: LoadedArgHandler,
+    FullClassName: global::TestApp.LoadedArgHandler,
+    FullRequestType: global::TestApp.LoadedArgHandler.Request,
+    FullResponseType: global::TestApp.LoadedArgHandler.Response,
+    Phases: [
+      {
+        MethodName: Load,
+        IsAsync: true,
+        Parameters: [
+          {
+            LocalName: request,
+            FullType: global::TestApp.LoadedArgHandler.Request,
+            IsNullable: false,
+            NotNullMessage: request cannot be null
+          }
+        ],
+        Returns: [
+          {
+            LocalName: fromLoad,
+            FullType: global::TestApp.LoadedArgHandler.Entity,
+            IsNullable: true,
+            NonNullLocalName: fromLoadValue,
+            IsValidationResult: false
+          }
+        ]
+      },
+      {
+        Type: Handle,
+        MethodName: Handle,
+        IsAsync: true,
+        Parameters: [
+          {
+            LocalName: entity,
+            FullType: global::TestApp.LoadedArgHandler.Entity,
+            IsNullable: false,
+            NotNullMessage: entity cannot be null
+          }
+        ],
+        Returns: [
+          {
+            LocalName: fromHandle,
+            FullType: global::TestApp.LoadedArgHandler.Response,
+            IsNullable: false,
+            NonNullLocalName: fromHandle,
+            IsValidationResult: false
+          }
+        ]
+      }
+    ],
+    LocalVariables: [
+      {
+        LocalName: fromLoadValue,
+        FullType: global::TestApp.LoadedArgHandler.Entity,
+        CheckNullability: true,
+        IfNullErrorMessage: entity cannot be null
+      },
+      {
+        LocalName: fromHandle,
+        FullType: global::TestApp.LoadedArgHandler.Response,
+        CheckNullability: false
+      },
+      {
+        LocalName: request,
+        FullType: global::TestApp.LoadedArgHandler.Request,
+        CheckNullability: false
+      }
+    ],
+    Location: ,
+    DispatcherFullName: global::TestApp.LoadedArgHandlerDispatcher,
+    DispatcherKey: global::TestApp.LoadedArgHandler.Request|global::TestApp.LoadedArgHandler.Response,
+    IsAnyAsync: true
+  }
+}

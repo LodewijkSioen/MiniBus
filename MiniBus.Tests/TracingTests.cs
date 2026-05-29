@@ -15,6 +15,16 @@ public class ThrowingHandler
         throw new InvalidOperationException("test error");
 }
 
+[Handler]
+public class CanceledHandler
+{
+    public record Request();
+    public record Response();
+
+    public Task<Response> Handle(Request request) =>
+        throw new OperationCanceledException("test cancellation");
+}
+
 // ── Tests ──────────────────────────────────────────────────────────────────────
 
 [TestFixture]
@@ -111,5 +121,21 @@ public class TracingTests
         Assert.That(
             exceptionEvent.Tags.FirstOrDefault(t => t.Key == "exception.stacktrace").Value,
             Is.Not.Null.And.Not.Empty);
+    }
+
+    [Test]
+    public void OperationCanceledException_DoesNotSetErrorStatus_AndDoesNotRecordExceptionEvent()
+    {
+        using var scope = AppUnderTest.Services.CreateScope();
+        var bus = scope.ServiceProvider.GetRequiredService<MiniBus>();
+
+        Assert.ThrowsAsync<OperationCanceledException>(
+            () => bus.Handle(new CanceledHandler.Request()));
+
+        Assert.That(_activities, Has.Count.EqualTo(1));
+        var activity = _activities[0];
+        Assert.That(activity.Status, Is.EqualTo(ActivityStatusCode.Unset));
+        Assert.That(activity.GetTagItem("minibus.result.status"), Is.EqualTo("Canceled"));
+        Assert.That(activity.Events.Any(e => e.Name == "exception"), Is.False);
     }
 }

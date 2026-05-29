@@ -1,3 +1,5 @@
+using System.Collections.Generic;
+using System.Collections.Immutable;
 using System.Linq;
 using System.Text;
 
@@ -15,6 +17,9 @@ public static class DispatcherSourceBuilder
         // ── Dispatcher class ─────────────────────────────────────────────────
         var inNs = model.Namespace is not null;
         var i = inNs ? "    " : "";     // indent when inside a namespace block
+        var asyncKeyword = model.IsAnyAsync ? "async " : "";
+        var taskWrap = model.IsAnyAsync ? "" : "global::System.Threading.Tasks.Task.FromResult(";
+        var taskClose = model.IsAnyAsync ? "" : ")";
 
         if (inNs) { sb.AppendLine($"namespace {model.Namespace}"); sb.AppendLine("{"); }
 
@@ -32,56 +37,87 @@ public static class DispatcherSourceBuilder
         sb.AppendLine();
         sb.AppendLine($"{i}    public string HandlerName => nameof({model.FullClassName});");
         sb.AppendLine();
-        var asyncKeyword = model.IsAnyAsync ? "async " : "";
-        var taskWrap  = model.IsAnyAsync ? "" : "global::System.Threading.Tasks.Task.FromResult(";
-        var taskClose = model.IsAnyAsync ? "" : ")";
         sb.AppendLine($"{i}    public {asyncKeyword}global::System.Threading.Tasks.Task<");
         sb.AppendLine($"{i}        global::MiniBus.Result<{model.FullResponseType}>>");
         sb.AppendLine($"{i}        Handle({model.FullRequestType} request)");
         sb.AppendLine($"{i}    {{");
 
-        // ── Load phase ────────────────────────────────────────────────────────
-        if (model.Load is { } load)
+        foreach (var phase in model.Phases)
         {
-            var awaitPrefix = load.IsAsync ? "await " : "";
-            if (load.IsTuple)
+            switch (phase.Type)
             {
-                var varNames = string.Join(", ", load.Elements.Select(e => e.LocalName));
-                sb.AppendLine($"{i}        var ({varNames}) = {awaitPrefix}_handler.Load(request);");
+                case PhaseType.Before:
+                    BuildPrePhase(sb, model, phase, taskWrap, taskClose, i);
+                    break;
+                case PhaseType.Handle:
+                    BuildHandlePhase(sb, model, phase, taskWrap, taskClose, i);
+                    break;
+                default: break;
             }
-            else
-            {
-                sb.AppendLine($"{i}        var {load.Elements[0].LocalName} = {awaitPrefix}_handler.Load(request);");
-            }
-            var nullableElements = load.Elements.Where(e => e.IsNullable).ToArray();
-            foreach (var e in nullableElements)
-            {
-                var notFoundArg = e.NotFoundMessage is not null ? $"\"{e.NotFoundMessage}\"" : "";
-                sb.AppendLine($"{i}        if ({e.LocalName} is not {{ }} {e.NonNullLocalName})");
-                sb.AppendLine($"{i}            return {taskWrap}global::MiniBus.Result<{model.FullResponseType}>.NotFound({notFoundArg}){taskClose};");
-            }
-            sb.AppendLine();
         }
 
-        // ── Validate phase ────────────────────────────────────────────────────
-        if (model.Validate is { } validate)
-        {
-            var validateAwait = validate.IsAsync ? "await " : "";
-            sb.AppendLine($"{i}        var validationResult = {validateAwait}_handler.Validate({model.ValidateCallArgs});");
-            sb.AppendLine($"{i}        if (!validationResult.IsValid())");
-            sb.AppendLine($"{i}            return {taskWrap}global::MiniBus.Result<{model.FullResponseType}>.Invalid(validationResult){taskClose};");
-            sb.AppendLine();
-        }
-
-        // ── Handle phase ──────────────────────────────────────────────────────
-        var handleAwait = model.HandleIsAsync ? "await " : "";
-        sb.AppendLine($"{i}        var response = {handleAwait}_handler.Handle({model.HandleCallArgs});");
-        sb.AppendLine($"{i}        return {taskWrap}global::MiniBus.Result<{model.FullResponseType}>.Success(response){taskClose};");
         sb.AppendLine($"{i}    }}");
         sb.AppendLine($"{i}}}");
-
         if (inNs) sb.AppendLine("}");
 
         return sb.ToString();
+    }
+
+    private static void BuildPrePhase(StringBuilder sb, HandlerModel model, MethodPhase prePhase, string taskWrap, string taskClose, string indent)
+    {
+        var awaitPrefix = prePhase.IsAsync ? "await " : "";
+        var callArguments = string.Join(", ", BuildCallArguments(prePhase, model.LocalVariables));
+        if (prePhase.Returns.Length > 1)
+        {
+            var varNames = string.Join(", ", prePhase.Returns.Select(e => e.LocalName));
+            sb.AppendLine($"{indent}        var ({varNames}) = {awaitPrefix}_handler.{prePhase.MethodName}({callArguments});");
+        }
+        else
+        {
+            sb.AppendLine($"{indent}        var {prePhase.Returns[0].LocalName} = {awaitPrefix}_handler.{prePhase.MethodName}({callArguments});");
+        }
+
+        BuildReturnValueChecks(sb, model, prePhase.Returns, taskWrap, taskClose, indent);
+
+        sb.AppendLine();
+    }
+
+    private static void BuildReturnValueChecks(StringBuilder sb, HandlerModel model, ImmutableArray<ReturnElement> returnValues, string taskWrap, string taskClose, string indent)
+    {
+        foreach (var element in returnValues)
+        {
+            var local = model.LocalVariables.First(l => l.FullType == element.FullType);
+
+            if (element.IsValidationResult)
+            {
+                sb.AppendLine($"{indent}        if (!{element.NonNullLocalName}.IsValid())");
+                sb.AppendLine($"{indent}            return {taskWrap}global::MiniBus.Result<{model.FullResponseType}>.Invalid({element.NonNullLocalName}){taskClose};");
+            }
+
+            if (local.CheckNullability)
+            {
+                var ifNullMessage = local.IfNullErrorMessage is null ? null : $"\"{local.IfNullErrorMessage}\"";
+                sb.AppendLine($"{indent}        if ({element.LocalName} is not {{ }} {element.NonNullLocalName})");
+                sb.AppendLine($"{indent}            return {taskWrap}global::MiniBus.Result<{model.FullResponseType}>.NotFound({ifNullMessage}){taskClose};");
+            }
+        }
+    }
+
+    private static void BuildHandlePhase(StringBuilder sb, HandlerModel model, MethodPhase handle, string taskWrap, string taskClose, string indent)
+    {
+        var handleAwait = handle.IsAsync ? "await " : "";
+        var callArguments = string.Join(", ", BuildCallArguments(handle, model.LocalVariables));
+        sb.AppendLine($"{indent}        var response = {handleAwait}_handler.Handle({callArguments});");
+        sb.AppendLine($"{indent}        return {taskWrap}global::MiniBus.Result<{model.FullResponseType}>.Success(response){taskClose};");
+    }
+
+    private static IEnumerable<string> BuildCallArguments(MethodPhase phase, ImmutableArray<LocalVariable> returnElements)
+    {
+        foreach (var parameter in phase.Parameters)
+        {
+            yield return returnElements
+                .Single(local => local.FullType == parameter.FullType)
+                .LocalName;
+        }
     }
 }

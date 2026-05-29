@@ -42,7 +42,7 @@ public class HandlerModelExtractionTests
     // ── Handle ────────────────────────────────────────────────────────────
 
     [Test]
-    public void AsyncHandle_ExtractsAllProperties()
+    public async Task AsyncHandle_ExtractsAllProperties()
     {
         const string source = """
             using MiniBus;
@@ -57,25 +57,13 @@ public class HandlerModelExtractionTests
             }
             """;
 
-        var model = HandlerGenerator.GetHandlerModel(GetSymbol(source, "OrderHandler"), Location.None);
+        HandlerModelFactory.TryGetHandlerModel(GetSymbol(source, "OrderHandler"), Location.None, out var model, out var diagnostics);
 
-        Assert.Multiple(() =>
-        {
-            Assert.That(model, Is.Not.Null);
-            Assert.That(model!.ClassName, Is.EqualTo("OrderHandler"));
-            Assert.That(model.Namespace, Is.EqualTo("TestApp"));
-            Assert.That(model.FullClassName, Is.EqualTo("global::TestApp.OrderHandler"));
-            Assert.That(model.FullRequestType, Is.EqualTo("global::TestApp.OrderHandler.Request"));
-            Assert.That(model.FullResponseType, Is.EqualTo("global::TestApp.OrderHandler.Response"));
-            Assert.That(model.HandleIsAsync, Is.True);
-            Assert.That(model.HandleCallArgs, Is.EqualTo("request"));
-            Assert.That(model.Load, Is.Null);
-            Assert.That(model.Validate, Is.Null);
-        });
+        await Verify((model, diagnostics));
     }
 
     [Test]
-    public void SyncHandle_HandleIsAsync_IsFalse()
+    public async Task SyncHandle_HandleIsAsync_IsFalse()
     {
         const string source = """
             using MiniBus;
@@ -89,13 +77,13 @@ public class HandlerModelExtractionTests
             }
             """;
 
-        var model = HandlerGenerator.GetHandlerModel(GetSymbol(source, "SyncHandler"), Location.None);
+        HandlerModelFactory.TryGetHandlerModel(GetSymbol(source, "SyncHandler"), Location.None, out var model, out var diagnostics);
 
-        Assert.That(model!.HandleIsAsync, Is.False);
+        await Verify((model, diagnostics));
     }
 
     [Test]
-    public void GlobalNamespace_NamespaceIsNull()
+    public async Task GlobalNamespace_NamespaceIsNull()
     {
         const string source = """
             using MiniBus;
@@ -109,13 +97,13 @@ public class HandlerModelExtractionTests
             }
             """;
 
-        var model = HandlerGenerator.GetHandlerModel(GetSymbol(source, "GlobalHandler"), Location.None);
+        HandlerModelFactory.TryGetHandlerModel(GetSymbol(source, "GlobalHandler"), Location.None, out var model, out var diagnostics);
 
-        Assert.That(model!.Namespace, Is.Null);
+        await Verify((model, diagnostics));
     }
 
     [Test]
-    public void MissingHandleMethod_ReturnsNull()
+    public async Task MissingHandleMethod_ReturnsNull()
     {
         const string source = """
             using MiniBus;
@@ -128,15 +116,15 @@ public class HandlerModelExtractionTests
             }
             """;
 
-        var model = HandlerGenerator.GetHandlerModel(GetSymbol(source, "NoHandleHandler"), Location.None);
+        HandlerModelFactory.TryGetHandlerModel(GetSymbol(source, "NoHandleHandler"), Location.None, out var model, out var diagnostics);
 
-        Assert.That(model, Is.Null);
+        await Verify((model, diagnostics));
     }
 
     // ── Load ──────────────────────────────────────────────────────────────
 
     [Test]
-    public void AsyncNullableScalarLoad_LoadInfoIsCorrect()
+    public async Task AsyncNullableScalarLoad_LoadMethodPhaseIsCorrect()
     {
         const string source = """
             using MiniBus;
@@ -154,21 +142,13 @@ public class HandlerModelExtractionTests
             }
             """;
 
-        var model = HandlerGenerator.GetHandlerModel(GetSymbol(source, "EntityHandler"), Location.None);
+        HandlerModelFactory.TryGetHandlerModel(GetSymbol(source, "EntityHandler"), Location.None, out var model, out var diagnostics);
 
-        Assert.Multiple(() =>
-        {
-            Assert.That(model!.Load, Is.Not.Null);
-            Assert.That(model.Load!.IsAsync, Is.True);
-            Assert.That(model.Load.IsTuple, Is.False);
-            Assert.That(model.Load.Elements, Has.Length.EqualTo(1));
-            Assert.That(model.Load.Elements[0].LocalName, Is.EqualTo("loaded"));
-            Assert.That(model.Load.Elements[0].IsNullable, Is.True);
-        });
+        await Verify((model, diagnostics));
     }
 
     [Test]
-    public void SyncNullableScalarLoad_LoadIsAsyncFalse()
+    public async Task SyncNullableScalarLoad_LoadIsAsyncFalse()
     {
         const string source = """
             using MiniBus;
@@ -185,17 +165,13 @@ public class HandlerModelExtractionTests
             }
             """;
 
-        var model = HandlerGenerator.GetHandlerModel(GetSymbol(source, "SyncLoadHandler"), Location.None);
+        HandlerModelFactory.TryGetHandlerModel(GetSymbol(source, "SyncLoadHandler"), Location.None, out var model, out var diagnostics);
 
-        Assert.Multiple(() =>
-        {
-            Assert.That(model!.Load!.IsAsync, Is.False);
-            Assert.That(model.Load.Elements[0].IsNullable, Is.True);
-        });
+        await Verify((model, diagnostics));
     }
 
     [Test]
-    public void NonNullableLoad_ElementIsNotNullable()
+    public async Task NonNullableLoad_ElementIsNotNullable()
     {
         const string source = """
             using MiniBus;
@@ -212,21 +188,13 @@ public class HandlerModelExtractionTests
             }
             """;
 
-        var model = HandlerGenerator.GetHandlerModel(GetSymbol(source, "NonNullLoadHandler"), Location.None);
+        HandlerModelFactory.TryGetHandlerModel(GetSymbol(source, "NonNullLoadHandler"), Location.None, out var model, out var diagnostics);
 
-        Assert.Multiple(() =>
-        {
-            Assert.That(model!.Load, Is.Not.Null);
-            Assert.That(model.Load!.IsTuple, Is.False);
-            Assert.That(model.Load.Elements, Has.Length.EqualTo(1));
-            Assert.That(model.Load.Elements[0].LocalName, Is.EqualTo("loaded"));
-            Assert.That(model.Load.Elements[0].IsNullable, Is.False);
-            Assert.That(model.HandleCallArgs, Is.EqualTo("loaded"));
-        });
+        await Verify((model, diagnostics));
     }
 
     [Test]
-    public void LoadMethod_SetsRequestTypeFromLoadParam()
+    public async Task LoadMethod_SetsRequestTypeFromLoadParam()
     {
         const string source = """
             using MiniBus;
@@ -244,13 +212,13 @@ public class HandlerModelExtractionTests
             }
             """;
 
-        var model = HandlerGenerator.GetHandlerModel(GetSymbol(source, "LoadRequestHandler"), Location.None);
+        HandlerModelFactory.TryGetHandlerModel(GetSymbol(source, "LoadRequestHandler"), Location.None, out var model, out var diagnostics);
 
-        Assert.That(model!.FullRequestType, Is.EqualTo("global::TestApp.LoadRequestHandler.Query"));
+        await Verify((model, diagnostics));
     }
 
     [Test]
-    public void NamedTupleLoad_ExtractsElementNamesAndNullability()
+    public async Task NamedTupleLoad_ExtractsElementNamesAndNullability()
     {
         const string source = """
             using MiniBus;
@@ -269,21 +237,13 @@ public class HandlerModelExtractionTests
             }
             """;
 
-        var model = HandlerGenerator.GetHandlerModel(GetSymbol(source, "TupleHandler"), Location.None);
+        HandlerModelFactory.TryGetHandlerModel(GetSymbol(source, "TupleHandler"), Location.None, out var model, out var diagnostics);
 
-        Assert.Multiple(() =>
-        {
-            Assert.That(model!.Load!.IsTuple, Is.True);
-            Assert.That(model.Load.Elements, Has.Length.EqualTo(2));
-            Assert.That(model.Load.Elements[0].LocalName, Is.EqualTo("entity"));
-            Assert.That(model.Load.Elements[0].IsNullable, Is.True);
-            Assert.That(model.Load.Elements[1].LocalName, Is.EqualTo("config"));
-            Assert.That(model.Load.Elements[1].IsNullable, Is.True);
-        });
+        await Verify((model, diagnostics));
     }
 
     [Test]
-    public void UnnamedTupleLoad_UsesItem1Item2Names()
+    public async Task UnnamedTupleLoad_UsesItem1Item2Names()
     {
         const string source = """
             using MiniBus;
@@ -301,18 +261,13 @@ public class HandlerModelExtractionTests
             }
             """;
 
-        var model = HandlerGenerator.GetHandlerModel(GetSymbol(source, "UnnamedTupleHandler"), Location.None);
+        HandlerModelFactory.TryGetHandlerModel(GetSymbol(source, "UnnamedTupleHandler"), Location.None, out var model, out var diagnostics);
 
-        Assert.Multiple(() =>
-        {
-            Assert.That(model!.Load!.IsTuple, Is.True);
-            Assert.That(model.Load.Elements[0].LocalName, Is.EqualTo("item1"));
-            Assert.That(model.Load.Elements[1].LocalName, Is.EqualTo("item2"));
-        });
+        await Verify((model, diagnostics));
     }
 
     [Test]
-    public void DuplicateTupleElementTypes_MapByParameterPosition()
+    public async Task DuplicateTupleElementTypes_ReportsMBG007_AndReturnsNullModel()
     {
         const string source = """
             using MiniBus;
@@ -332,19 +287,15 @@ public class HandlerModelExtractionTests
             }
             """;
 
-        var model = HandlerGenerator.GetHandlerModel(GetSymbol(source, "DuplicateTupleTypesHandler"), Location.None);
+        HandlerModelFactory.TryGetHandlerModel(GetSymbol(source, "DuplicateTupleTypesHandler"), Location.None, out var model, out var diagnostics);
 
-        Assert.Multiple(() =>
-        {
-            Assert.That(model!.HandleCallArgs, Is.EqualTo("primary, secondary"));
-            Assert.That(model.ValidateCallArgs, Is.EqualTo("primary, secondary"));
-        });
+        await Verify((model, diagnostics));
     }
 
     // ── Handle call args ──────────────────────────────────────────────────
 
     [Test]
-    public void HandleCallArgs_SubstitutesLoadedParam()
+    public async Task HandleCallArgs_SubstitutesLoadedParam()
     {
         const string source = """
             using MiniBus;
@@ -362,13 +313,13 @@ public class HandlerModelExtractionTests
             }
             """;
 
-        var model = HandlerGenerator.GetHandlerModel(GetSymbol(source, "LoadedArgHandler"), Location.None);
+        HandlerModelFactory.TryGetHandlerModel(GetSymbol(source, "LoadedArgHandler"), Location.None, out var model, out var diagnostics);
 
-        Assert.That(model!.HandleCallArgs, Is.EqualTo("loadedValue"));
+        await Verify((model, diagnostics));
     }
 
     [Test]
-    public void HandleCallArgs_BothRequestAndLoaded()
+    public async Task HandleCallArgs_BothRequestAndLoaded()
     {
         const string source = """
             using MiniBus;
@@ -386,15 +337,15 @@ public class HandlerModelExtractionTests
             }
             """;
 
-        var model = HandlerGenerator.GetHandlerModel(GetSymbol(source, "BothArgsHandler"), Location.None);
+        HandlerModelFactory.TryGetHandlerModel(GetSymbol(source, "BothArgsHandler"), Location.None, out var model, out var diagnostics);
 
-        Assert.That(model!.HandleCallArgs, Is.EqualTo("request, loadedValue"));
+        await Verify((model, diagnostics));
     }
 
     // ── Validate ──────────────────────────────────────────────────────────
 
     [Test]
-    public void SyncValidate_ValidateInfoIsCorrect()
+    public async Task SyncValidate_ValidateMethodPhaseIsCorrect()
     {
         const string source = """
             using MiniBus;
@@ -410,18 +361,13 @@ public class HandlerModelExtractionTests
             }
             """;
 
-        var model = HandlerGenerator.GetHandlerModel(GetSymbol(source, "SyncValidateHandler"), Location.None);
+        HandlerModelFactory.TryGetHandlerModel(GetSymbol(source, "SyncValidateHandler"), Location.None, out var model, out var diagnostics);
 
-        Assert.Multiple(() =>
-        {
-            Assert.That(model!.Validate, Is.Not.Null);
-            Assert.That(model.Validate!.IsAsync, Is.False);
-            Assert.That(model.ValidateCallArgs, Is.EqualTo("request"));
-        });
+        await Verify((model, diagnostics));
     }
 
     [Test]
-    public void AsyncValidate_IsAsyncTrue()
+    public async Task AsyncValidate_IsAsyncTrue()
     {
         const string source = """
             using MiniBus;
@@ -438,13 +384,13 @@ public class HandlerModelExtractionTests
             }
             """;
 
-        var model = HandlerGenerator.GetHandlerModel(GetSymbol(source, "AsyncValidateHandler"), Location.None);
+        HandlerModelFactory.TryGetHandlerModel(GetSymbol(source, "AsyncValidateHandler"), Location.None, out var model, out var diagnostics);
 
-        Assert.That(model!.Validate!.IsAsync, Is.True);
+        await Verify((model, diagnostics));
     }
 
     [Test]
-    public void ValidateCallArgs_WithBothRequestAndLoaded()
+    public async Task ValidateCallArgs_WithBothRequestAndLoaded()
     {
         const string source = """
             using MiniBus;
@@ -464,13 +410,39 @@ public class HandlerModelExtractionTests
             }
             """;
 
-        var model = HandlerGenerator.GetHandlerModel(GetSymbol(source, "BothValidateArgsHandler"), Location.None);
+        HandlerModelFactory.TryGetHandlerModel(GetSymbol(source, "BothValidateArgsHandler"), Location.None, out var model, out var diagnostics);
 
-        Assert.That(model!.ValidateCallArgs, Is.EqualTo("request, loadedValue"));
+        await Verify((model, diagnostics));
     }
 
     [Test]
-    public void ValidateWithWrongReturnType_IsIgnored()
+    public async Task ValidateOrder_RequestOnlyValidate_ComesBeforeLoad()
+    {
+        const string source = """
+            using MiniBus;
+            namespace TestApp;
+            [Handler]
+            public class RequestOnlyValidateHandler
+            {
+                public record Request(string Prefix);
+                public record Response(string Value);
+                public record Entity(string Data);
+                public System.Threading.Tasks.Task<Entity?> Load(Request request)
+                    => System.Threading.Tasks.Task.FromResult<Entity?>(null);
+                public ValidationResult Validate(Request request)
+                    => new ValidationResult();
+                public System.Threading.Tasks.Task<Response> Handle(Entity entity)
+                    => System.Threading.Tasks.Task.FromResult(new Response(entity.Data));
+            }
+            """;
+
+        HandlerModelFactory.TryGetHandlerModel(GetSymbol(source, "RequestOnlyValidateHandler"), Location.None, out var model, out var diagnostics);
+
+        await Verify((model, diagnostics));
+    }
+
+    [Test]
+    public async Task ValidateWithWrongReturnType_IsIgnored()
     {
         const string source = """
             using MiniBus;
@@ -486,8 +458,32 @@ public class HandlerModelExtractionTests
             }
             """;
 
-        var model = HandlerGenerator.GetHandlerModel(GetSymbol(source, "WrongValidateHandler"), Location.None);
+        HandlerModelFactory.TryGetHandlerModel(GetSymbol(source, "WrongValidateHandler"), Location.None, out var model, out var diagnostics);
 
-        Assert.That(model!.Validate, Is.Null);
+        await Verify((model, diagnostics));
+    }
+
+    [Test]
+    public async Task RequestType_UsesValidateFirstParam_WhenLoadIsMissing()
+    {
+        const string source = """
+            using MiniBus;
+            namespace TestApp;
+            [Handler]
+            public class ValidateRequestTypeHandler
+            {
+                public record Unknown(string Value);
+                public record Command(string Value);
+                public record Response(string Out);
+                public ValidationResult Validate(Command command) => new ValidationResult();
+                public System.Threading.Tasks.Task<Response> Handle(Command command, Unknown unknown)
+                    => System.Threading.Tasks.Task.FromResult(new Response(command.Value));
+            }
+            """;
+
+        HandlerModelFactory.TryGetHandlerModel(GetSymbol(source, "ValidateRequestTypeHandler"), Location.None, out var model, out var diagnostics);
+
+        await Verify((model, diagnostics));
     }
 }
+

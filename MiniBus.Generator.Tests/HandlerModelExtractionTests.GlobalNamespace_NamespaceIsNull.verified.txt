@@ -1,0 +1,48 @@
+﻿{
+  Item1: {
+    ClassName: GlobalHandler,
+    FullClassName: global::GlobalHandler,
+    FullRequestType: global::GlobalHandler.Request,
+    FullResponseType: global::GlobalHandler.Response,
+    Phases: [
+      {
+        Type: Handle,
+        MethodName: Handle,
+        IsAsync: true,
+        Parameters: [
+          {
+            LocalName: request,
+            FullType: global::GlobalHandler.Request,
+            IsNullable: false,
+            NotNullMessage: request cannot be null
+          }
+        ],
+        Returns: [
+          {
+            LocalName: fromHandle,
+            FullType: global::GlobalHandler.Response,
+            IsNullable: false,
+            NonNullLocalName: fromHandle,
+            IsValidationResult: false
+          }
+        ]
+      }
+    ],
+    LocalVariables: [
+      {
+        LocalName: fromHandle,
+        FullType: global::GlobalHandler.Response,
+        CheckNullability: false
+      },
+      {
+        LocalName: request,
+        FullType: global::GlobalHandler.Request,
+        CheckNullability: false
+      }
+    ],
+    Location: ,
+    DispatcherFullName: global::GlobalHandlerDispatcher,
+    DispatcherKey: global::GlobalHandler.Request|global::GlobalHandler.Response,
+    IsAnyAsync: true
+  }
+}

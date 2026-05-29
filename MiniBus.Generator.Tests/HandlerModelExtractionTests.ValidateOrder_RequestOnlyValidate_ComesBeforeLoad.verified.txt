@@ -1,0 +1,102 @@
+﻿{
+  Item1: {
+    Namespace: TestApp,
+    ClassName: RequestOnlyValidateHandler,
+    FullClassName: global::TestApp.RequestOnlyValidateHandler,
+    FullRequestType: global::TestApp.RequestOnlyValidateHandler.Request,
+    FullResponseType: global::TestApp.RequestOnlyValidateHandler.Response,
+    Phases: [
+      {
+        MethodName: Load,
+        IsAsync: true,
+        Parameters: [
+          {
+            LocalName: request,
+            FullType: global::TestApp.RequestOnlyValidateHandler.Request,
+            IsNullable: false,
+            NotNullMessage: request cannot be null
+          }
+        ],
+        Returns: [
+          {
+            LocalName: fromLoad,
+            FullType: global::TestApp.RequestOnlyValidateHandler.Entity,
+            IsNullable: true,
+            NonNullLocalName: fromLoadValue,
+            IsValidationResult: false
+          }
+        ]
+      },
+      {
+        MethodName: Validate,
+        IsAsync: false,
+        Parameters: [
+          {
+            LocalName: request,
+            FullType: global::TestApp.RequestOnlyValidateHandler.Request,
+            IsNullable: false,
+            NotNullMessage: request cannot be null
+          }
+        ],
+        Returns: [
+          {
+            LocalName: fromValidate,
+            FullType: global::MiniBus.ValidationResult,
+            IsNullable: false,
+            NonNullLocalName: fromValidate,
+            IsValidationResult: true
+          }
+        ]
+      },
+      {
+        Type: Handle,
+        MethodName: Handle,
+        IsAsync: true,
+        Parameters: [
+          {
+            LocalName: entity,
+            FullType: global::TestApp.RequestOnlyValidateHandler.Entity,
+            IsNullable: false,
+            NotNullMessage: entity cannot be null
+          }
+        ],
+        Returns: [
+          {
+            LocalName: fromHandle,
+            FullType: global::TestApp.RequestOnlyValidateHandler.Response,
+            IsNullable: false,
+            NonNullLocalName: fromHandle,
+            IsValidationResult: false
+          }
+        ]
+      }
+    ],
+    LocalVariables: [
+      {
+        LocalName: fromLoadValue,
+        FullType: global::TestApp.RequestOnlyValidateHandler.Entity,
+        CheckNullability: true,
+        IfNullErrorMessage: entity cannot be null
+      },
+      {
+        LocalName: fromValidate,
+        FullType: global::MiniBus.ValidationResult,
+        CheckNullability: false
+      },
+      {
+        LocalName: fromHandle,
+        FullType: global::TestApp.RequestOnlyValidateHandler.Response,
+        CheckNullability: false
+      },
+      {
+        LocalName: request,
+        FullType: global::TestApp.RequestOnlyValidateHandler.Request,
+        CheckNullability: false
+      }
+    ],
+    Location: ,
+    DispatcherFullName: global::TestApp.RequestOnlyValidateHandlerDispatcher,
+    DispatcherKey: global::TestApp.RequestOnlyValidateHandler.Request|global::TestApp.RequestOnlyValidateHandler.Response,
+    IsAnyAsync: true
+  }
+}

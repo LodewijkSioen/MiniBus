@@ -22,15 +22,15 @@ namespace TestApp
             global::MiniBus.Result<global::TestApp.FullPipelineHandler.Response>>
             Handle(global::TestApp.FullPipelineHandler.Request request)
         {
-            var loaded = await _handler.Load(request);
-            if (loaded is not { } loadedValue)
-                return global::MiniBus.Result<global::TestApp.FullPipelineHandler.Response>.NotFound();
+            var fromLoad = await _handler.Load(request);
+            if (fromLoad is not { } fromLoadValue)
+                return global::MiniBus.Result<global::TestApp.FullPipelineHandler.Response>.NotFound("entity cannot be null");
 
-            var validationResult = _handler.Validate(loadedValue);
-            if (!validationResult.IsValid())
-                return global::MiniBus.Result<global::TestApp.FullPipelineHandler.Response>.Invalid(validationResult);
+            var fromValidate = _handler.Validate(fromLoadValue);
+            if (!fromValidate.IsValid())
+                return global::MiniBus.Result<global::TestApp.FullPipelineHandler.Response>.Invalid(fromValidate);
 
-            var response = await _handler.Handle(loadedValue);
+            var response = await _handler.Handle(fromLoadValue);
             return global::MiniBus.Result<global::TestApp.FullPipelineHandler.Response>.Success(response);
         }
     }

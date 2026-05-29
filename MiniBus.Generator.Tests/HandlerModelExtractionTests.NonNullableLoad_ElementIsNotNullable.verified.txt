@@ -1,0 +1,76 @@
+﻿{
+  Item1: {
+    Namespace: TestApp,
+    ClassName: NonNullLoadHandler,
+    FullClassName: global::TestApp.NonNullLoadHandler,
+    FullRequestType: global::TestApp.NonNullLoadHandler.Request,
+    FullResponseType: global::TestApp.NonNullLoadHandler.Response,
+    Phases: [
+      {
+        MethodName: Load,
+        IsAsync: false,
+        Parameters: [
+          {
+            LocalName: request,
+            FullType: global::TestApp.NonNullLoadHandler.Request,
+            IsNullable: false,
+            NotNullMessage: request cannot be null
+          }
+        ],
+        Returns: [
+          {
+            LocalName: fromLoad,
+            FullType: global::TestApp.NonNullLoadHandler.Entity,
+            IsNullable: false,
+            NonNullLocalName: fromLoad,
+            IsValidationResult: false
+          }
+        ]
+      },
+      {
+        Type: Handle,
+        MethodName: Handle,
+        IsAsync: true,
+        Parameters: [
+          {
+            LocalName: entity,
+            FullType: global::TestApp.NonNullLoadHandler.Entity,
+            IsNullable: false,
+            NotNullMessage: entity cannot be null
+          }
+        ],
+        Returns: [
+          {
+            LocalName: fromHandle,
+            FullType: global::TestApp.NonNullLoadHandler.Response,
+            IsNullable: false,
+            NonNullLocalName: fromHandle,
+            IsValidationResult: false
+          }
+        ]
+      }
+    ],
+    LocalVariables: [
+      {
+        LocalName: fromLoad,
+        FullType: global::TestApp.NonNullLoadHandler.Entity,
+        CheckNullability: false,
+        IfNullErrorMessage: entity cannot be null
+      },
+      {
+        LocalName: fromHandle,
+        FullType: global::TestApp.NonNullLoadHandler.Response,
+        CheckNullability: false
+      },
+      {
+        LocalName: request,
+        FullType: global::TestApp.NonNullLoadHandler.Request,
+        CheckNullability: false
+      }
+    ],
+    Location: ,
+    DispatcherFullName: global::TestApp.NonNullLoadHandlerDispatcher,
+    DispatcherKey: global::TestApp.NonNullLoadHandler.Request|global::TestApp.NonNullLoadHandler.Response,
+    IsAnyAsync: true
+  }
+}

@@ -66,10 +66,11 @@ var result = await bus.Handle<GetItemHandler.Request, GetItemHandler.Response>(n
 
 ## Pipeline behavior
 
-Generated dispatchers execute this order:
+Generated dispatchers execute pre-handle methods in dependency order:
 
-1. `Load(...)` (optional, sync or async)
-2. `Validate(...)` (optional, sync or async, must return `ValidationResult`)
+1. Pre-Handler methods `Load(...)` and `Validate(...)`
+  - run in the order required by their parameter/output dependencies 
+  - Each method is optional and may be sync or async
 3. `Handle(...)` (required, sync or async)
 
 Short-circuiting:
@@ -77,7 +78,7 @@ Short-circuiting:
 - non-empty `ValidationResult` => `ResultStatus.Invalid`
 - otherwise => `ResultStatus.Ok`
 
-`Handle(...)` and `Validate(...)` parameters can use the request type and loaded values.
+`Handle(...)`, `Load(...)`, and `Validate(...)` parameters can use the request type and any values produced by earlier methods.
 
 ## Result model
 
@@ -93,4 +94,5 @@ Short-circuiting:
 `MiniBus` emits `Activity` traces via source name `"MiniBus"`:
 - activity name: `minibus.dispatch {HandlerName}`
 - tags: request type, response type, result status
+- canceled dispatches set result status to `Canceled`
 - unhandled exceptions are recorded as an `"exception"` event and set activity status to error

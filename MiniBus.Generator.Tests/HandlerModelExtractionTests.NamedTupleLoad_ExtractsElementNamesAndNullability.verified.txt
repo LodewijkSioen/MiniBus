@@ -1,0 +1,95 @@
+﻿{
+  Item1: {
+    Namespace: TestApp,
+    ClassName: TupleHandler,
+    FullClassName: global::TestApp.TupleHandler,
+    FullRequestType: global::TestApp.TupleHandler.Request,
+    FullResponseType: global::TestApp.TupleHandler.Response,
+    Phases: [
+      {
+        MethodName: Load,
+        IsAsync: false,
+        Parameters: [
+          {
+            LocalName: request,
+            FullType: global::TestApp.TupleHandler.Request,
+            IsNullable: false,
+            NotNullMessage: request cannot be null
+          }
+        ],
+        Returns: [
+          {
+            LocalName: entityLoad,
+            FullType: global::TestApp.TupleHandler.Entity,
+            IsNullable: true,
+            NonNullLocalName: entityLoadValue,
+            IsValidationResult: false
+          },
+          {
+            LocalName: configLoad,
+            FullType: global::TestApp.TupleHandler.Config,
+            IsNullable: true,
+            NonNullLocalName: configLoadValue,
+            IsValidationResult: false
+          }
+        ]
+      },
+      {
+        Type: Handle,
+        MethodName: Handle,
+        IsAsync: true,
+        Parameters: [
+          {
+            LocalName: entity,
+            FullType: global::TestApp.TupleHandler.Entity,
+            IsNullable: false,
+            NotNullMessage: entity cannot be null
+          },
+          {
+            LocalName: config,
+            FullType: global::TestApp.TupleHandler.Config,
+            IsNullable: false,
+            NotNullMessage: config cannot be null
+          }
+        ],
+        Returns: [
+          {
+            LocalName: fromHandle,
+            FullType: global::TestApp.TupleHandler.Response,
+            IsNullable: false,
+            NonNullLocalName: fromHandle,
+            IsValidationResult: false
+          }
+        ]
+      }
+    ],
+    LocalVariables: [
+      {
+        LocalName: entityLoadValue,
+        FullType: global::TestApp.TupleHandler.Entity,
+        CheckNullability: true,
+        IfNullErrorMessage: entity cannot be null
+      },
+      {
+        LocalName: configLoadValue,
+        FullType: global::TestApp.TupleHandler.Config,
+        CheckNullability: true,
+        IfNullErrorMessage: config cannot be null
+      },
+      {
+        LocalName: fromHandle,
+        FullType: global::TestApp.TupleHandler.Response,
+        CheckNullability: false
+      },
+      {
+        LocalName: request,
+        FullType: global::TestApp.TupleHandler.Request,
+        CheckNullability: false
+      }
+    ],
+    Location: ,
+    DispatcherFullName: global::TestApp.TupleHandlerDispatcher,
+    DispatcherKey: global::TestApp.TupleHandler.Request|global::TestApp.TupleHandler.Response,
+    IsAnyAsync: true
+  }
+}

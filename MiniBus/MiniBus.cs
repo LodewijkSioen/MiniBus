@@ -19,6 +19,11 @@ public class MiniBus(IServiceProvider services)
             activity?.SetTag("minibus.result.status", result.Status.ToString());
             return result;
         }
+        catch (OperationCanceledException)
+        {
+            activity?.SetTag("minibus.result.status", "Canceled");
+            throw;
+        }
         catch (Exception ex)
         {
             activity?.AddEvent(new ActivityEvent("exception", tags: new ActivityTagsCollection

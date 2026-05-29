@@ -1,0 +1,124 @@
+using Microsoft.CodeAnalysis;
+using System.Collections.Immutable;
+using System.Linq;
+
+namespace MiniBus.Generator;
+
+public sealed record ReturnElement(
+    string LocalName,
+    string FullType,
+    bool IsNullable)
+{
+    public string NonNullLocalName => IsNullable ? LocalName + "Value" : LocalName;
+    public bool IsValidationResult => FullType.Equals("global::MiniBus.ValidationResult");
+}
+
+public sealed record InputParameter(
+    string LocalName,
+    string FullType,
+    bool IsNullable,
+    string NotNullMessage);
+
+public enum PhaseType
+{
+    Before,
+    Handle
+}
+
+
+public class MethodPhase
+{
+    public MethodPhase(PhaseType type, string methodName, bool isAsync, 
+        ImmutableArray<InputParameter> parameters,
+        ImmutableArray<ReturnElement> returns)
+    {
+        Type = type;
+        MethodName = methodName;
+        IsAsync = isAsync;
+        Parameters = parameters;
+        Returns = returns;
+    }
+
+    public MethodPhase(PhaseType type, IMethodSymbol methodSymbol, SymbolDisplayFormat format)
+    {
+        Type = type;
+        MethodName = methodSymbol.Name;
+
+        //Determine the Method Parameters
+        var parameters = ImmutableArray.CreateBuilder<InputParameter>();
+        foreach (var parameter in methodSymbol.Parameters)
+        {
+            var isNullable = parameter.NullableAnnotation == NullableAnnotation.Annotated;
+            var nonNullable = isNullable
+                ? parameter.Type.WithNullableAnnotation(NullableAnnotation.NotAnnotated)
+                : parameter.Type;
+            var fullType = nonNullable.ToDisplayString(format);
+
+            var req = parameter.GetAttributes().FirstOrDefault(static a =>
+                a.AttributeClass?.Name == "RequiredAttribute"
+                && a.AttributeClass.ContainingNamespace?.ToDisplayString()
+                == "System.ComponentModel.DataAnnotations");
+
+            var notNullMessage = $"{parameter.Name} cannot be null";
+            if (req is not null)
+            {
+                var msgArg = req.NamedArguments
+                    .FirstOrDefault(static kv => kv.Key == "ErrorMessage");
+                notNullMessage = msgArg.Value.Value as string ?? notNullMessage;
+                isNullable = false;
+            }
+
+            parameters.Add(new(parameter.Name, fullType, isNullable, notNullMessage));
+        }
+
+        Parameters = parameters.ToImmutable();
+
+
+        // Determine the Method Return values
+        var (innerType, isAsync) = UnwrapTask(methodSymbol.ReturnType);
+        IsAsync = isAsync;
+
+        if (innerType is INamedTypeSymbol { IsTupleType: true } tupleType)
+        {
+            var elements = ImmutableArray.CreateBuilder<ReturnElement>();
+            foreach (var elem in tupleType.TupleElements)
+            {
+                var elemType = elem.Type;
+                var isNullable = elemType.NullableAnnotation == NullableAnnotation.Annotated;
+                var nonNullType = isNullable
+                    ? elemType.WithNullableAnnotation(NullableAnnotation.NotAnnotated)
+                    : elemType;
+                var fullType = nonNullType.ToDisplayString(format);
+                var rawName = elem.Name;
+                var localName = rawName.Length > 0 && char.IsUpper(rawName[0])
+                    ? char.ToLower(rawName[0]) + rawName.Substring(1)
+                    : rawName;
+                elements.Add(new(string.Concat(localName, MethodName), fullType, isNullable));
+            }
+
+            Returns = elements.ToImmutable();
+        }
+        else
+        {
+            var isNullable = innerType.NullableAnnotation == NullableAnnotation.Annotated;
+            var nonNullable = isNullable
+                ? innerType.WithNullableAnnotation(NullableAnnotation.NotAnnotated)
+                : innerType;
+            var fullType = nonNullable.ToDisplayString(format);
+            Returns = [new(string.Concat("from", MethodName), fullType, isNullable)];
+        }
+    }
+
+    public PhaseType Type { get; }
+    public string MethodName { get; }
+    public bool IsAsync { get; }
+    public ImmutableArray<InputParameter> Parameters { get; }
+    public ImmutableArray<ReturnElement> Returns { get; }
+
+    private static (ITypeSymbol Inner, bool IsAsync) UnwrapTask(ITypeSymbol returnType)
+    {
+        if (returnType is INamedTypeSymbol { Name: "Task", TypeArguments.Length: 1 } task)
+            return (task.TypeArguments[0], true);
+        return (returnType, false);
+    }
+}
