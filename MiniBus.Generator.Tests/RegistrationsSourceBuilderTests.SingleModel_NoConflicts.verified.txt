@@ -10,8 +10,8 @@ namespace MiniBus
         public static IServiceCollection AddGeneratedHandlers(
             this IServiceCollection services)
         {
-            services.AddScoped<global::TestApp.OrderHandler>();
-            services.AddScoped<
+            services.AddTransient<global::TestApp.OrderHandler>();
+            services.AddTransient<
                 global::MiniBus.IDispatcher<
                     global::TestApp.OrderHandler.Request,
                     global::TestApp.OrderHandler.Response>,

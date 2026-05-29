@@ -11,8 +11,8 @@ namespace MiniBus
         public static IServiceCollection AddGeneratedHandlers(
             this IServiceCollection services)
         {
-            services.AddScoped<global::TestApp.FullPipelineHandler>();
-            services.AddScoped<
+            services.AddTransient<global::TestApp.FullPipelineHandler>();
+            services.AddTransient<
                 global::MiniBus.IDispatcher<
                     global::TestApp.FullPipelineHandler.Request,
                     global::TestApp.FullPipelineHandler.Response>,

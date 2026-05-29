@@ -66,8 +66,8 @@ public class SimpleDispatchIntegrationTests
         var d1 = sp.GetRequiredService<global::MiniBus.IDispatcher<SyncSimpleHandler.Request, SyncSimpleHandler.Response>>();
         var d2 = sp.GetRequiredService<global::MiniBus.IDispatcher<SyncSimpleHandler.Request, SyncSimpleHandler.Response>>();
 
-        Assert.That(ReferenceEquals(h1, h2), Is.True, "Handler should be scoped");
-        Assert.That(ReferenceEquals(d1, d2), Is.True, "Dispatcher should be scoped");
+        Assert.That(ReferenceEquals(h1, h2), Is.False, "Handler should be transient");
+        Assert.That(ReferenceEquals(d1, d2), Is.False, "Dispatcher should be transient");
     }
 
     [Test]
