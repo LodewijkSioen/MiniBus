@@ -1,22 +1,29 @@
 ﻿{
   Item1: {
     Namespace: TestApp,
-    ClassName: SyncValidateHandler,
-    FullClassName: global::TestApp.SyncValidateHandler,
-    FullRequestType: global::TestApp.SyncValidateHandler.Request,
-    FullResponseType: global::TestApp.SyncValidateHandler.Response,
+    ClassName: ConventionDiHandler,
+    FullClassName: global::TestApp.ConventionDiHandler,
+    FullRequestType: global::TestApp.ConventionDiHandler.Request,
+    FullResponseType: global::TestApp.ConventionDiHandler.Response,
     Phases: [
       {
         MethodName: Validate,
         IsAsync: false,
-        IsStatic: false,
+        IsStatic: true,
         Parameters: [
           {
             LocalName: request,
-            FullType: global::TestApp.SyncValidateHandler.Request,
+            FullType: global::TestApp.ConventionDiHandler.Request,
             IsNullable: false,
             NotNullMessage: request cannot be null,
             IsFromServices: false
+          },
+          {
+            LocalName: service,
+            FullType: global::TestApp.IService,
+            IsNullable: true,
+            NotNullMessage: service cannot be null,
+            IsFromServices: true
           }
         ],
         Returns: [
@@ -32,21 +39,28 @@
       {
         Type: Handle,
         MethodName: Handle,
-        IsAsync: true,
-        IsStatic: false,
+        IsAsync: false,
+        IsStatic: true,
         Parameters: [
           {
             LocalName: request,
-            FullType: global::TestApp.SyncValidateHandler.Request,
+            FullType: global::TestApp.ConventionDiHandler.Request,
             IsNullable: false,
             NotNullMessage: request cannot be null,
             IsFromServices: false
+          },
+          {
+            LocalName: service,
+            FullType: global::TestApp.IService,
+            IsNullable: false,
+            NotNullMessage: service cannot be null,
+            IsFromServices: true
           }
         ],
         Returns: [
           {
             LocalName: fromHandle,
-            FullType: global::TestApp.SyncValidateHandler.Response,
+            FullType: global::TestApp.ConventionDiHandler.Response,
             IsNullable: false,
             NonNullLocalName: fromHandle,
             IsValidationResult: false
@@ -62,20 +76,20 @@
       },
       {
         LocalName: fromHandle,
-        FullType: global::TestApp.SyncValidateHandler.Response,
+        FullType: global::TestApp.ConventionDiHandler.Response,
         CheckNullability: false
       },
       {
         LocalName: request,
-        FullType: global::TestApp.SyncValidateHandler.Request,
+        FullType: global::TestApp.ConventionDiHandler.Request,
         CheckNullability: false
       }
     ],
     Location: ,
-    DispatcherFullName: global::TestApp.SyncValidateHandlerDispatcher,
-    DispatcherKey: global::TestApp.SyncValidateHandler.Request|global::TestApp.SyncValidateHandler.Response,
-    IsAnyAsync: true,
-    HasInstanceMethods: true,
-    HasFromServicesParameters: false
+    DispatcherFullName: global::TestApp.ConventionDiHandlerDispatcher,
+    DispatcherKey: global::TestApp.ConventionDiHandler.Request|global::TestApp.ConventionDiHandler.Response,
+    IsAnyAsync: false,
+    HasInstanceMethods: false,
+    HasFromServicesParameters: true
   }
 }

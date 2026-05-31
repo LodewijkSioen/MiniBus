@@ -17,7 +17,8 @@ public sealed record InputParameter(
     string LocalName,
     string FullType,
     bool IsNullable,
-    string NotNullMessage);
+    string NotNullMessage,
+    bool IsFromServices = false);
 
 public enum PhaseType
 {
@@ -26,15 +27,17 @@ public enum PhaseType
 }
 
 
-public class MethodPhase
+public sealed record MethodPhase
 {
-    public MethodPhase(PhaseType type, string methodName, bool isAsync, 
+    public MethodPhase(PhaseType type, string methodName, bool isAsync,
+        bool isStatic,
         ImmutableArray<InputParameter> parameters,
         ImmutableArray<ReturnElement> returns)
     {
         Type = type;
         MethodName = methodName;
         IsAsync = isAsync;
+        IsStatic = isStatic;
         Parameters = parameters;
         Returns = returns;
     }
@@ -43,6 +46,7 @@ public class MethodPhase
     {
         Type = type;
         MethodName = methodSymbol.Name;
+        IsStatic = methodSymbol.IsStatic;
 
         //Determine the Method Parameters
         var parameters = ImmutableArray.CreateBuilder<InputParameter>();
@@ -112,7 +116,8 @@ public class MethodPhase
     public PhaseType Type { get; }
     public string MethodName { get; }
     public bool IsAsync { get; }
-    public ImmutableArray<InputParameter> Parameters { get; }
+    public bool IsStatic { get; }
+    public ImmutableArray<InputParameter> Parameters { get; init; }
     public ImmutableArray<ReturnElement> Returns { get; }
 
     private static (ITypeSymbol Inner, bool IsAsync) UnwrapTask(ITypeSymbol returnType)

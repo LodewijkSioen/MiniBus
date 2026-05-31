@@ -11,14 +11,24 @@ public class RegistrationsSourceBuilderTests
     private static HandlerModel MakeModel(
         string className,
         string requestType,
-        string responseType) =>
+        string responseType,
+        bool hasInstanceMethods = true) =>
         new HandlerModel(
             Namespace: "TestApp",
             ClassName: className,
             FullClassName: $"global::TestApp.{className}",
             FullRequestType: requestType,
             FullResponseType: responseType,
-            Phases: [],
+            Phases:
+            [
+                new MethodPhase(
+                    type: PhaseType.Handle,
+                    methodName: "Handle",
+                    isAsync: false,
+                    isStatic: !hasInstanceMethods,
+                    parameters: ImmutableArray<InputParameter>.Empty,
+                    returns: ImmutableArray<ReturnElement>.Empty)
+            ],
             Location: Location.None,
             LocalVariables: []);
 
@@ -81,5 +91,20 @@ public class RegistrationsSourceBuilderTests
         Assert.That(generated.Contains("global::TestApp.HandlerOneDispatcher", StringComparison.Ordinal), Is.False);
         Assert.That(generated.Contains("global::TestApp.HandlerTwoDispatcher", StringComparison.Ordinal), Is.False);
         Assert.That(generated.Contains("global::TestApp.HandlerThreeDispatcher", StringComparison.Ordinal), Is.True);
+    }
+
+    [Test]
+    public void StaticOnlyHandler_OmitsHandlerRegistration_ButKeepsDispatcherRegistration()
+    {
+        var generated = RegistrationsSourceBuilder.Build(
+            new[]
+            {
+                MakeModel("StaticOnlyHandler", "global::TestApp.StaticOnlyHandler.Request", "global::TestApp.StaticOnlyHandler.Response", hasInstanceMethods: false),
+            },
+            new HashSet<string>(),
+            new HashSet<string>());
+
+        Assert.That(generated.Contains("services.AddScoped<global::TestApp.StaticOnlyHandler>();", StringComparison.Ordinal), Is.False);
+        Assert.That(generated.Contains("global::TestApp.StaticOnlyHandlerDispatcher", StringComparison.Ordinal), Is.True);
     }
 }

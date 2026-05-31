@@ -23,7 +23,8 @@ public sealed record HandlerModel(
     public string DispatcherFullName => FullClassName + "Dispatcher";
     public string DispatcherKey => $"{FullRequestType}|{FullResponseType}";
     public bool IsAnyAsync => Phases.Any(p => p.IsAsync);
-    //public bool HasUnsupportedParameters => Phases.Any.HasUnsupportedParameters;
+    public bool HasInstanceMethods => Phases.Any(p => !p.IsStatic);
+    public bool HasFromServicesParameters => Phases.Any(p => p.Parameters.Any(ip => ip.IsFromServices));
 }
 
 public static class HandlerModelFactory
@@ -74,7 +75,7 @@ public static class HandlerModelFactory
 
         var handleMethod = classSymbol.GetMembers("Handle")
             .OfType<IMethodSymbol>()
-            .FirstOrDefault(static m => !m.IsStatic && m.Parameters.Length >= 1);
+            .FirstOrDefault(static m => m.Parameters.Length >= 1);
         if (handleMethod is null)
         {
             handlerModel = null;
@@ -84,11 +85,11 @@ public static class HandlerModelFactory
 
         var loadMethod = classSymbol.GetMembers("Load")
             .OfType<IMethodSymbol>()
-            .FirstOrDefault(static m => !m.IsStatic);
+            .FirstOrDefault();
 
         var validateMethod = classSymbol.GetMembers("Validate")
             .OfType<IMethodSymbol>()
-            .FirstOrDefault(m => !m.IsStatic && IsSupportedValidateMethod(m, fmt));
+            .FirstOrDefault(m => IsSupportedValidateMethod(m, fmt));
 
         var handlePhase = new MethodPhase(PhaseType.Handle, handleMethod, fmt);
         var loadPhase = loadMethod is null ? null : new MethodPhase(PhaseType.Before, loadMethod, fmt);
@@ -130,12 +131,14 @@ public static class HandlerModelFactory
             return false;
         }
 
-        if (!ValidateVariables(classSymbol.Name, location, localVariables, orderedMethods, out var invalidVariables))
-        {
-            diagnostics = [..invalidVariables];
-            handlerModel = null;
-            return false;
-        }
+        var knownPipelineTypes = localVariables
+            .Select(static local => local.FullType)
+            .ToImmutableHashSet(StringComparer.Ordinal);
+
+        orderedMethods = [
+            ..orderedMethods
+                .Select(phase => MarkFromServices(phase, knownPipelineTypes))
+        ];
 
         var ns = classSymbol.ContainingNamespace.IsGlobalNamespace
             ? null
@@ -153,24 +156,6 @@ public static class HandlerModelFactory
             LocalVariables: localVariables,
             Location: location);
         return true;
-    }
-
-    private static bool ValidateVariables(string handlerName, Location location, ImmutableArray<LocalVariable> localVariables, ImmutableArray<MethodPhase> phases, out IEnumerable<Diagnostic> diagnostics)
-    {
-        var diag = new List<Diagnostic>();
-        foreach (var phase in phases)
-        {
-            foreach (var parameter in phase.Parameters)
-            {
-                if (!localVariables.Any(l => l.FullType == parameter.FullType))
-                {
-                    diag.Add(Diagnostics.UnsupportedParameter(location, handlerName, parameter.LocalName, phase.MethodName, parameter.FullType));
-                }
-            }
-        }
-
-        diagnostics = diag;
-        return !diagnostics.Any();
     }
 
     private static bool ValidateUniqueLocalVariableTypes(
@@ -252,23 +237,26 @@ public static class HandlerModelFactory
                 checkNullability,
                 ifNullErrorMessage);
         }
+    }
 
-        // TODO
-        //foreach (var phase in model.Phases)
-        //{
-        //    foreach (var unsupported in phase.UnsupportedParameters)
-        //        spc.ReportDiagnostic(Diagnostics.UnsupportedParameter(
-        //            location: model.Location,
-        //            handlerName: model.ClassName,
-        //            parameterNameAndType: unsupported,
-        //            methodName: phase.MethodName,
-        //            requestType: model.FullRequestType));
-        //}
+    private static MethodPhase MarkFromServices(MethodPhase phase, ImmutableHashSet<string> knownPipelineTypes)
+    {
+        return phase with
+        {
+            Parameters = [
+                ..phase.Parameters
+                    .Select(parameter => parameter with
+                    {
+                        IsFromServices = !knownPipelineTypes.Contains(parameter.FullType)
+                    })
+            ]
+        };
     }
 
     private static bool DependsOn(MethodPhase candidate, MethodPhase dependency)
     {
-        return candidate.Parameters.Any(c => dependency.Returns.Any(d => d.FullType == c.FullType));
+        return candidate.Parameters
+            .Any(c => dependency.Returns.Any(d => d.FullType == c.FullType));
     }
 
     private static bool HasOutputs(MethodPhase phase) => !phase.Returns.IsDefaultOrEmpty;

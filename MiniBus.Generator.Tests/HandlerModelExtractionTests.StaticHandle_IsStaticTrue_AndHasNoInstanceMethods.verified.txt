@@ -1,20 +1,20 @@
 ﻿{
   Item1: {
     Namespace: TestApp,
-    ClassName: SyncHandler,
-    FullClassName: global::TestApp.SyncHandler,
-    FullRequestType: global::TestApp.SyncHandler.Request,
-    FullResponseType: global::TestApp.SyncHandler.Response,
+    ClassName: StaticOnlyHandler,
+    FullClassName: global::TestApp.StaticOnlyHandler,
+    FullRequestType: global::TestApp.StaticOnlyHandler.Request,
+    FullResponseType: global::TestApp.StaticOnlyHandler.Response,
     Phases: [
       {
         Type: Handle,
         MethodName: Handle,
         IsAsync: false,
-        IsStatic: false,
+        IsStatic: true,
         Parameters: [
           {
             LocalName: request,
-            FullType: global::TestApp.SyncHandler.Request,
+            FullType: global::TestApp.StaticOnlyHandler.Request,
             IsNullable: false,
             NotNullMessage: request cannot be null,
             IsFromServices: false
@@ -23,7 +23,7 @@
         Returns: [
           {
             LocalName: fromHandle,
-            FullType: global::TestApp.SyncHandler.Response,
+            FullType: global::TestApp.StaticOnlyHandler.Response,
             IsNullable: false,
             NonNullLocalName: fromHandle,
             IsValidationResult: false
@@ -34,20 +34,20 @@
     LocalVariables: [
       {
         LocalName: fromHandle,
-        FullType: global::TestApp.SyncHandler.Response,
+        FullType: global::TestApp.StaticOnlyHandler.Response,
         CheckNullability: false
       },
       {
         LocalName: request,
-        FullType: global::TestApp.SyncHandler.Request,
+        FullType: global::TestApp.StaticOnlyHandler.Request,
         CheckNullability: false
       }
     ],
     Location: ,
-    DispatcherFullName: global::TestApp.SyncHandlerDispatcher,
-    DispatcherKey: global::TestApp.SyncHandler.Request|global::TestApp.SyncHandler.Response,
+    DispatcherFullName: global::TestApp.StaticOnlyHandlerDispatcher,
+    DispatcherKey: global::TestApp.StaticOnlyHandler.Request|global::TestApp.StaticOnlyHandler.Response,
     IsAnyAsync: false,
-    HasInstanceMethods: true,
+    HasInstanceMethods: false,
     HasFromServicesParameters: false
   }
 }

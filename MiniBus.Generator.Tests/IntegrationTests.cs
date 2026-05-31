@@ -118,7 +118,7 @@ public class IntegrationTests
     }
 
     [Test]
-    public void UnsupportedHandleParameter_ReportsMBG002_AndSkipsDispatcherGeneration()
+    public void UnmatchedHandleParameter_IsResolvedFromServices_AndDispatcherIsGenerated()
     {
         const string source = """
             using MiniBus;
@@ -136,12 +136,14 @@ public class IntegrationTests
 
         var result = GeneratorTestHelper.Run(source);
 
-        Assert.That(result.Diagnostics.Any(d => d.Id == "MBG002"), Is.True);
-        Assert.That(result.GeneratedSources.Any(s => s.Contains("InvalidHandleHandlerDispatcher", StringComparison.Ordinal)), Is.False);
+        Assert.That(result.Diagnostics.Any(d => d.Id == "MBG002"), Is.False);
+        Assert.That(result.GeneratedSources.Any(s => s.Contains("InvalidHandleHandlerDispatcher", StringComparison.Ordinal)), Is.True);
+        var dispatcher = result.GeneratedSources.Single(s => s.Contains("class InvalidHandleHandlerDispatcher", StringComparison.Ordinal));
+        Assert.That(dispatcher.Contains("GetRequiredService<global::TestApp.InvalidHandleHandler.Other>()", StringComparison.Ordinal), Is.True);
     }
 
     [Test]
-    public void UnsupportedValidateParameter_ReportsMBG002_AndSkipsDispatcherGeneration()
+    public void UnmatchedValidateParameter_IsResolvedFromServices_AndDispatcherIsGenerated()
     {
         const string source = """
             using MiniBus;
@@ -160,8 +162,10 @@ public class IntegrationTests
 
         var result = GeneratorTestHelper.Run(source);
 
-        Assert.That(result.Diagnostics.Any(d => d.Id == "MBG002"), Is.True);
-        Assert.That(result.GeneratedSources.Any(s => s.Contains("InvalidValidateHandlerDispatcher", StringComparison.Ordinal)), Is.False);
+        Assert.That(result.Diagnostics.Any(d => d.Id == "MBG002"), Is.False);
+        Assert.That(result.GeneratedSources.Any(s => s.Contains("InvalidValidateHandlerDispatcher", StringComparison.Ordinal)), Is.True);
+        var dispatcher = result.GeneratedSources.Single(s => s.Contains("class InvalidValidateHandlerDispatcher", StringComparison.Ordinal));
+        Assert.That(dispatcher.Contains("GetRequiredService<global::TestApp.InvalidValidateHandler.Other>()", StringComparison.Ordinal), Is.True);
     }
 
     [Test]
@@ -403,5 +407,59 @@ public class IntegrationTests
 
         Assert.That(result.Diagnostics.Any(d => d.Id == "MBG006"), Is.True);
         Assert.That(result.GeneratedSources.Any(s => s.Contains("NoRequestTypeHandlerDispatcher", StringComparison.Ordinal)), Is.False);
+    }
+
+    [Test]
+    public Task StaticHandler_WithDiParameters_GeneratesServiceProviderOnlyDispatcher()
+    {
+        const string source = """
+            using MiniBus;
+            namespace TestApp;
+
+            public interface IClock;
+
+            [Handler]
+            public class StaticConventionHandler
+            {
+                public record Request(int Value);
+                public record Response(int Value);
+
+                public static ValidationResult Validate(Request request, IClock? clock)
+                    => new ValidationResult();
+
+                public static Response Handle(Request request, IClock clock)
+                    => new Response(request.Value);
+            }
+            """;
+
+        var driver = GeneratorTestHelper.RunDriver(source);
+        return Verify(driver);
+    }
+
+    [Test]
+    public Task MixedStaticAndInstance_WithDiParameters_GeneratesHandlerAndServiceProvider()
+    {
+        const string source = """
+            using MiniBus;
+            namespace TestApp;
+
+            public interface IClock;
+
+            [Handler]
+            public class MixedConventionHandler
+            {
+                public record Request(int Value);
+                public record Response(int Value);
+
+                public static ValidationResult Validate(Request request, IClock clock)
+                    => new ValidationResult();
+
+                public Response Handle(Request request)
+                    => new Response(request.Value);
+            }
+            """;
+
+        var driver = GeneratorTestHelper.RunDriver(source);
+        return Verify(driver);
     }
 }

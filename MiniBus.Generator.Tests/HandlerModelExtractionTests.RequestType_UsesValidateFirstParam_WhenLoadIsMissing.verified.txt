@@ -1,17 +1,88 @@
 ﻿{
-  Item2: [
-    {
-      Message: Handler 'ValidateRequestTypeHandler' has unsupported parameter 'unknown' in Handle. Parameters must match type 'global::TestApp.ValidateRequestTypeHandler.Unknown'.,
-      Severity: Warning,
-      WarningLevel: 1,
-      Descriptor: {
-        Id: MBG002,
-        Title: Unsupported handler parameter,
-        MessageFormat: Handler '{0}' has unsupported parameter '{1}' in {2}. Parameters must match type '{3}'.,
-        Category: MiniBus.Generator,
-        DefaultSeverity: Warning,
-        IsEnabledByDefault: true
+  Item1: {
+    Namespace: TestApp,
+    ClassName: ValidateRequestTypeHandler,
+    FullClassName: global::TestApp.ValidateRequestTypeHandler,
+    FullRequestType: global::TestApp.ValidateRequestTypeHandler.Command,
+    FullResponseType: global::TestApp.ValidateRequestTypeHandler.Response,
+    Phases: [
+      {
+        MethodName: Validate,
+        IsAsync: false,
+        IsStatic: false,
+        Parameters: [
+          {
+            LocalName: command,
+            FullType: global::TestApp.ValidateRequestTypeHandler.Command,
+            IsNullable: false,
+            NotNullMessage: command cannot be null,
+            IsFromServices: false
+          }
+        ],
+        Returns: [
+          {
+            LocalName: fromValidate,
+            FullType: global::MiniBus.ValidationResult,
+            IsNullable: false,
+            NonNullLocalName: fromValidate,
+            IsValidationResult: true
+          }
+        ]
+      },
+      {
+        Type: Handle,
+        MethodName: Handle,
+        IsAsync: true,
+        IsStatic: false,
+        Parameters: [
+          {
+            LocalName: command,
+            FullType: global::TestApp.ValidateRequestTypeHandler.Command,
+            IsNullable: false,
+            NotNullMessage: command cannot be null,
+            IsFromServices: false
+          },
+          {
+            LocalName: unknown,
+            FullType: global::TestApp.ValidateRequestTypeHandler.Unknown,
+            IsNullable: false,
+            NotNullMessage: unknown cannot be null,
+            IsFromServices: true
+          }
+        ],
+        Returns: [
+          {
+            LocalName: fromHandle,
+            FullType: global::TestApp.ValidateRequestTypeHandler.Response,
+            IsNullable: false,
+            NonNullLocalName: fromHandle,
+            IsValidationResult: false
+          }
+        ]
       }
-    }
-  ]
+    ],
+    LocalVariables: [
+      {
+        LocalName: fromValidate,
+        FullType: global::MiniBus.ValidationResult,
+        CheckNullability: false
+      },
+      {
+        LocalName: fromHandle,
+        FullType: global::TestApp.ValidateRequestTypeHandler.Response,
+        CheckNullability: false
+      },
+      {
+        LocalName: request,
+        FullType: global::TestApp.ValidateRequestTypeHandler.Command,
+        CheckNullability: false
+      }
+    ],
+    Location: ,
+    DispatcherFullName: global::TestApp.ValidateRequestTypeHandlerDispatcher,
+    DispatcherKey: global::TestApp.ValidateRequestTypeHandler.Command|global::TestApp.ValidateRequestTypeHandler.Response,
+    IsAnyAsync: true,
+    HasInstanceMethods: true,
+    HasFromServicesParameters: true
+  }
 }

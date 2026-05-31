@@ -55,9 +55,9 @@ public class SimpleDispatchIntegrationTests
     }
 
     [Test]
-    public void HandlerAndDispatcher_AreRegisteredAsScoped()
+    public void HandlerAndDispatcher_AreRegisteredAsTransient()
     {
-        // Re-resolving within the same scope returns the same instance.
+        // Re-resolving within the same scope returns different transient instances.
         using var scope = AppUnderTest.Services.CreateScope();
         var sp = scope.ServiceProvider;
 

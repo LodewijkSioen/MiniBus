@@ -9,12 +9,14 @@
       {
         MethodName: Load,
         IsAsync: true,
+        IsStatic: false,
         Parameters: [
           {
             LocalName: request,
             FullType: global::TestApp.BothValidateArgsHandler.Request,
             IsNullable: false,
-            NotNullMessage: request cannot be null
+            NotNullMessage: request cannot be null,
+            IsFromServices: false
           }
         ],
         Returns: [
@@ -30,18 +32,21 @@
       {
         MethodName: Validate,
         IsAsync: false,
+        IsStatic: false,
         Parameters: [
           {
             LocalName: request,
             FullType: global::TestApp.BothValidateArgsHandler.Request,
             IsNullable: false,
-            NotNullMessage: request cannot be null
+            NotNullMessage: request cannot be null,
+            IsFromServices: false
           },
           {
             LocalName: entity,
             FullType: global::TestApp.BothValidateArgsHandler.Entity,
             IsNullable: false,
-            NotNullMessage: entity cannot be null
+            NotNullMessage: entity cannot be null,
+            IsFromServices: false
           }
         ],
         Returns: [
@@ -58,12 +63,14 @@
         Type: Handle,
         MethodName: Handle,
         IsAsync: true,
+        IsStatic: false,
         Parameters: [
           {
             LocalName: entity,
             FullType: global::TestApp.BothValidateArgsHandler.Entity,
             IsNullable: false,
-            NotNullMessage: entity cannot be null
+            NotNullMessage: entity cannot be null,
+            IsFromServices: false
           }
         ],
         Returns: [
@@ -103,6 +110,8 @@
     Location: ,
     DispatcherFullName: global::TestApp.BothValidateArgsHandlerDispatcher,
     DispatcherKey: global::TestApp.BothValidateArgsHandler.Request|global::TestApp.BothValidateArgsHandler.Response,
-    IsAnyAsync: true
+    IsAnyAsync: true,
+    HasInstanceMethods: true,
+    HasFromServicesParameters: false
   }
 }

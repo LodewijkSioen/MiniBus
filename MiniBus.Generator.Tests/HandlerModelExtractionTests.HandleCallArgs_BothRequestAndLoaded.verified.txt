@@ -9,12 +9,14 @@
       {
         MethodName: Load,
         IsAsync: true,
+        IsStatic: false,
         Parameters: [
           {
             LocalName: request,
             FullType: global::TestApp.BothArgsHandler.Request,
             IsNullable: false,
-            NotNullMessage: request cannot be null
+            NotNullMessage: request cannot be null,
+            IsFromServices: false
           }
         ],
         Returns: [
@@ -31,18 +33,21 @@
         Type: Handle,
         MethodName: Handle,
         IsAsync: true,
+        IsStatic: false,
         Parameters: [
           {
             LocalName: request,
             FullType: global::TestApp.BothArgsHandler.Request,
             IsNullable: false,
-            NotNullMessage: request cannot be null
+            NotNullMessage: request cannot be null,
+            IsFromServices: false
           },
           {
             LocalName: entity,
             FullType: global::TestApp.BothArgsHandler.Entity,
             IsNullable: false,
-            NotNullMessage: entity cannot be null
+            NotNullMessage: entity cannot be null,
+            IsFromServices: false
           }
         ],
         Returns: [
@@ -77,6 +82,8 @@
     Location: ,
     DispatcherFullName: global::TestApp.BothArgsHandlerDispatcher,
     DispatcherKey: global::TestApp.BothArgsHandler.Request|global::TestApp.BothArgsHandler.Response,
-    IsAnyAsync: true
+    IsAnyAsync: true,
+    HasInstanceMethods: true,
+    HasFromServicesParameters: false
   }
 }
