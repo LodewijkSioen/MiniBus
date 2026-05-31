@@ -485,5 +485,52 @@ public class HandlerModelExtractionTests
 
         await Verify((model, diagnostics));
     }
+
+    [Test]
+    public async Task StaticHandle_IsStaticTrue_AndHasNoInstanceMethods()
+    {
+        const string source = """
+            using MiniBus;
+            namespace TestApp;
+            [Handler]
+            public class StaticOnlyHandler
+            {
+                public record Request(int Value);
+                public record Response(int Value);
+                public static Response Handle(Request request) => new Response(request.Value);
+            }
+            """;
+
+        HandlerModelFactory.TryGetHandlerModel(GetSymbol(source, "StaticOnlyHandler"), Location.None, out var model, out var diagnostics);
+
+        await Verify((model, diagnostics));
+    }
+
+    [Test]
+    public async Task ConventionBasedDi_UnmatchedParameters_AreMarkedFromServices()
+    {
+        const string source = """
+            using MiniBus;
+            namespace TestApp;
+            public interface IService;
+
+            [Handler]
+            public class ConventionDiHandler
+            {
+                public record Request(int Value);
+                public record Response(int Value);
+
+                public static ValidationResult Validate(Request request, IService? service)
+                    => new ValidationResult();
+
+                public static Response Handle(Request request, IService service)
+                    => new Response(request.Value);
+            }
+            """;
+
+        HandlerModelFactory.TryGetHandlerModel(GetSymbol(source, "ConventionDiHandler"), Location.None, out var model, out var diagnostics);
+
+        await Verify((model, diagnostics));
+    }
 }
 

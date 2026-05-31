@@ -9,12 +9,14 @@
       {
         MethodName: Load,
         IsAsync: false,
+        IsStatic: false,
         Parameters: [
           {
             LocalName: request,
             FullType: global::TestApp.UnnamedTupleHandler.Request,
             IsNullable: false,
-            NotNullMessage: request cannot be null
+            NotNullMessage: request cannot be null,
+            IsFromServices: false
           }
         ],
         Returns: [
@@ -38,18 +40,21 @@
         Type: Handle,
         MethodName: Handle,
         IsAsync: true,
+        IsStatic: false,
         Parameters: [
           {
             LocalName: entity,
             FullType: global::TestApp.UnnamedTupleHandler.Entity,
             IsNullable: false,
-            NotNullMessage: entity cannot be null
+            NotNullMessage: entity cannot be null,
+            IsFromServices: false
           },
           {
             LocalName: config,
             FullType: global::TestApp.UnnamedTupleHandler.Config,
             IsNullable: false,
-            NotNullMessage: config cannot be null
+            NotNullMessage: config cannot be null,
+            IsFromServices: false
           }
         ],
         Returns: [
@@ -90,6 +95,8 @@
     Location: ,
     DispatcherFullName: global::TestApp.UnnamedTupleHandlerDispatcher,
     DispatcherKey: global::TestApp.UnnamedTupleHandler.Request|global::TestApp.UnnamedTupleHandler.Response,
-    IsAnyAsync: true
+    IsAnyAsync: true,
+    HasInstanceMethods: true,
+    HasFromServicesParameters: false
   }
 }

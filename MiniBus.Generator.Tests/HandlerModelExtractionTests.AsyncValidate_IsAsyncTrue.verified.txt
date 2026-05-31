@@ -9,12 +9,14 @@
       {
         MethodName: Validate,
         IsAsync: true,
+        IsStatic: false,
         Parameters: [
           {
             LocalName: request,
             FullType: global::TestApp.AsyncValidateHandler.Request,
             IsNullable: false,
-            NotNullMessage: request cannot be null
+            NotNullMessage: request cannot be null,
+            IsFromServices: false
           }
         ],
         Returns: [
@@ -31,12 +33,14 @@
         Type: Handle,
         MethodName: Handle,
         IsAsync: true,
+        IsStatic: false,
         Parameters: [
           {
             LocalName: request,
             FullType: global::TestApp.AsyncValidateHandler.Request,
             IsNullable: false,
-            NotNullMessage: request cannot be null
+            NotNullMessage: request cannot be null,
+            IsFromServices: false
           }
         ],
         Returns: [
@@ -70,6 +74,8 @@
     Location: ,
     DispatcherFullName: global::TestApp.AsyncValidateHandlerDispatcher,
     DispatcherKey: global::TestApp.AsyncValidateHandler.Request|global::TestApp.AsyncValidateHandler.Response,
-    IsAnyAsync: true
+    IsAnyAsync: true,
+    HasInstanceMethods: true,
+    HasFromServicesParameters: false
   }
 }

@@ -12,6 +12,7 @@ public class AppUnderTest
     {
         var serviceCollection = new ServiceCollection();
         serviceCollection.AddMiniBusCore();
+        serviceCollection.AddScoped<IScopeProbe, ScopeProbe>();
         serviceCollection.AddGeneratedHandlers();
         Services = serviceCollection.BuildServiceProvider();
     }
@@ -21,4 +22,14 @@ public class AppUnderTest
     {
         Services.Dispose();
     }
+}
+
+public interface IScopeProbe
+{
+    Guid ScopeId { get; }
+}
+
+public sealed class ScopeProbe : IScopeProbe
+{
+    public Guid ScopeId { get; } = Guid.NewGuid();
 }

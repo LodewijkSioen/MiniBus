@@ -27,7 +27,10 @@ public static class RegistrationsSourceBuilder
         {
             if (excludedDispatcherPairs.Contains(model.DispatcherKey))
                 continue;
-            sb.AppendLine($"            services.AddTransient<{model.FullClassName}>();");
+
+            if (model.HasInstanceMethods)
+                sb.AppendLine($"            services.AddTransient<{model.FullClassName}>();");
+
             sb.AppendLine($"            services.AddTransient<");
             sb.AppendLine($"                global::MiniBus.IDispatcher<");
             sb.AppendLine($"                    {model.FullRequestType},");

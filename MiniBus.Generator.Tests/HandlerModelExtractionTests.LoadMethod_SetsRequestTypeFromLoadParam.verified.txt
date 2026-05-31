@@ -9,12 +9,14 @@
       {
         MethodName: Load,
         IsAsync: true,
+        IsStatic: false,
         Parameters: [
           {
             LocalName: query,
             FullType: global::TestApp.LoadRequestHandler.Query,
             IsNullable: false,
-            NotNullMessage: query cannot be null
+            NotNullMessage: query cannot be null,
+            IsFromServices: false
           }
         ],
         Returns: [
@@ -31,12 +33,14 @@
         Type: Handle,
         MethodName: Handle,
         IsAsync: true,
+        IsStatic: false,
         Parameters: [
           {
             LocalName: entity,
             FullType: global::TestApp.LoadRequestHandler.Entity,
             IsNullable: false,
-            NotNullMessage: entity cannot be null
+            NotNullMessage: entity cannot be null,
+            IsFromServices: false
           }
         ],
         Returns: [
@@ -71,6 +75,8 @@
     Location: ,
     DispatcherFullName: global::TestApp.LoadRequestHandlerDispatcher,
     DispatcherKey: global::TestApp.LoadRequestHandler.Query|global::TestApp.LoadRequestHandler.Response,
-    IsAnyAsync: true
+    IsAnyAsync: true,
+    HasInstanceMethods: true,
+    HasFromServicesParameters: false
   }
 }
