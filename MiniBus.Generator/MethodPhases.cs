@@ -1,5 +1,5 @@
+using System.Collections.Generic;
 using Microsoft.CodeAnalysis;
-using System.Collections.Immutable;
 using System.Linq;
 
 namespace MiniBus.Generator;
@@ -31,8 +31,8 @@ public sealed record MethodPhase
 {
     public MethodPhase(PhaseType type, string methodName, bool isAsync,
         bool isStatic,
-        ImmutableArray<InputParameter> parameters,
-        ImmutableArray<ReturnElement> returns)
+        EquatableArray<InputParameter> parameters,
+        EquatableArray<ReturnElement> returns)
     {
         Type = type;
         MethodName = methodName;
@@ -49,7 +49,7 @@ public sealed record MethodPhase
         IsStatic = methodSymbol.IsStatic;
 
         //Determine the Method Parameters
-        var parameters = ImmutableArray.CreateBuilder<InputParameter>();
+        var parameters = new List<InputParameter>();
         foreach (var parameter in methodSymbol.Parameters)
         {
             var isNullable = parameter.NullableAnnotation == NullableAnnotation.Annotated;
@@ -75,7 +75,7 @@ public sealed record MethodPhase
             parameters.Add(new(parameter.Name, fullType, isNullable, notNullMessage));
         }
 
-        Parameters = parameters.ToImmutable();
+        Parameters = new(parameters.ToArray());
 
 
         // Determine the Method Return values
@@ -84,7 +84,7 @@ public sealed record MethodPhase
 
         if (innerType is INamedTypeSymbol { IsTupleType: true } tupleType)
         {
-            var elements = ImmutableArray.CreateBuilder<ReturnElement>();
+            var elements = new List<ReturnElement>();
             foreach (var elem in tupleType.TupleElements)
             {
                 var elemType = elem.Type;
@@ -100,7 +100,7 @@ public sealed record MethodPhase
                 elements.Add(new(string.Concat(localName, MethodName), fullType, isNullable));
             }
 
-            Returns = elements.ToImmutable();
+            Returns = new(elements);
         }
         else
         {
@@ -109,7 +109,9 @@ public sealed record MethodPhase
                 ? innerType.WithNullableAnnotation(NullableAnnotation.NotAnnotated)
                 : innerType;
             var fullType = nonNullable.ToDisplayString(format);
-            Returns = [new(string.Concat("from", MethodName), fullType, isNullable)];
+            Returns = new([
+                new(string.Concat("from", MethodName), fullType, isNullable)
+            ]);
         }
     }
 
@@ -117,8 +119,8 @@ public sealed record MethodPhase
     public string MethodName { get; }
     public bool IsAsync { get; }
     public bool IsStatic { get; }
-    public ImmutableArray<InputParameter> Parameters { get; init; }
-    public ImmutableArray<ReturnElement> Returns { get; }
+    public EquatableArray<InputParameter> Parameters { get; init; }
+    public EquatableArray<ReturnElement> Returns { get; }
 
     private static (ITypeSymbol Inner, bool IsAsync) UnwrapTask(ITypeSymbol returnType)
     {

@@ -1,7 +1,6 @@
 using Microsoft.CodeAnalysis;
 using System;
 using System.Collections.Generic;
-using System.Collections.Immutable;
 using System.Linq;
 using System.Threading;
 
@@ -15,8 +14,8 @@ public sealed record HandlerModel(
     string FullClassName,
     string FullRequestType,
     string FullResponseType,
-    ImmutableArray<MethodPhase> Phases,
-    ImmutableArray<LocalVariable> LocalVariables,
+    EquatableArray<MethodPhase> Phases,
+    EquatableArray<LocalVariable> LocalVariables,
     Location Location)
 {
     // "global::TestApp.DummyHandler" + "Dispatcher" = "global::TestApp.DummyHandlerDispatcher"
@@ -95,13 +94,13 @@ public static class HandlerModelFactory
         var loadPhase = loadMethod is null ? null : new MethodPhase(PhaseType.Before, loadMethod, fmt);
         var validatePhase = validateMethod is null ? null : new MethodPhase(PhaseType.Before, validateMethod, fmt);
 
-        var preHandleCandidates = ImmutableArray.CreateBuilder<MethodPhase>();
+        var preHandleCandidates = new List<MethodPhase>();
         if (loadPhase is not null)
             preHandleCandidates.Add(loadPhase);
         if (validatePhase is not null)
             preHandleCandidates.Add(validatePhase);
 
-        var orderedMethods = OrderPhases(preHandleCandidates.ToImmutable(), handlePhase);
+        var orderedMethods = OrderPhases(preHandleCandidates, handlePhase);
 
         
 
@@ -120,10 +119,8 @@ public static class HandlerModelFactory
         var responseType = handlePhase.Returns[0].FullType;
 
         var returnVariables = BuildReturnVariables(orderedMethods);
-        var localVariables = ImmutableArray.Create<LocalVariable>([
-            ..returnVariables,
-            new("request", requestType!, false, null)
-        ]);
+        var localVariables = new EquatableArray<LocalVariable>(returnVariables
+            .Append(new("request", requestType!, false, null)));
         if (!ValidateUniqueLocalVariableTypes(classSymbol.Name, location, localVariables, out var duplicateLocalTypeDiagnostics))
         {
             diagnostics = [..duplicateLocalTypeDiagnostics];
@@ -132,13 +129,10 @@ public static class HandlerModelFactory
         }
 
         var knownPipelineTypes = localVariables
-            .Select(static local => local.FullType)
-            .ToImmutableHashSet(StringComparer.Ordinal);
+            .Select(static local => local.FullType);
 
-        orderedMethods = [
-            ..orderedMethods
-                .Select(phase => MarkFromServices(phase, knownPipelineTypes))
-        ];
+        orderedMethods = new(orderedMethods
+            .Select(phase => MarkFromServices(phase, knownPipelineTypes)));
 
         var ns = classSymbol.ContainingNamespace.IsGlobalNamespace
             ? null
@@ -161,7 +155,7 @@ public static class HandlerModelFactory
     private static bool ValidateUniqueLocalVariableTypes(
         string handlerName,
         Location location,
-        ImmutableArray<LocalVariable> localVariables,
+        EquatableArray<LocalVariable> localVariables,
         out IEnumerable<Diagnostic> diagnostics)
     {
         var duplicateTypeDiagnostics = localVariables
@@ -174,13 +168,13 @@ public static class HandlerModelFactory
         return duplicateTypeDiagnostics.Count == 0;
     }
 
-    private static ImmutableArray<MethodPhase> OrderPhases(
-        ImmutableArray<MethodPhase> phases, MethodPhase handlePhase)
+    private static EquatableArray<MethodPhase> OrderPhases(
+        IEnumerable<MethodPhase> phases, MethodPhase handlePhase)
     {
         var pending = phases
             .Select((phase, index) => new PendingPhase(phase, index))
             .ToList();
-        var ordered =  ImmutableArray.CreateBuilder<MethodPhase>(pending.Count + 1);
+        var ordered =  new List<MethodPhase>();
 
         while (pending.Count > 0)
         {
@@ -206,10 +200,10 @@ public static class HandlerModelFactory
 
         ordered.Add(handlePhase);
 
-        return ordered.ToImmutable();
+        return new(ordered);
     }
 
-    private static IEnumerable<LocalVariable> BuildReturnVariables(ImmutableArray<MethodPhase> phases)
+    private static IEnumerable<LocalVariable> BuildReturnVariables(EquatableArray<MethodPhase> phases)
     {
         var allReturns = phases.SelectMany(p => p.Returns);
         var allParams = phases.SelectMany(p => p.Parameters).GroupBy(p => p.FullType).ToDictionary(
@@ -239,17 +233,15 @@ public static class HandlerModelFactory
         }
     }
 
-    private static MethodPhase MarkFromServices(MethodPhase phase, ImmutableHashSet<string> knownPipelineTypes)
+    private static MethodPhase MarkFromServices(MethodPhase phase, IEnumerable<string> knownPipelineTypes)
     {
         return phase with
         {
-            Parameters = [
-                ..phase.Parameters
-                    .Select(parameter => parameter with
-                    {
-                        IsFromServices = !knownPipelineTypes.Contains(parameter.FullType)
-                    })
-            ]
+            Parameters = new(phase.Parameters
+                .Select(parameter => parameter with
+                {
+                    IsFromServices = !knownPipelineTypes.Contains(parameter.FullType)
+                }))
         };
     }
 
@@ -259,7 +251,7 @@ public static class HandlerModelFactory
             .Any(c => dependency.Returns.Any(d => d.FullType == c.FullType));
     }
 
-    private static bool HasOutputs(MethodPhase phase) => !phase.Returns.IsDefaultOrEmpty;
+    private static bool HasOutputs(MethodPhase phase) => phase.Returns.Count > 0;
 
     private sealed record PendingPhase(MethodPhase Phase, int SourceIndex);
 

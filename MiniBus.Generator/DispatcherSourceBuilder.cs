@@ -1,5 +1,4 @@
 using System.Collections.Generic;
-using System.Collections.Immutable;
 using System.Linq;
 using System.Text;
 
@@ -73,7 +72,6 @@ public static class DispatcherSourceBuilder
                 case PhaseType.Handle:
                     BuildHandlePhase(sb, model, phase, taskWrap, taskClose, i);
                     break;
-                default: break;
             }
         }
 
@@ -89,7 +87,7 @@ public static class DispatcherSourceBuilder
         var awaitPrefix = prePhase.IsAsync ? "await " : "";
         var callArguments = string.Join(", ", BuildCallArguments(prePhase, model.LocalVariables));
         var methodTarget = prePhase.IsStatic ? model.FullClassName : "_handler";
-        if (prePhase.Returns.Length > 1)
+        if (prePhase.Returns.Count > 1)
         {
             var varNames = string.Join(", ", prePhase.Returns.Select(e => e.LocalName));
             sb.AppendLine($"{indent}        var ({varNames}) = {awaitPrefix}{methodTarget}.{prePhase.MethodName}({callArguments});");
@@ -104,7 +102,7 @@ public static class DispatcherSourceBuilder
         sb.AppendLine();
     }
 
-    private static void BuildReturnValueChecks(StringBuilder sb, HandlerModel model, ImmutableArray<ReturnElement> returnValues, string taskWrap, string taskClose, string indent)
+    private static void BuildReturnValueChecks(StringBuilder sb, HandlerModel model, EquatableArray<ReturnElement> returnValues, string taskWrap, string taskClose, string indent)
     {
         foreach (var element in returnValues)
         {
@@ -134,7 +132,7 @@ public static class DispatcherSourceBuilder
         sb.AppendLine($"{indent}        return {taskWrap}global::MiniBus.Result<{model.FullResponseType}>.Success(response){taskClose};");
     }
 
-    private static IEnumerable<string> BuildCallArguments(MethodPhase phase, ImmutableArray<LocalVariable> returnElements)
+    private static IEnumerable<string> BuildCallArguments(MethodPhase phase, EquatableArray<LocalVariable> returnElements)
     {
         foreach (var parameter in phase.Parameters)
         {

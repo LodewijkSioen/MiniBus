@@ -1,5 +1,4 @@
 using Microsoft.CodeAnalysis;
-using System.Collections.Immutable;
 
 namespace MiniBus.Generator.Tests;
 
@@ -19,18 +18,18 @@ public class RegistrationsSourceBuilderTests
             FullClassName: $"global::TestApp.{className}",
             FullRequestType: requestType,
             FullResponseType: responseType,
-            Phases:
-            [
+            Phases: new EquatableArray<MethodPhase>(new[]
+            {
                 new MethodPhase(
                     type: PhaseType.Handle,
                     methodName: "Handle",
                     isAsync: false,
                     isStatic: !hasInstanceMethods,
-                    parameters: ImmutableArray<InputParameter>.Empty,
-                    returns: ImmutableArray<ReturnElement>.Empty)
-            ],
+                    parameters: EquatableArray<InputParameter>.Empty,
+                    returns: EquatableArray<ReturnElement>.Empty)
+            }),
             Location: Location.None,
-            LocalVariables: []);
+            LocalVariables: EquatableArray<LocalVariable>.Empty);
 
     // ── Tests ─────────────────────────────────────────────────────────────
 
