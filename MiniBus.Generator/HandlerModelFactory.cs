@@ -6,6 +6,8 @@ using System.Threading;
 
 namespace MiniBus.Generator;
 
+public sealed record Result(HandlerModel? Model, EquatableArray<DiagnosticInfo> Diagnostics);
+
 public sealed record LocalVariable(string LocalName, string FullType, bool CheckNullability, string? IfNullErrorMessage);
 
 public sealed record HandlerModel(
@@ -15,8 +17,7 @@ public sealed record HandlerModel(
     string FullRequestType,
     string FullResponseType,
     EquatableArray<MethodPhase> Phases,
-    EquatableArray<LocalVariable> LocalVariables,
-    Location Location)
+    EquatableArray<LocalVariable> LocalVariables)
 {
     // "global::TestApp.DummyHandler" + "Dispatcher" = "global::TestApp.DummyHandlerDispatcher"
     public string DispatcherFullName => FullClassName + "Dispatcher";
@@ -28,19 +29,18 @@ public sealed record HandlerModel(
 
 public static class HandlerModelFactory
 {
-    public static (HandlerModel? model, IEnumerable<Diagnostic> diagnostics) GetHandlerModel(GeneratorAttributeSyntaxContext ctx, CancellationToken ct)
+    public static Result GetHandlerModel(GeneratorAttributeSyntaxContext ctx, CancellationToken ct)
     {
         if (ctx.TargetSymbol is not INamedTypeSymbol classSymbol)
         {
-            return (null, []);
+            return new(null, EquatableArray<DiagnosticInfo>.Empty);
         }
         ct.ThrowIfCancellationRequested();
-        
-        TryGetHandlerModel(classSymbol, ctx.TargetNode.GetLocation(), out var handlerModel, out var diagnostics);
-        return (handlerModel, diagnostics);
+
+        return GetHandlerModel(classSymbol, ctx.TargetNode.GetLocation());
     }
 
-    public static bool TryGetHandlerModel(INamedTypeSymbol classSymbol, Location location, out HandlerModel? handlerModel, out IEnumerable<Diagnostic> diagnostics)
+    public static Result GetHandlerModel(INamedTypeSymbol classSymbol, Location location)
     { 
         var fmt = SymbolDisplayFormat.FullyQualifiedFormat;
 
@@ -49,25 +49,22 @@ public static class HandlerModelFactory
 
         if (isGenericHandler)
         {
-            handlerModel = null;
-            diagnostics =
+
+            return new(null, new(
             [
                 Diagnostics.GenericHandlerNotSupported(
                     location: location,
                     fullHandlerName: classSymbol.ToDisplayString(fmt))
-            ];
-            return false;
+            ]));
         }
         if (isNestedHandler)
         {
-            handlerModel = null;
-            diagnostics =
+            return new(null, new(
             [
                 Diagnostics.NestedHandlerNotSupported(
                     location: location,
                     fullHandlerName: classSymbol.ToDisplayString(fmt))
-            ];
-            return false;
+            ]));
         }
 
 
@@ -77,9 +74,7 @@ public static class HandlerModelFactory
             .FirstOrDefault(static m => m.Parameters.Length >= 1);
         if (handleMethod is null)
         {
-            handlerModel = null;
-            diagnostics = [];
-            return false;
+            return new(null, EquatableArray<DiagnosticInfo>.Empty);
         }
 
         var loadMethod = classSymbol.GetMembers("Load")
@@ -107,13 +102,11 @@ public static class HandlerModelFactory
 
         if (!InferRequestType(orderedMethods, out var requestType))
         {
-            diagnostics =
-            [
+            return new(null, new([
                 Diagnostics.RequestTypeCannotBeInferred(
                     location: location,
-                    fullHandlerName: classSymbol.ToDisplayString(fmt))];
-            handlerModel = null;
-            return false;
+                    fullHandlerName: classSymbol.ToDisplayString(fmt))
+            ]));
         }
 
         var responseType = handlePhase.Returns[0].FullType;
@@ -123,9 +116,7 @@ public static class HandlerModelFactory
             .Append(new("request", requestType!, false, null)));
         if (!ValidateUniqueLocalVariableTypes(classSymbol.Name, location, localVariables, out var duplicateLocalTypeDiagnostics))
         {
-            diagnostics = [..duplicateLocalTypeDiagnostics];
-            handlerModel = null;
-            return false;
+            return new(null, new(duplicateLocalTypeDiagnostics));
         }
 
         var knownPipelineTypes = localVariables
@@ -138,25 +129,23 @@ public static class HandlerModelFactory
             ? null
             : classSymbol.ContainingNamespace.ToDisplayString();
 
-
-        diagnostics = [];
-        handlerModel = new(
-            Namespace: ns,
-            ClassName: classSymbol.Name,
-            FullClassName: classSymbol.ToDisplayString(fmt),
-            FullRequestType: requestType!,
-            FullResponseType: responseType,
-            Phases: orderedMethods,
-            LocalVariables: localVariables,
-            Location: location);
-        return true;
+        return new(
+            new(
+                Namespace: ns,
+                ClassName: classSymbol.Name,
+                FullClassName: classSymbol.ToDisplayString(fmt),
+                FullRequestType: requestType!,
+                FullResponseType: responseType,
+                Phases: orderedMethods,
+                LocalVariables: localVariables),
+            EquatableArray<DiagnosticInfo>.Empty);
     }
 
     private static bool ValidateUniqueLocalVariableTypes(
         string handlerName,
         Location location,
         EquatableArray<LocalVariable> localVariables,
-        out IEnumerable<Diagnostic> diagnostics)
+        out EquatableArray<DiagnosticInfo> diagnostics)
     {
         var duplicateTypeDiagnostics = localVariables
             .GroupBy(static local => local.FullType)
@@ -164,7 +153,7 @@ public static class HandlerModelFactory
             .Select(group => Diagnostics.DuplicateLocalVariableType(location, handlerName, group.Key))
             .ToList();
 
-        diagnostics = duplicateTypeDiagnostics;
+        diagnostics = new(duplicateTypeDiagnostics);
         return duplicateTypeDiagnostics.Count == 0;
     }
 

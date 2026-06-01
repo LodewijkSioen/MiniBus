@@ -1,5 +1,3 @@
-using Microsoft.CodeAnalysis;
-
 namespace MiniBus.Generator.Tests;
 
 [TestFixture]
@@ -28,7 +26,6 @@ public class RegistrationsSourceBuilderTests
                     parameters: EquatableArray<InputParameter>.Empty,
                     returns: EquatableArray<ReturnElement>.Empty)
             }),
-            Location: Location.None,
             LocalVariables: EquatableArray<LocalVariable>.Empty);
 
     // ── Tests ─────────────────────────────────────────────────────────────

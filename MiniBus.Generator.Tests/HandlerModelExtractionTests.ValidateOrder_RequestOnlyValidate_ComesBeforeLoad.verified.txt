@@ -1,5 +1,5 @@
 ﻿{
-  Item1: {
+  Model: {
     Namespace: TestApp,
     ClassName: RequestOnlyValidateHandler,
     FullClassName: global::TestApp.RequestOnlyValidateHandler,
@@ -100,11 +100,11 @@
         CheckNullability: false
       }
     ],
-    Location: ,
     DispatcherFullName: global::TestApp.RequestOnlyValidateHandlerDispatcher,
     DispatcherKey: global::TestApp.RequestOnlyValidateHandler.Request|global::TestApp.RequestOnlyValidateHandler.Response,
     IsAnyAsync: true,
     HasInstanceMethods: true,
     HasFromServicesParameters: false
-  }
+  },
+  Diagnostics: null
 }

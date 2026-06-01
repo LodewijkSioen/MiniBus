@@ -22,9 +22,9 @@ public class HandlerGenerator : IIncrementalGenerator
         // One file per handler: dispatcher class + typed MiniBus extension method
         context.RegisterSourceOutput(results, static (spc, result) =>
         {
-            foreach (var diagnostic in result.diagnostics)
-                spc.ReportDiagnostic(diagnostic);
-            if (result.model is not {  } model)
+            foreach (var diagnostic in result.Diagnostics)
+                spc.ReportDiagnostic(diagnostic.ToDiagnostic());
+            if (result.Model is not {  } model)
             {
                 return;
             }
@@ -36,8 +36,8 @@ public class HandlerGenerator : IIncrementalGenerator
         context.RegisterSourceOutput(results.Collect(), static (spc, result) =>
         {
             var valid = result
-                .Where(static m => m.model is not null)
-                .Select(static m => m.model!)
+                .Where(static m => m.Model is not null)
+                .Select(static m => m.Model!)
                 .OrderBy(static m => m.FullClassName, System.StringComparer.Ordinal)
                 .ToArray();
 
@@ -51,9 +51,9 @@ public class HandlerGenerator : IIncrementalGenerator
                 conflicting.Add(group.Key);
                 foreach (var m in group.OrderBy(static m => m.FullClassName, System.StringComparer.Ordinal))
                     spc.ReportDiagnostic(Diagnostics.DuplicateRequestType(
-                        location: m.Location,
+                        location: Location.None,
                         handlerName: m.ClassName,
-                        requestType: m.FullRequestType));
+                        requestType: m.FullRequestType).ToDiagnostic());
             }
 
             var excludedDispatcherPairs = new System.Collections.Generic.HashSet<string>();
@@ -65,10 +65,10 @@ public class HandlerGenerator : IIncrementalGenerator
                 excludedDispatcherPairs.Add(group.Key);
                 foreach (var m in group.OrderBy(static m => m.FullClassName, System.StringComparer.Ordinal))
                     spc.ReportDiagnostic(Diagnostics.DuplicateRequestResponsePair(
-                        location: m.Location,
+                        location: Location.None,
                         handlerName: m.ClassName,
                         requestType: m.FullRequestType,
-                        responseType: m.FullResponseType));
+                        responseType: m.FullResponseType).ToDiagnostic());
             }
 
             spc.AddSource("MiniBusRegistrations.g.cs", RegistrationsSourceBuilder.Build(valid, conflicting, excludedDispatcherPairs));

@@ -1,8 +1,49 @@
+using System.Linq;
 using Microsoft.CodeAnalysis;
+using Microsoft.CodeAnalysis.Text;
 
 namespace MiniBus.Generator;
 
-public static class Diagnostics
+public sealed record DiagnosticInfo
+{
+    // Explicit constructor to convert Location into LocationInfo
+    public DiagnosticInfo(DiagnosticDescriptor descriptor, Location? location, string[] messageArgs)
+    {
+        Descriptor = descriptor;
+        Location = location is not null ? LocationInfo.CreateFrom(location) : null;
+        MessageArgs = new(messageArgs);
+    }
+
+    public DiagnosticDescriptor Descriptor { get; }
+    public LocationInfo? Location { get; }
+    public EquatableArray<string> MessageArgs { get; }
+
+    public Diagnostic ToDiagnostic()
+    {
+        return Diagnostic.Create(Descriptor, Location?.ToLocation(), messageArgs: MessageArgs.ToArray<object?>());
+    }
+}
+
+public record LocationInfo(string FilePath, TextSpan TextSpan, LinePositionSpan LineSpan)
+{
+    public Location ToLocation()
+        => Location.Create(FilePath, TextSpan, LineSpan);
+
+    public static LocationInfo? CreateFrom(SyntaxNode node)
+        => CreateFrom(node.GetLocation());
+
+    public static LocationInfo? CreateFrom(Location location)
+    {
+        if (location.SourceTree is null)
+        {
+            return null;
+        }
+
+        return new(location.SourceTree.FilePath, location.SourceSpan, location.GetLineSpan().Span);
+    }
+}
+
+internal static class Diagnostics
 {
     private static readonly DiagnosticDescriptor DuplicateRequestTypeDescriptor = new(
         id: "MBG001",
@@ -60,65 +101,65 @@ public static class Diagnostics
         defaultSeverity: DiagnosticSeverity.Error,
         isEnabledByDefault: true);
 
-    public static Diagnostic DuplicateRequestType(
+    public static DiagnosticInfo DuplicateRequestType(
         Location location,
         string handlerName,
         string requestType) =>
-        Diagnostic.Create(
+        new(
             descriptor: DuplicateRequestTypeDescriptor,
             location: location,
             messageArgs: [handlerName, requestType]);
 
-    public static Diagnostic UnsupportedParameter(
+    public static DiagnosticInfo UnsupportedParameter(
         Location location,
         string handlerName,
         string parameterNameAndType,
         string methodName,
         string requestType) =>
-        Diagnostic.Create(
+        new (
             descriptor: UnsupportedParameterDescriptor,
             location: location,
             messageArgs: [handlerName, parameterNameAndType, methodName, requestType]);
 
-    public static Diagnostic DuplicateRequestResponsePair(
+    public static DiagnosticInfo DuplicateRequestResponsePair(
         Location location,
         string handlerName,
         string requestType,
         string responseType) =>
-        Diagnostic.Create(
+        new (
             descriptor: DuplicateRequestResponsePairDescriptor,
             location: location,
             messageArgs: [handlerName, requestType, responseType]);
 
-    public static Diagnostic GenericHandlerNotSupported(
+    public static DiagnosticInfo GenericHandlerNotSupported(
         Location location,
         string fullHandlerName) =>
-        Diagnostic.Create(
+        new (
             descriptor: GenericHandlerNotSupportedDescriptor,
             location: location,
             messageArgs: [fullHandlerName]);
 
-    public static Diagnostic NestedHandlerNotSupported(
+    public static DiagnosticInfo NestedHandlerNotSupported(
         Location location,
         string fullHandlerName) =>
-        Diagnostic.Create(
+        new (
             descriptor: NestedHandlerNotSupportedDescriptor,
             location: location,
             messageArgs: [fullHandlerName]);
 
-    public static Diagnostic RequestTypeCannotBeInferred(
+    public static DiagnosticInfo RequestTypeCannotBeInferred(
         Location location,
         string fullHandlerName) =>
-        Diagnostic.Create(
+        new (
             descriptor: RequestTypeCannotBeInferredDescriptor,
             location: location,
             messageArgs: [fullHandlerName]);
 
-    public static Diagnostic DuplicateLocalVariableType(
+    public static DiagnosticInfo DuplicateLocalVariableType(
         Location location,
         string handlerName,
         string duplicateType) =>
-        Diagnostic.Create(
+        new (
             descriptor: DuplicateLocalVariableTypeDescriptor,
             location: location,
             messageArgs: [handlerName, duplicateType]);

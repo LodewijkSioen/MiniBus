@@ -1,5 +1,5 @@
 ﻿{
-  Item1: {
+  Model: {
     Namespace: TestApp,
     ClassName: SyncValidateHandler,
     FullClassName: global::TestApp.SyncValidateHandler,
@@ -71,11 +71,11 @@
         CheckNullability: false
       }
     ],
-    Location: ,
     DispatcherFullName: global::TestApp.SyncValidateHandlerDispatcher,
     DispatcherKey: global::TestApp.SyncValidateHandler.Request|global::TestApp.SyncValidateHandler.Response,
     IsAnyAsync: true,
     HasInstanceMethods: true,
     HasFromServicesParameters: false
-  }
+  },
+  Diagnostics: null
 }

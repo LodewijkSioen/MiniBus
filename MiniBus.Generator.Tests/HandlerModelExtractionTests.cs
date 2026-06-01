@@ -57,9 +57,9 @@ public class HandlerModelExtractionTests
             }
             """;
 
-        HandlerModelFactory.TryGetHandlerModel(GetSymbol(source, "OrderHandler"), Location.None, out var model, out var diagnostics);
+        var result = HandlerModelFactory.GetHandlerModel(GetSymbol(source, "OrderHandler"), Location.None);
 
-        await Verify((model, diagnostics));
+        await Verify(result);
     }
 
     [Test]
@@ -77,9 +77,9 @@ public class HandlerModelExtractionTests
             }
             """;
 
-        HandlerModelFactory.TryGetHandlerModel(GetSymbol(source, "SyncHandler"), Location.None, out var model, out var diagnostics);
+        var result = HandlerModelFactory.GetHandlerModel(GetSymbol(source, "SyncHandler"), Location.None);
 
-        await Verify((model, diagnostics));
+        await Verify(result);
     }
 
     [Test]
@@ -97,9 +97,9 @@ public class HandlerModelExtractionTests
             }
             """;
 
-        HandlerModelFactory.TryGetHandlerModel(GetSymbol(source, "GlobalHandler"), Location.None, out var model, out var diagnostics);
+        var result = HandlerModelFactory.GetHandlerModel(GetSymbol(source, "GlobalHandler"), Location.None);
 
-        await Verify((model, diagnostics));
+        await Verify(result);
     }
 
     [Test]
@@ -116,9 +116,9 @@ public class HandlerModelExtractionTests
             }
             """;
 
-        HandlerModelFactory.TryGetHandlerModel(GetSymbol(source, "NoHandleHandler"), Location.None, out var model, out var diagnostics);
+        var result = HandlerModelFactory.GetHandlerModel(GetSymbol(source, "NoHandleHandler"), Location.None);
 
-        await Verify((model, diagnostics));
+        await Verify(result);
     }
 
     // ── Load ──────────────────────────────────────────────────────────────
@@ -142,9 +142,9 @@ public class HandlerModelExtractionTests
             }
             """;
 
-        HandlerModelFactory.TryGetHandlerModel(GetSymbol(source, "EntityHandler"), Location.None, out var model, out var diagnostics);
+        var result = HandlerModelFactory.GetHandlerModel(GetSymbol(source, "EntityHandler"), Location.None);
 
-        await Verify((model, diagnostics));
+        await Verify(result);
     }
 
     [Test]
@@ -165,9 +165,9 @@ public class HandlerModelExtractionTests
             }
             """;
 
-        HandlerModelFactory.TryGetHandlerModel(GetSymbol(source, "SyncLoadHandler"), Location.None, out var model, out var diagnostics);
+        var result = HandlerModelFactory.GetHandlerModel(GetSymbol(source, "SyncLoadHandler"), Location.None);
 
-        await Verify((model, diagnostics));
+        await Verify(result);
     }
 
     [Test]
@@ -188,9 +188,9 @@ public class HandlerModelExtractionTests
             }
             """;
 
-        HandlerModelFactory.TryGetHandlerModel(GetSymbol(source, "NonNullLoadHandler"), Location.None, out var model, out var diagnostics);
+        var result = HandlerModelFactory.GetHandlerModel(GetSymbol(source, "NonNullLoadHandler"), Location.None);
 
-        await Verify((model, diagnostics));
+        await Verify(result);
     }
 
     [Test]
@@ -212,9 +212,9 @@ public class HandlerModelExtractionTests
             }
             """;
 
-        HandlerModelFactory.TryGetHandlerModel(GetSymbol(source, "LoadRequestHandler"), Location.None, out var model, out var diagnostics);
+        var result = HandlerModelFactory.GetHandlerModel(GetSymbol(source, "LoadRequestHandler"), Location.None);
 
-        await Verify((model, diagnostics));
+        await Verify(result);
     }
 
     [Test]
@@ -237,9 +237,9 @@ public class HandlerModelExtractionTests
             }
             """;
 
-        HandlerModelFactory.TryGetHandlerModel(GetSymbol(source, "TupleHandler"), Location.None, out var model, out var diagnostics);
+        var result = HandlerModelFactory.GetHandlerModel(GetSymbol(source, "TupleHandler"), Location.None);
 
-        await Verify((model, diagnostics));
+        await Verify(result);
     }
 
     [Test]
@@ -261,9 +261,9 @@ public class HandlerModelExtractionTests
             }
             """;
 
-        HandlerModelFactory.TryGetHandlerModel(GetSymbol(source, "UnnamedTupleHandler"), Location.None, out var model, out var diagnostics);
+        var result = HandlerModelFactory.GetHandlerModel(GetSymbol(source, "UnnamedTupleHandler"), Location.None);
 
-        await Verify((model, diagnostics));
+        await Verify(result);
     }
 
     [Test]
@@ -287,9 +287,9 @@ public class HandlerModelExtractionTests
             }
             """;
 
-        HandlerModelFactory.TryGetHandlerModel(GetSymbol(source, "DuplicateTupleTypesHandler"), Location.None, out var model, out var diagnostics);
+        var result = HandlerModelFactory.GetHandlerModel(GetSymbol(source, "DuplicateTupleTypesHandler"), Location.None);
 
-        await Verify((model, diagnostics));
+        await Verify(result);
     }
 
     // ── Handle call args ──────────────────────────────────────────────────
@@ -313,9 +313,9 @@ public class HandlerModelExtractionTests
             }
             """;
 
-        HandlerModelFactory.TryGetHandlerModel(GetSymbol(source, "LoadedArgHandler"), Location.None, out var model, out var diagnostics);
+        var result = HandlerModelFactory.GetHandlerModel(GetSymbol(source, "LoadedArgHandler"), Location.None);
 
-        await Verify((model, diagnostics));
+        await Verify(result);
     }
 
     [Test]
@@ -337,9 +337,9 @@ public class HandlerModelExtractionTests
             }
             """;
 
-        HandlerModelFactory.TryGetHandlerModel(GetSymbol(source, "BothArgsHandler"), Location.None, out var model, out var diagnostics);
+        var result = HandlerModelFactory.GetHandlerModel(GetSymbol(source, "BothArgsHandler"), Location.None);
 
-        await Verify((model, diagnostics));
+        await Verify(result);
     }
 
     // ── Validate ──────────────────────────────────────────────────────────
@@ -361,9 +361,9 @@ public class HandlerModelExtractionTests
             }
             """;
 
-        HandlerModelFactory.TryGetHandlerModel(GetSymbol(source, "SyncValidateHandler"), Location.None, out var model, out var diagnostics);
+        var result = HandlerModelFactory.GetHandlerModel(GetSymbol(source, "SyncValidateHandler"), Location.None);
 
-        await Verify((model, diagnostics));
+        await Verify(result);
     }
 
     [Test]
@@ -384,9 +384,9 @@ public class HandlerModelExtractionTests
             }
             """;
 
-        HandlerModelFactory.TryGetHandlerModel(GetSymbol(source, "AsyncValidateHandler"), Location.None, out var model, out var diagnostics);
+        var result = HandlerModelFactory.GetHandlerModel(GetSymbol(source, "AsyncValidateHandler"), Location.None);
 
-        await Verify((model, diagnostics));
+        await Verify(result);
     }
 
     [Test]
@@ -410,9 +410,9 @@ public class HandlerModelExtractionTests
             }
             """;
 
-        HandlerModelFactory.TryGetHandlerModel(GetSymbol(source, "BothValidateArgsHandler"), Location.None, out var model, out var diagnostics);
+        var result = HandlerModelFactory.GetHandlerModel(GetSymbol(source, "BothValidateArgsHandler"), Location.None);
 
-        await Verify((model, diagnostics));
+        await Verify(result);
     }
 
     [Test]
@@ -436,9 +436,9 @@ public class HandlerModelExtractionTests
             }
             """;
 
-        HandlerModelFactory.TryGetHandlerModel(GetSymbol(source, "RequestOnlyValidateHandler"), Location.None, out var model, out var diagnostics);
+        var result = HandlerModelFactory.GetHandlerModel(GetSymbol(source, "RequestOnlyValidateHandler"), Location.None);
 
-        await Verify((model, diagnostics));
+        await Verify(result);
     }
 
     [Test]
@@ -458,9 +458,9 @@ public class HandlerModelExtractionTests
             }
             """;
 
-        HandlerModelFactory.TryGetHandlerModel(GetSymbol(source, "WrongValidateHandler"), Location.None, out var model, out var diagnostics);
+        var result = HandlerModelFactory.GetHandlerModel(GetSymbol(source, "WrongValidateHandler"), Location.None);
 
-        await Verify((model, diagnostics));
+        await Verify(result);
     }
 
     [Test]
@@ -481,9 +481,9 @@ public class HandlerModelExtractionTests
             }
             """;
 
-        HandlerModelFactory.TryGetHandlerModel(GetSymbol(source, "ValidateRequestTypeHandler"), Location.None, out var model, out var diagnostics);
+        var result = HandlerModelFactory.GetHandlerModel(GetSymbol(source, "ValidateRequestTypeHandler"), Location.None);
 
-        await Verify((model, diagnostics));
+        await Verify(result);
     }
 
     [Test]
@@ -501,9 +501,9 @@ public class HandlerModelExtractionTests
             }
             """;
 
-        HandlerModelFactory.TryGetHandlerModel(GetSymbol(source, "StaticOnlyHandler"), Location.None, out var model, out var diagnostics);
+        var result = HandlerModelFactory.GetHandlerModel(GetSymbol(source, "StaticOnlyHandler"), Location.None);
 
-        await Verify((model, diagnostics));
+        await Verify(result);
     }
 
     [Test]
@@ -528,9 +528,36 @@ public class HandlerModelExtractionTests
             }
             """;
 
-        HandlerModelFactory.TryGetHandlerModel(GetSymbol(source, "ConventionDiHandler"), Location.None, out var model, out var diagnostics);
+        var result = HandlerModelFactory.GetHandlerModel(GetSymbol(source, "ConventionDiHandler"), Location.None);
 
-        await Verify((model, diagnostics));
+        await Verify(result);
+    }
+
+    [Test]
+    public void CheckEquality()
+    {
+        const string source = """
+                              using MiniBus;
+                              namespace TestApp;
+                              [Handler]
+                              public class BothValidateArgsHandler
+                              {
+                                  public record Request(string Prefix);
+                                  public record Response(string Value);
+                                  public record Entity(string Data);
+                                  public System.Threading.Tasks.Task<Entity?> Load(Request request)
+                                      => System.Threading.Tasks.Task.FromResult<Entity?>(null);
+                                  public ValidationResult Validate(Request request, Entity entity)
+                                      => new ValidationResult();
+                                  public System.Threading.Tasks.Task<Response> Handle(Entity entity)
+                                      => System.Threading.Tasks.Task.FromResult(new Response(entity.Data));
+                              }
+                              """;
+
+        var result1 = HandlerModelFactory.GetHandlerModel(GetSymbol(source, "BothValidateArgsHandler"), Location.None);
+        var result2 = HandlerModelFactory.GetHandlerModel(GetSymbol(source, "BothValidateArgsHandler"), Location.None);
+
+        Assert.That(result1, Is.EqualTo(result2));
     }
 }
 

@@ -5,6 +5,8 @@ namespace MiniBus.Generator.Tests;
 public static class VerifyInit
 {
     [ModuleInitializer]
-    public static void Init() =>
+    public static void Init()
+    {
         VerifySourceGenerators.Initialize();
+    }
 }
