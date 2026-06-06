@@ -1,7 +1,11 @@
 # MiniBus
 
-MiniBus is a source-generator-driven request/response dispatcher for
-`Microsoft.Extensions.DependencyInjection`.
+MiniBus is a source-generator-driven in-memory request-response bus
+heavely inspired by Wolverine's "Compound Handler" pattern.
+
+## Why
+Because I wanted to learn a few things about Source Generators and because I felt
+the need for a minimal friction in-memory request-response bus.
 
 ## Setup
 
@@ -19,11 +23,9 @@ var provider = services.BuildServiceProvider();
 
 ## Define a handler
 
-Mark handler classes with `[Handler]`.  
-The source generator creates:
-- an `IDispatcher<TRequest, TResponse>` implementation
-- `services.AddGeneratedHandlers()` registrations
-- a typed `bus.Handle(request)` extension method
+Mark a class with `[Handler]`. That class must containe a `Handle` method:
+- This method can be sync or async
+- Extra method parameters will be resolved from the registered services
 
 ```csharp
 using MiniBus;
@@ -33,52 +35,51 @@ public class GetItemHandler
 {
     public record Request(int Id);
     public record Response(string Name);
-    public record Entity(int Id, string Name);
 
-    public Task<Entity?> Load(Request request)
-        => Task.FromResult<Entity?>(request.Id > 0 ? new Entity(request.Id, $"item-{request.Id}") : null);
-
-    public ValidationResult Validate(Entity entity)
-    {
-        var errors = new ValidationResult();
-        if (entity.Id > 100)
-            errors.Add(new ValidationError("Id out of range", "OUT_OF_RANGE"));
-        return errors;
-    }
-
-    public Task<Response> Handle(Entity entity)
-        => Task.FromResult(new Response(entity.Name));
+    public Task<Response> Handle(Request request)
+        => Task.FromResult(new Response($"My name is: {request.Id.ToString()}"));
 }
 ```
 
-## Dispatch a request
+Then put the message on the bus to execute the handler.
 
 ```csharp
 var bus = provider.GetRequiredService<MiniBus.MiniBus>();
-Result<GetItemHandler.Response> result = await bus.Handle(new GetItemHandler.Request(42));
+var result = await bus.Handle(new GetItemHandler.Request(42));
 ```
 
-You can also call the generic overload:
+The result will be of the type `Result<TResponse>`. Check the `Status` or 
+ `IsSuccess` property and read the response from `Response`.
 
-```csharp
-var result = await bus.Handle<GetItemHandler.Request, GetItemHandler.Response>(new(42));
-```
+Behind the scenes, the MiniBus source generator will create:
+- an `IDispatcher<TRequest, TResponse>` implementation that orchestrates the 
+    handler pipeline.
+- a `services.AddGeneratedHandlers()` function that registers all handlers and 
+    dispatchers.
+- a typed `bus.Handle(request)` extension method to call the handler without
+    a bunch of generics.
 
 ## Pipeline behavior
 
-Generated dispatchers execute pre-handle methods in dependency order:
+Minibus enables pipeline behavior by looking for some fixed method names:  
+- Before Handle Methods: `Load` and `Validate`
 
-1. Pre-Handler methods `Load(...)` and `Validate(...)`
-  - run in the order required by their parameter/output dependencies 
-  - Each method is optional and may be sync or async
-3. `Handle(...)` (required, sync or async)
+Generated dispatchers execute pipeline methods in the order required by
+ their dependencies:
+- The return values of one method in the chain can be used as parameters for
+   the next method
+- If a return value is a tuple, the deconstructed items are available to the
+   dependant methods
+- The first unmatched parameter is concidered the request type
+- All other unmatched parameters will be resolved from the registered services
 
-Short-circuiting:
-- nullable `Load(...)` result is `null` => `ResultStatus.NotFound`
-- non-empty `ValidationResult` => `ResultStatus.Invalid`
-- otherwise => `ResultStatus.Ok`
+Each method is optional and may be sync or async
 
-`Handle(...)`, `Load(...)`, and `Validate(...)` parameters can use the request type and any values produced by earlier methods.
+Special cases:
+- If the return value is nullable and the dependant method defines that type
+   as non-nullable, a result with `ResultStatus.NotFound` will be returned.
+- The `Validate` method must return a `ValidationResult` type. If that is 
+   not empty, a result with `ResultStatus.Invalid` will be returned.
 
 ## Result model
 
@@ -89,6 +90,26 @@ Short-circuiting:
 
 `IsSuccess` is `true` when `Status == ResultStatus.Ok`.
 
+For a `NotFound` result you can set the not-found message in the 
+ `ValidationErrors` by decorating a parameter with `[Required]`
+
+## Not supported
+The following handler patterns are not supported by source generation:
+
+- Multiple handlers that collide on request signatures.
+  Duplicate request types (MBG001) omit typed bus Handle(request) extension generation, and duplicate request/response pairs (MBG003) omit dispatcher registration for that pair.
+- Generic or nested handler classes.  
+  Generic handlers report MBG004 and nested handlers report MBG005.
+- Pipelines where request type inference fails.  
+  Example: all method parameters are already satisfied by earlier pipeline outputs (MBG006).
+- Pipelines that produce duplicate local values of the same type.  
+  Example: tuple outputs with two elements of the same type (MBG007).
+
+Additional runtime limitation:
+
+- Handle returning null is not supported.
+  The generated dispatcher wraps the value in Result.Success(...), and that throws ArgumentNullException when the response is null.
+
 ## Tracing
 
 `MiniBus` emits `Activity` traces via source name `"MiniBus"`:
@@ -96,3 +117,7 @@ Short-circuiting:
 - tags: request type, response type, result status
 - canceled dispatches set result status to `Canceled`
 - unhandled exceptions are recorded as an `"exception"` event and set activity status to error
+
+## Resources
+- [Andrew Lock's Source Generator series](https://andrewlock.net/series/creating-a-source-generator/)
+- [Wolverine's Compound Handlers](https://wolverinefx.net/guide/handlers/#compound-handlers)

@@ -34,21 +34,12 @@ When changing generation behavior, update or add tests in `MiniBus.Generator.Tes
 ## Handler Model And Pipeline
 Canonical behavior is described in [README.md](README.md).
 
-Generated dispatcher phase order:
-1. Optional `Load`
-2. Optional `Validate`
-3. Required `Handle`
-
-Preserve short-circuit behavior:
-- `Load` returns null => `NotFound`
-- `Validate` returns errors => `Invalid`
-- Otherwise => `Ok`
-
 ## Generator Conventions
 - Generator target framework is `netstandard2.0`; keep it analyzer-compatible.
 - Runtime and tests target `net10.0`; do not move generator to `net10.0`.
 - Diagnostic IDs and semantics live in [MiniBus.Generator/Diagnostics.cs](MiniBus.Generator/Diagnostics.cs). Reuse existing IDs when extending diagnostics.
 - If you change generated output shape, verify both source output and diagnostics in tests.
+- Any output of the `HandlerModelFactory` must be fully equatable.
 
 ## Testing Conventions
 - Test framework: NUnit.
@@ -60,6 +51,5 @@ When snapshots intentionally change, review `.received.` output and promote to `
 
 ## Change Safety Checklist
 - Run targeted tests for touched area before full suite.
-- Keep nullable annotations correct (`Nullable` is enabled across projects).
 - Avoid unrelated refactors in generated-code-sensitive files.
 - For public behavior changes, update [README.md](README.md) examples or behavior notes if needed.
