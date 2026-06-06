@@ -104,6 +104,10 @@ The following handler patterns are not supported by source generation:
   Example: all method parameters are already satisfied by earlier pipeline outputs (MBG005).
 - Pipelines that produce duplicate local values of the same type.  
   Example: tuple outputs with two elements of the same type (MBG006).
+- Unsupported `Load` or `Handle` return types.  
+  Example: `void Load(...)` or non-generic `Task Handle(...)` (MBG007).
+- Cyclic dependencies between pipeline methods.  
+  Example: `Load` depends on a type from `Validate` while `Validate` also depends on a type from `Load` (MBG008).
 
 Additional runtime limitation:
 
