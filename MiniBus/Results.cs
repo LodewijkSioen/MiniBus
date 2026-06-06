@@ -9,7 +9,8 @@ public enum ResultStatus
     Invalid
 }
 
-public class Result<TResponse>
+public class Result<TResponse> 
+    where TResponse : notnull
 {
     private Result()
     {

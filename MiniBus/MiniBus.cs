@@ -7,7 +7,8 @@ public class MiniBus(IServiceProvider services)
 {
     private static readonly ActivitySource _activitySource = new ActivitySource("MiniBus");
 
-    public async Task<Result<TResponse>> Handle<TRequest, TResponse>(TRequest request)
+    public async Task<Result<TResponse>> Handle<TRequest, TResponse>(TRequest request) 
+        where TResponse : notnull
     {
         var handler = services.GetRequiredService<IDispatcher<TRequest, TResponse>>();
         using var activity = _activitySource.StartActivity($"minibus.dispatch {handler.HandlerName}");
