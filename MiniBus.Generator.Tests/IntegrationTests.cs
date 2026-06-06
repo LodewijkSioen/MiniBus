@@ -226,6 +226,86 @@ public class IntegrationTests
     }
 
     [Test]
+    public void VoidLoad_ReportsMBG008_AndSkipsDispatcherGeneration()
+    {
+        const string source = """
+            using MiniBus;
+            namespace TestApp;
+
+            [Handler]
+            public class VoidLoadHandler
+            {
+                public record Request(int Id);
+                public record Response(string Value);
+
+                public void Load(Request request) { }
+
+                public Response Handle(Request request)
+                    => new Response(request.Id.ToString());
+            }
+            """;
+
+        var result = GeneratorTestHelper.Run(source);
+
+        Assert.That(result.Diagnostics.Any(d => d.Id == "MBG008"), Is.True);
+        Assert.That(result.GeneratedSources.Any(s => s.Contains("VoidLoadHandlerDispatcher", StringComparison.Ordinal)), Is.False);
+    }
+
+    [Test]
+    public void TaskHandleWithoutResult_ReportsMBG008_AndSkipsDispatcherGeneration()
+    {
+        const string source = """
+            using MiniBus;
+            namespace TestApp;
+
+            [Handler]
+            public class TaskHandleHandler
+            {
+                public record Request(int Id);
+
+                public System.Threading.Tasks.Task Handle(Request request)
+                    => System.Threading.Tasks.Task.CompletedTask;
+            }
+            """;
+
+        var result = GeneratorTestHelper.Run(source);
+
+        Assert.That(result.Diagnostics.Any(d => d.Id == "MBG008"), Is.True);
+        Assert.That(result.GeneratedSources.Any(s => s.Contains("TaskHandleHandlerDispatcher", StringComparison.Ordinal)), Is.False);
+    }
+
+    [Test]
+    public void CyclicLoadValidateDependencies_ReportMBG009_AndSkipDispatcherGeneration()
+    {
+        const string source = """
+            using MiniBus;
+            namespace TestApp;
+
+            [Handler]
+            public class CyclicPipelineHandler
+            {
+                public record Request(int Id);
+                public record Response(string Value);
+                public record Entity(int Id);
+
+                public Entity? Load(ValidationResult validation)
+                    => null;
+
+                public ValidationResult Validate(Entity entity)
+                    => new ValidationResult();
+
+                public Response Handle(Entity entity)
+                    => new Response(entity.Id.ToString());
+            }
+            """;
+
+        var result = GeneratorTestHelper.Run(source);
+
+        Assert.That(result.Diagnostics.Any(d => d.Id == "MBG009"), Is.True);
+        Assert.That(result.GeneratedSources.Any(s => s.Contains("CyclicPipelineHandlerDispatcher", StringComparison.Ordinal)), Is.False);
+    }
+
+    [Test]
     public void DuplicateRequestType_Diagnostics_AreDeterministicallyOrdered()
     {
         const string source = """

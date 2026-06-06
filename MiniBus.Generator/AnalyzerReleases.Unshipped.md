@@ -9,3 +9,5 @@ MBG004 | MiniBus.Generator | Warning | GeneratorDiagnostics
 MBG005 | MiniBus.Generator | Warning | GeneratorDiagnostics
 MBG006 | MiniBus.Generator | Error | GeneratorDiagnostics
 MBG007 | MiniBus.Generator | Error | GeneratorDiagnostics
+MBG008 | MiniBus.Generator | Error | GeneratorDiagnostics
+MBG009 | MiniBus.Generator | Error | GeneratorDiagnostics

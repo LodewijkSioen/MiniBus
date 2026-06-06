@@ -101,6 +101,22 @@ internal static class Diagnostics
         defaultSeverity: DiagnosticSeverity.Error,
         isEnabledByDefault: true);
 
+    private static readonly DiagnosticDescriptor UnsupportedMethodReturnTypeDescriptor = new(
+        id: "MBG008",
+        title: "Unsupported handler method return type",
+        messageFormat: "Handler '{0}' has unsupported return type '{1}' on method '{2}'",
+        category: "MiniBus.Generator",
+        defaultSeverity: DiagnosticSeverity.Error,
+        isEnabledByDefault: true);
+
+    private static readonly DiagnosticDescriptor CyclicPhaseDependencyDescriptor = new(
+        id: "MBG009",
+        title: "Cyclic pipeline dependencies",
+        messageFormat: "Handler '{0}' has cyclic dependencies between pipeline methods: {1}",
+        category: "MiniBus.Generator",
+        defaultSeverity: DiagnosticSeverity.Error,
+        isEnabledByDefault: true);
+
     public static DiagnosticInfo DuplicateRequestType(
         Location location,
         string handlerName,
@@ -163,4 +179,23 @@ internal static class Diagnostics
             descriptor: DuplicateLocalVariableTypeDescriptor,
             location: location,
             messageArgs: [handlerName, duplicateType]);
+
+    public static DiagnosticInfo UnsupportedMethodReturnType(
+        Location location,
+        string handlerName,
+        string returnType,
+        string methodName) =>
+        new (
+            descriptor: UnsupportedMethodReturnTypeDescriptor,
+            location: location,
+            messageArgs: [handlerName, returnType, methodName]);
+
+    public static DiagnosticInfo CyclicPhaseDependency(
+        Location location,
+        string handlerName,
+        string methodNames) =>
+        new (
+            descriptor: CyclicPhaseDependencyDescriptor,
+            location: location,
+            messageArgs: [handlerName, methodNames]);
 }

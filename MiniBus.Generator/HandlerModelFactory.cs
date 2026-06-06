@@ -81,6 +81,28 @@ public static class HandlerModelFactory
             .OfType<IMethodSymbol>()
             .FirstOrDefault();
 
+        if (!IsSupportedHandlerMethodReturnType(handleMethod))
+        {
+            return new(null, new([
+                Diagnostics.UnsupportedMethodReturnType(
+                    location: location,
+                    handlerName: classSymbol.ToDisplayString(fmt),
+                    returnType: handleMethod.ReturnType.ToDisplayString(fmt),
+                    methodName: handleMethod.Name)
+            ]));
+        }
+
+        if (loadMethod is not null && !IsSupportedHandlerMethodReturnType(loadMethod))
+        {
+            return new(null, new([
+                Diagnostics.UnsupportedMethodReturnType(
+                    location: location,
+                    handlerName: classSymbol.ToDisplayString(fmt),
+                    returnType: loadMethod.ReturnType.ToDisplayString(fmt),
+                    methodName: loadMethod.Name)
+            ]));
+        }
+
         var validateMethod = classSymbol.GetMembers("Validate")
             .OfType<IMethodSymbol>()
             .FirstOrDefault(m => IsSupportedValidateMethod(m, fmt));
@@ -95,7 +117,15 @@ public static class HandlerModelFactory
         if (validatePhase is not null)
             preHandleCandidates.Add(validatePhase);
 
-        var orderedMethods = OrderPhases(preHandleCandidates, handlePhase);
+        if (!TryOrderPhases(preHandleCandidates, handlePhase, out var orderedMethods, out var cycleMethods))
+        {
+            return new(null, new([
+                Diagnostics.CyclicPhaseDependency(
+                    location: location,
+                    handlerName: classSymbol.ToDisplayString(fmt),
+                    methodNames: cycleMethods!)
+            ]));
+        }
 
         
 
@@ -157,8 +187,11 @@ public static class HandlerModelFactory
         return duplicateTypeDiagnostics.Count == 0;
     }
 
-    private static EquatableArray<MethodPhase> OrderPhases(
-        IEnumerable<MethodPhase> phases, MethodPhase handlePhase)
+    private static bool TryOrderPhases(
+        IEnumerable<MethodPhase> phases,
+        MethodPhase handlePhase,
+        out EquatableArray<MethodPhase> orderedPhases,
+        out string? cycleMethodNames)
     {
         var pending = phases
             .Select((phase, index) => new PendingPhase(phase, index))
@@ -175,21 +208,42 @@ public static class HandlerModelFactory
                 .ThenBy(candidate => candidate.SourceIndex)
                 .ToList();
 
-            var next = ready.Count > 0
-                ? ready[0]
-                : pending
-                    .OrderBy(candidate => HasOutputs(candidate.Phase))
-                    //.ThenBy(candidate => candidate.Phase.TieBreak)
-                    .ThenBy(candidate => candidate.SourceIndex)
-                    .First();
+            if (ready.Count == 0)
+            {
+                cycleMethodNames = string.Join(", ",
+                    pending
+                        .OrderBy(candidate => candidate.SourceIndex)
+                        .Select(candidate => candidate.Phase.MethodName));
+                orderedPhases = EquatableArray<MethodPhase>.Empty;
+                return false;
+            }
+
+            var next = ready[0];
 
             pending.Remove(next);
             ordered.Add(next.Phase);
         }
 
         ordered.Add(handlePhase);
+        orderedPhases = new(ordered);
+        cycleMethodNames = null;
+        return true;
+    }
 
-        return new(ordered);
+    private static bool IsSupportedHandlerMethodReturnType(IMethodSymbol method)
+    {
+        var returnType = method.ReturnType;
+        if (returnType.SpecialType == SpecialType.System_Void)
+        {
+            return false;
+        }
+
+        if (returnType is INamedTypeSymbol { Name: "Task", TypeArguments.Length: 0 })
+        {
+            return false;
+        }
+
+        return true;
     }
 
     private static IEnumerable<LocalVariable> BuildReturnVariables(EquatableArray<MethodPhase> phases)
