@@ -136,7 +136,6 @@ public class IntegrationTests
 
         var result = GeneratorTestHelper.Run(source);
 
-        Assert.That(result.Diagnostics.Any(d => d.Id == "MBG002"), Is.False);
         Assert.That(result.GeneratedSources.Any(s => s.Contains("InvalidHandleHandlerDispatcher", StringComparison.Ordinal)), Is.True);
         var dispatcher = result.GeneratedSources.Single(s => s.Contains("class InvalidHandleHandlerDispatcher", StringComparison.Ordinal));
         Assert.That(dispatcher.Contains("GetRequiredService<global::TestApp.InvalidHandleHandler.Other>()", StringComparison.Ordinal), Is.True);
@@ -162,14 +161,13 @@ public class IntegrationTests
 
         var result = GeneratorTestHelper.Run(source);
 
-        Assert.That(result.Diagnostics.Any(d => d.Id == "MBG002"), Is.False);
         Assert.That(result.GeneratedSources.Any(s => s.Contains("InvalidValidateHandlerDispatcher", StringComparison.Ordinal)), Is.True);
         var dispatcher = result.GeneratedSources.Single(s => s.Contains("class InvalidValidateHandlerDispatcher", StringComparison.Ordinal));
         Assert.That(dispatcher.Contains("GetRequiredService<global::TestApp.InvalidValidateHandler.Other>()", StringComparison.Ordinal), Is.True);
     }
 
     [Test]
-    public void DuplicateSameTypeLoadOutputs_ReportsMBG007_AndSkipsDispatcherGeneration()
+    public void DuplicateSameTypeLoadOutputs_ReportsMBG006_AndSkipsDispatcherGeneration()
     {
         const string source = """
             using MiniBus;
@@ -195,7 +193,7 @@ public class IntegrationTests
 
         var result = GeneratorTestHelper.Run(source);
 
-        Assert.That(result.Diagnostics.Any(d => d.Id == "MBG007"), Is.True);
+        Assert.That(result.Diagnostics.Any(d => d.Id == "MBG006"), Is.True);
         Assert.That(result.GeneratedSources.Any(s => s.Contains("DuplicateTypeFlowHandlerDispatcher", StringComparison.Ordinal)), Is.False);
     }
 
@@ -226,7 +224,7 @@ public class IntegrationTests
     }
 
     [Test]
-    public void VoidLoad_ReportsMBG008_AndSkipsDispatcherGeneration()
+    public void VoidLoad_ReportsMBG007_AndSkipsDispatcherGeneration()
     {
         const string source = """
             using MiniBus;
@@ -247,12 +245,12 @@ public class IntegrationTests
 
         var result = GeneratorTestHelper.Run(source);
 
-        Assert.That(result.Diagnostics.Any(d => d.Id == "MBG008"), Is.True);
+        Assert.That(result.Diagnostics.Any(d => d.Id == "MBG007"), Is.True);
         Assert.That(result.GeneratedSources.Any(s => s.Contains("VoidLoadHandlerDispatcher", StringComparison.Ordinal)), Is.False);
     }
 
     [Test]
-    public void TaskHandleWithoutResult_ReportsMBG008_AndSkipsDispatcherGeneration()
+    public void TaskHandleWithoutResult_ReportsMBG007_AndSkipsDispatcherGeneration()
     {
         const string source = """
             using MiniBus;
@@ -270,12 +268,12 @@ public class IntegrationTests
 
         var result = GeneratorTestHelper.Run(source);
 
-        Assert.That(result.Diagnostics.Any(d => d.Id == "MBG008"), Is.True);
+        Assert.That(result.Diagnostics.Any(d => d.Id == "MBG007"), Is.True);
         Assert.That(result.GeneratedSources.Any(s => s.Contains("TaskHandleHandlerDispatcher", StringComparison.Ordinal)), Is.False);
     }
 
     [Test]
-    public void CyclicLoadValidateDependencies_ReportMBG009_AndSkipDispatcherGeneration()
+    public void CyclicLoadValidateDependencies_ReportMBG008_AndSkipDispatcherGeneration()
     {
         const string source = """
             using MiniBus;
@@ -301,7 +299,7 @@ public class IntegrationTests
 
         var result = GeneratorTestHelper.Run(source);
 
-        Assert.That(result.Diagnostics.Any(d => d.Id == "MBG009"), Is.True);
+        Assert.That(result.Diagnostics.Any(d => d.Id == "MBG008"), Is.True);
         Assert.That(result.GeneratedSources.Any(s => s.Contains("CyclicPipelineHandlerDispatcher", StringComparison.Ordinal)), Is.False);
     }
 
@@ -351,7 +349,7 @@ public class IntegrationTests
     }
 
     [Test]
-    public void GenericHandler_ReportsMBG004_AndSkipsDispatcherGeneration()
+    public void GenericHandler_ReportsMBG003_AndSkipsDispatcherGeneration()
     {
         const string source = """
             using MiniBus;
@@ -368,7 +366,7 @@ public class IntegrationTests
 
         var result = GeneratorTestHelper.Run(source);
 
-        Assert.That(result.Diagnostics.Select(d => d.Id), Does.Contain("MBG004"));
+        Assert.That(result.Diagnostics.Select(d => d.Id), Does.Contain("MBG003"));
         Assert.That(result.GeneratedSources.Any(s => s.Contains("GenericHandlerDispatcher", StringComparison.Ordinal)), Is.False);
     }
 
@@ -410,7 +408,7 @@ public class IntegrationTests
     }
 
     [Test]
-    public void NestedHandler_ReportsMBG005_AndSkipsDispatcherGeneration()
+    public void NestedHandler_ReportsMBG004_AndSkipsDispatcherGeneration()
     {
         const string source = """
             using MiniBus;
@@ -430,12 +428,12 @@ public class IntegrationTests
 
         var result = GeneratorTestHelper.Run(source);
 
-        Assert.That(result.Diagnostics.Select(d => d.Id), Does.Contain("MBG005"));
+        Assert.That(result.Diagnostics.Select(d => d.Id), Does.Contain("MBG004"));
         Assert.That(result.GeneratedSources.Any(s => s.Contains("NestedHandlerDispatcher", StringComparison.Ordinal)), Is.False);
     }
 
     [Test]
-    public void DuplicateRequestResponsePair_ReportsMBG003_AndSkipsDuplicateDispatcherRegistrations()
+    public void DuplicateRequestResponsePair_ReportsMBG002_AndSkipsDuplicateDispatcherRegistrations()
     {
         const string source = """
             using MiniBus;
@@ -459,13 +457,13 @@ public class IntegrationTests
 
         var result = GeneratorTestHelper.Run(source);
 
-        Assert.That(result.Diagnostics.Any(d => d.Id == "MBG003"), Is.True);
+        Assert.That(result.Diagnostics.Any(d => d.Id == "MBG002"), Is.True);
         var registration = result.GeneratedSources.Single(s => s.Contains("class GeneratedHandlerRegistrations", StringComparison.Ordinal));
         Assert.That(registration.Contains("IDispatcher<\n                    global::TestApp.SharedRequest,\n                    global::TestApp.SharedResponse>", StringComparison.Ordinal), Is.False);
     }
 
     [Test]
-    public void ParameterlessLoad_WithFullyMatchedHandleInput_ReportsMBG006_AndSkipsDispatcherGeneration()
+    public void ParameterlessLoad_WithFullyMatchedHandleInput_ReportsMBG005_AndSkipsDispatcherGeneration()
     {
         const string source = """
             using MiniBus;
@@ -485,7 +483,7 @@ public class IntegrationTests
 
         var result = GeneratorTestHelper.Run(source);
 
-        Assert.That(result.Diagnostics.Any(d => d.Id == "MBG006"), Is.True);
+        Assert.That(result.Diagnostics.Any(d => d.Id == "MBG005"), Is.True);
         Assert.That(result.GeneratedSources.Any(s => s.Contains("NoRequestTypeHandlerDispatcher", StringComparison.Ordinal)), Is.False);
     }
 

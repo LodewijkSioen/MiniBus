@@ -53,16 +53,8 @@ internal static class Diagnostics
         defaultSeverity: DiagnosticSeverity.Warning,
         isEnabledByDefault: true);
 
-    private static readonly DiagnosticDescriptor UnsupportedParameterDescriptor = new(
-        id: "MBG002",
-        title: "Unsupported handler parameter",
-        messageFormat: "Handler '{0}' has unsupported parameter '{1}' in {2}. Parameters must match type '{3}'.",
-        category: "MiniBus.Generator",
-        defaultSeverity: DiagnosticSeverity.Warning,
-        isEnabledByDefault: true);
-
     private static readonly DiagnosticDescriptor DuplicateRequestResponsePairDescriptor = new(
-        id: "MBG003",
+        id: "MBG002",
         title: "Duplicate request/response pair",
         messageFormat: "Handler '{0}' shares request/response pair '{1}' -> '{2}' with another [Handler] class. Dispatcher registration and typed extension method are omitted for this pair.",
         category: "MiniBus.Generator",
@@ -70,7 +62,7 @@ internal static class Diagnostics
         isEnabledByDefault: true);
 
     private static readonly DiagnosticDescriptor GenericHandlerNotSupportedDescriptor = new(
-        id: "MBG004",
+        id: "MBG003",
         title: "Generic handler is not supported",
         messageFormat: "Handler '{0}' is generic. Generic [Handler] classes are not supported by source generation.",
         category: "MiniBus.Generator",
@@ -78,7 +70,7 @@ internal static class Diagnostics
         isEnabledByDefault: true);
 
     private static readonly DiagnosticDescriptor NestedHandlerNotSupportedDescriptor = new(
-        id: "MBG005",
+        id: "MBG004",
         title: "Nested handler is not supported",
         messageFormat: "Handler '{0}' is nested. Nested [Handler] classes are not supported by source generation.",
         category: "MiniBus.Generator",
@@ -86,7 +78,7 @@ internal static class Diagnostics
         isEnabledByDefault: true);
 
     private static readonly DiagnosticDescriptor RequestTypeCannotBeInferredDescriptor = new(
-        id: "MBG006",
+        id: "MBG005",
         title: "Request type cannot be inferred",
         messageFormat: "Handler '{0}' request type cannot be inferred because all ordered method parameters match prior method outputs",
         category: "MiniBus.Generator",
@@ -94,7 +86,7 @@ internal static class Diagnostics
         isEnabledByDefault: true);
 
     private static readonly DiagnosticDescriptor DuplicateLocalVariableTypeDescriptor = new(
-        id: "MBG007",
+        id: "MBG006",
         title: "Duplicate local variable type",
         messageFormat: "Handler '{0}' produces duplicate local variable type '{1}'. A handler can only contain one local variable per type.",
         category: "MiniBus.Generator",
@@ -102,7 +94,7 @@ internal static class Diagnostics
         isEnabledByDefault: true);
 
     private static readonly DiagnosticDescriptor UnsupportedMethodReturnTypeDescriptor = new(
-        id: "MBG008",
+        id: "MBG007",
         title: "Unsupported handler method return type",
         messageFormat: "Handler '{0}' has unsupported return type '{1}' on method '{2}'",
         category: "MiniBus.Generator",
@@ -110,7 +102,7 @@ internal static class Diagnostics
         isEnabledByDefault: true);
 
     private static readonly DiagnosticDescriptor CyclicPhaseDependencyDescriptor = new(
-        id: "MBG009",
+        id: "MBG008",
         title: "Cyclic pipeline dependencies",
         messageFormat: "Handler '{0}' has cyclic dependencies between pipeline methods: {1}",
         category: "MiniBus.Generator",
@@ -125,17 +117,6 @@ internal static class Diagnostics
             descriptor: DuplicateRequestTypeDescriptor,
             location: location,
             messageArgs: [handlerName, requestType]);
-
-    public static DiagnosticInfo UnsupportedParameter(
-        Location location,
-        string handlerName,
-        string parameterNameAndType,
-        string methodName,
-        string requestType) =>
-        new (
-            descriptor: UnsupportedParameterDescriptor,
-            location: location,
-            messageArgs: [handlerName, parameterNameAndType, methodName, requestType]);
 
     public static DiagnosticInfo DuplicateRequestResponsePair(
         Location location,

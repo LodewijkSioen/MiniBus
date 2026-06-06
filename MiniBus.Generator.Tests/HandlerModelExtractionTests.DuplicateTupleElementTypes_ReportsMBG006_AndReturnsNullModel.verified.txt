@@ -2,7 +2,7 @@
   Diagnostics: [
     {
       Descriptor: {
-        Id: MBG007,
+        Id: MBG006,
         Title: Duplicate local variable type,
         MessageFormat: Handler '{0}' produces duplicate local variable type '{1}'. A handler can only contain one local variable per type.,
         Category: MiniBus.Generator,

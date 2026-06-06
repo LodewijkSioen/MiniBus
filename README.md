@@ -97,13 +97,13 @@ For a `NotFound` result you can set the not-found message in the
 The following handler patterns are not supported by source generation:
 
 - Multiple handlers that collide on request signatures.
-  Duplicate request types (MBG001) omit typed bus Handle(request) extension generation, and duplicate request/response pairs (MBG003) omit dispatcher registration for that pair.
+  Duplicate request types (MBG001) omit typed bus Handle(request) extension generation, and duplicate request/response pairs (MBG002) omit dispatcher registration for that pair.
 - Generic or nested handler classes.  
-  Generic handlers report MBG004 and nested handlers report MBG005.
+  Generic handlers report MBG003 and nested handlers report MBG004.
 - Pipelines where request type inference fails.  
-  Example: all method parameters are already satisfied by earlier pipeline outputs (MBG006).
+  Example: all method parameters are already satisfied by earlier pipeline outputs (MBG005).
 - Pipelines that produce duplicate local values of the same type.  
-  Example: tuple outputs with two elements of the same type (MBG007).
+  Example: tuple outputs with two elements of the same type (MBG006).
 
 Additional runtime limitation:
 
