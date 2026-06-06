@@ -1,11 +1,12 @@
 using Microsoft.CodeAnalysis;
 using System;
 using System.Collections.Generic;
-using System.Collections.Immutable;
 using System.Linq;
 using System.Threading;
 
 namespace MiniBus.Generator;
+
+public sealed record Result(HandlerModel? Model, EquatableArray<DiagnosticInfo> Diagnostics);
 
 public sealed record LocalVariable(string LocalName, string FullType, bool CheckNullability, string? IfNullErrorMessage);
 
@@ -15,9 +16,8 @@ public sealed record HandlerModel(
     string FullClassName,
     string FullRequestType,
     string FullResponseType,
-    ImmutableArray<MethodPhase> Phases,
-    ImmutableArray<LocalVariable> LocalVariables,
-    Location Location)
+    EquatableArray<MethodPhase> Phases,
+    EquatableArray<LocalVariable> LocalVariables)
 {
     // "global::TestApp.DummyHandler" + "Dispatcher" = "global::TestApp.DummyHandlerDispatcher"
     public string DispatcherFullName => FullClassName + "Dispatcher";
@@ -29,19 +29,18 @@ public sealed record HandlerModel(
 
 public static class HandlerModelFactory
 {
-    public static (HandlerModel? model, IEnumerable<Diagnostic> diagnostics) GetHandlerModel(GeneratorAttributeSyntaxContext ctx, CancellationToken ct)
+    public static Result GetHandlerModel(GeneratorAttributeSyntaxContext ctx, CancellationToken ct)
     {
         if (ctx.TargetSymbol is not INamedTypeSymbol classSymbol)
         {
-            return (null, []);
+            return new(null, EquatableArray<DiagnosticInfo>.Empty);
         }
         ct.ThrowIfCancellationRequested();
-        
-        TryGetHandlerModel(classSymbol, ctx.TargetNode.GetLocation(), out var handlerModel, out var diagnostics);
-        return (handlerModel, diagnostics);
+
+        return GetHandlerModel(classSymbol, ctx.TargetNode.GetLocation());
     }
 
-    public static bool TryGetHandlerModel(INamedTypeSymbol classSymbol, Location location, out HandlerModel? handlerModel, out IEnumerable<Diagnostic> diagnostics)
+    public static Result GetHandlerModel(INamedTypeSymbol classSymbol, Location location)
     { 
         var fmt = SymbolDisplayFormat.FullyQualifiedFormat;
 
@@ -50,25 +49,22 @@ public static class HandlerModelFactory
 
         if (isGenericHandler)
         {
-            handlerModel = null;
-            diagnostics =
+
+            return new(null, new(
             [
                 Diagnostics.GenericHandlerNotSupported(
                     location: location,
                     fullHandlerName: classSymbol.ToDisplayString(fmt))
-            ];
-            return false;
+            ]));
         }
         if (isNestedHandler)
         {
-            handlerModel = null;
-            diagnostics =
+            return new(null, new(
             [
                 Diagnostics.NestedHandlerNotSupported(
                     location: location,
                     fullHandlerName: classSymbol.ToDisplayString(fmt))
-            ];
-            return false;
+            ]));
         }
 
 
@@ -78,14 +74,34 @@ public static class HandlerModelFactory
             .FirstOrDefault(static m => m.Parameters.Length >= 1);
         if (handleMethod is null)
         {
-            handlerModel = null;
-            diagnostics = [];
-            return false;
+            return new(null, EquatableArray<DiagnosticInfo>.Empty);
         }
 
         var loadMethod = classSymbol.GetMembers("Load")
             .OfType<IMethodSymbol>()
             .FirstOrDefault();
+
+        if (!IsSupportedHandlerMethodReturnType(handleMethod))
+        {
+            return new(null, new([
+                Diagnostics.UnsupportedMethodReturnType(
+                    location: location,
+                    handlerName: classSymbol.ToDisplayString(fmt),
+                    returnType: handleMethod.ReturnType.ToDisplayString(fmt),
+                    methodName: handleMethod.Name)
+            ]));
+        }
+
+        if (loadMethod is not null && !IsSupportedHandlerMethodReturnType(loadMethod))
+        {
+            return new(null, new([
+                Diagnostics.UnsupportedMethodReturnType(
+                    location: location,
+                    handlerName: classSymbol.ToDisplayString(fmt),
+                    returnType: loadMethod.ReturnType.ToDisplayString(fmt),
+                    methodName: loadMethod.Name)
+            ]));
+        }
 
         var validateMethod = classSymbol.GetMembers("Validate")
             .OfType<IMethodSymbol>()
@@ -95,74 +111,71 @@ public static class HandlerModelFactory
         var loadPhase = loadMethod is null ? null : new MethodPhase(PhaseType.Before, loadMethod, fmt);
         var validatePhase = validateMethod is null ? null : new MethodPhase(PhaseType.Before, validateMethod, fmt);
 
-        var preHandleCandidates = ImmutableArray.CreateBuilder<MethodPhase>();
+        var preHandleCandidates = new List<MethodPhase>();
         if (loadPhase is not null)
             preHandleCandidates.Add(loadPhase);
         if (validatePhase is not null)
             preHandleCandidates.Add(validatePhase);
 
-        var orderedMethods = OrderPhases(preHandleCandidates.ToImmutable(), handlePhase);
+        if (!TryOrderPhases(preHandleCandidates, handlePhase, out var orderedMethods, out var cycleMethods))
+        {
+            return new(null, new([
+                Diagnostics.CyclicPhaseDependency(
+                    location: location,
+                    handlerName: classSymbol.ToDisplayString(fmt),
+                    methodNames: cycleMethods!)
+            ]));
+        }
 
         
 
 
         if (!InferRequestType(orderedMethods, out var requestType))
         {
-            diagnostics =
-            [
+            return new(null, new([
                 Diagnostics.RequestTypeCannotBeInferred(
                     location: location,
-                    fullHandlerName: classSymbol.ToDisplayString(fmt))];
-            handlerModel = null;
-            return false;
+                    fullHandlerName: classSymbol.ToDisplayString(fmt))
+            ]));
         }
 
         var responseType = handlePhase.Returns[0].FullType;
 
         var returnVariables = BuildReturnVariables(orderedMethods);
-        var localVariables = ImmutableArray.Create<LocalVariable>([
-            ..returnVariables,
-            new("request", requestType!, false, null)
-        ]);
+        var localVariables = new EquatableArray<LocalVariable>(returnVariables
+            .Append(new("request", requestType!, false, null)));
         if (!ValidateUniqueLocalVariableTypes(classSymbol.Name, location, localVariables, out var duplicateLocalTypeDiagnostics))
         {
-            diagnostics = [..duplicateLocalTypeDiagnostics];
-            handlerModel = null;
-            return false;
+            return new(null, new(duplicateLocalTypeDiagnostics));
         }
 
         var knownPipelineTypes = localVariables
-            .Select(static local => local.FullType)
-            .ToImmutableHashSet(StringComparer.Ordinal);
+            .Select(static local => local.FullType);
 
-        orderedMethods = [
-            ..orderedMethods
-                .Select(phase => MarkFromServices(phase, knownPipelineTypes))
-        ];
+        orderedMethods = new(orderedMethods
+            .Select(phase => MarkFromServices(phase, knownPipelineTypes)));
 
         var ns = classSymbol.ContainingNamespace.IsGlobalNamespace
             ? null
             : classSymbol.ContainingNamespace.ToDisplayString();
 
-
-        diagnostics = [];
-        handlerModel = new(
-            Namespace: ns,
-            ClassName: classSymbol.Name,
-            FullClassName: classSymbol.ToDisplayString(fmt),
-            FullRequestType: requestType!,
-            FullResponseType: responseType,
-            Phases: orderedMethods,
-            LocalVariables: localVariables,
-            Location: location);
-        return true;
+        return new(
+            new(
+                Namespace: ns,
+                ClassName: classSymbol.Name,
+                FullClassName: classSymbol.ToDisplayString(fmt),
+                FullRequestType: requestType!,
+                FullResponseType: responseType,
+                Phases: orderedMethods,
+                LocalVariables: localVariables),
+            EquatableArray<DiagnosticInfo>.Empty);
     }
 
     private static bool ValidateUniqueLocalVariableTypes(
         string handlerName,
         Location location,
-        ImmutableArray<LocalVariable> localVariables,
-        out IEnumerable<Diagnostic> diagnostics)
+        EquatableArray<LocalVariable> localVariables,
+        out EquatableArray<DiagnosticInfo> diagnostics)
     {
         var duplicateTypeDiagnostics = localVariables
             .GroupBy(static local => local.FullType)
@@ -170,17 +183,20 @@ public static class HandlerModelFactory
             .Select(group => Diagnostics.DuplicateLocalVariableType(location, handlerName, group.Key))
             .ToList();
 
-        diagnostics = duplicateTypeDiagnostics;
+        diagnostics = new(duplicateTypeDiagnostics);
         return duplicateTypeDiagnostics.Count == 0;
     }
 
-    private static ImmutableArray<MethodPhase> OrderPhases(
-        ImmutableArray<MethodPhase> phases, MethodPhase handlePhase)
+    private static bool TryOrderPhases(
+        IEnumerable<MethodPhase> phases,
+        MethodPhase handlePhase,
+        out EquatableArray<MethodPhase> orderedPhases,
+        out string? cycleMethodNames)
     {
         var pending = phases
             .Select((phase, index) => new PendingPhase(phase, index))
             .ToList();
-        var ordered =  ImmutableArray.CreateBuilder<MethodPhase>(pending.Count + 1);
+        var ordered =  new List<MethodPhase>();
 
         while (pending.Count > 0)
         {
@@ -192,24 +208,45 @@ public static class HandlerModelFactory
                 .ThenBy(candidate => candidate.SourceIndex)
                 .ToList();
 
-            var next = ready.Count > 0
-                ? ready[0]
-                : pending
-                    .OrderBy(candidate => HasOutputs(candidate.Phase))
-                    //.ThenBy(candidate => candidate.Phase.TieBreak)
-                    .ThenBy(candidate => candidate.SourceIndex)
-                    .First();
+            if (ready.Count == 0)
+            {
+                cycleMethodNames = string.Join(", ",
+                    pending
+                        .OrderBy(candidate => candidate.SourceIndex)
+                        .Select(candidate => candidate.Phase.MethodName));
+                orderedPhases = EquatableArray<MethodPhase>.Empty;
+                return false;
+            }
+
+            var next = ready[0];
 
             pending.Remove(next);
             ordered.Add(next.Phase);
         }
 
         ordered.Add(handlePhase);
-
-        return ordered.ToImmutable();
+        orderedPhases = new(ordered);
+        cycleMethodNames = null;
+        return true;
     }
 
-    private static IEnumerable<LocalVariable> BuildReturnVariables(ImmutableArray<MethodPhase> phases)
+    private static bool IsSupportedHandlerMethodReturnType(IMethodSymbol method)
+    {
+        var returnType = method.ReturnType;
+        if (returnType.SpecialType == SpecialType.System_Void)
+        {
+            return false;
+        }
+
+        if (returnType is INamedTypeSymbol { Name: "Task", TypeArguments.Length: 0 })
+        {
+            return false;
+        }
+
+        return true;
+    }
+
+    private static IEnumerable<LocalVariable> BuildReturnVariables(EquatableArray<MethodPhase> phases)
     {
         var allReturns = phases.SelectMany(p => p.Returns);
         var allParams = phases.SelectMany(p => p.Parameters).GroupBy(p => p.FullType).ToDictionary(
@@ -239,17 +276,15 @@ public static class HandlerModelFactory
         }
     }
 
-    private static MethodPhase MarkFromServices(MethodPhase phase, ImmutableHashSet<string> knownPipelineTypes)
+    private static MethodPhase MarkFromServices(MethodPhase phase, IEnumerable<string> knownPipelineTypes)
     {
         return phase with
         {
-            Parameters = [
-                ..phase.Parameters
-                    .Select(parameter => parameter with
-                    {
-                        IsFromServices = !knownPipelineTypes.Contains(parameter.FullType)
-                    })
-            ]
+            Parameters = new(phase.Parameters
+                .Select(parameter => parameter with
+                {
+                    IsFromServices = !knownPipelineTypes.Contains(parameter.FullType)
+                }))
         };
     }
 
@@ -259,7 +294,7 @@ public static class HandlerModelFactory
             .Any(c => dependency.Returns.Any(d => d.FullType == c.FullType));
     }
 
-    private static bool HasOutputs(MethodPhase phase) => !phase.Returns.IsDefaultOrEmpty;
+    private static bool HasOutputs(MethodPhase phase) => phase.Returns.Count > 0;
 
     private sealed record PendingPhase(MethodPhase Phase, int SourceIndex);
 

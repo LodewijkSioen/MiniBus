@@ -1,16 +1,18 @@
 ﻿{
-  Item2: [
+  Diagnostics: [
     {
-      Message: Handler 'DuplicateTupleTypesHandler' produces duplicate local variable type 'global::TestApp.DuplicateTupleTypesHandler.Entity'. A handler can only contain one local variable per type.,
-      Severity: Error,
       Descriptor: {
-        Id: MBG007,
+        Id: MBG006,
         Title: Duplicate local variable type,
         MessageFormat: Handler '{0}' produces duplicate local variable type '{1}'. A handler can only contain one local variable per type.,
         Category: MiniBus.Generator,
         DefaultSeverity: Error,
         IsEnabledByDefault: true
-      }
+      },
+      MessageArgs: [
+        DuplicateTupleTypesHandler,
+        global::TestApp.DuplicateTupleTypesHandler.Entity
+      ]
     }
   ]
 }

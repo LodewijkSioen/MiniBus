@@ -1,5 +1,5 @@
 ﻿{
-  Item1: {
+  Model: {
     Namespace: TestApp,
     ClassName: ConventionDiHandler,
     FullClassName: global::TestApp.ConventionDiHandler,
@@ -85,11 +85,11 @@
         CheckNullability: false
       }
     ],
-    Location: ,
     DispatcherFullName: global::TestApp.ConventionDiHandlerDispatcher,
     DispatcherKey: global::TestApp.ConventionDiHandler.Request|global::TestApp.ConventionDiHandler.Response,
     IsAnyAsync: false,
     HasInstanceMethods: false,
     HasFromServicesParameters: true
-  }
+  },
+  Diagnostics: null
 }

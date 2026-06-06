@@ -1,5 +1,5 @@
 ﻿{
-  Item1: {
+  Model: {
     Namespace: TestApp,
     ClassName: StaticOnlyHandler,
     FullClassName: global::TestApp.StaticOnlyHandler,
@@ -43,11 +43,11 @@
         CheckNullability: false
       }
     ],
-    Location: ,
     DispatcherFullName: global::TestApp.StaticOnlyHandlerDispatcher,
     DispatcherKey: global::TestApp.StaticOnlyHandler.Request|global::TestApp.StaticOnlyHandler.Response,
     IsAnyAsync: false,
     HasInstanceMethods: false,
     HasFromServicesParameters: false
-  }
+  },
+  Diagnostics: null
 }
