@@ -17,14 +17,15 @@ public sealed record HandlerModel(
     string FullRequestType,
     string FullResponseType,
     EquatableArray<MethodPhase> Phases,
-    EquatableArray<LocalVariable> LocalVariables)
+    EquatableArray<LocalVariable> LocalVariables,
+    MethodPhase? FinallyPhase = null)
 {
     // "global::TestApp.DummyHandler" + "Dispatcher" = "global::TestApp.DummyHandlerDispatcher"
     public string DispatcherFullName => FullClassName + "Dispatcher";
     public string DispatcherKey => $"{FullRequestType}|{FullResponseType}";
-    public bool IsAnyAsync => Phases.Any(p => p.IsAsync);
-    public bool HasInstanceMethods => Phases.Any(p => !p.IsStatic);
-    public bool HasFromServicesParameters => Phases.Any(p => p.Parameters.Any(ip => ip.IsFromServices));
+    public bool IsAnyAsync => Phases.Any(p => p.IsAsync) || (FinallyPhase?.IsAsync ?? false);
+    public bool HasInstanceMethods => Phases.Any(p => !p.IsStatic) || (FinallyPhase is { IsStatic: false });
+    public bool HasFromServicesParameters => Phases.Any(p => p.Parameters.Any(ip => ip.IsFromServices)) || (FinallyPhase?.Parameters.Any(ip => ip.IsFromServices) ?? false);
 }
 
 public static class HandlerModelFactory
@@ -69,16 +70,40 @@ public static class HandlerModelFactory
 
 
 
-        var handleMethod = classSymbol.GetMembers("Handle")
+        var handleMethod = classSymbol.GetMembers()
             .OfType<IMethodSymbol>()
+            .Where(static m => m.MethodKind == MethodKind.Ordinary)
+            .Where(static m => IsHandleMethodName(m.Name))
+            .OrderBy(static m => m.Locations.FirstOrDefault(static l => l.IsInSource)?.SourceSpan.Start ?? int.MaxValue)
+            .ThenBy(static m => m.Name, StringComparer.Ordinal)
             .FirstOrDefault(static m => m.Parameters.Length >= 1);
         if (handleMethod is null)
         {
             return new(null, EquatableArray<DiagnosticInfo>.Empty);
         }
 
-        var loadMethod = classSymbol.GetMembers("Load")
+        var preHandleMethods = classSymbol.GetMembers()
             .OfType<IMethodSymbol>()
+            .Where(static m => m.MethodKind == MethodKind.Ordinary)
+            .Where(static m => IsPreHandleMethodName(m.Name))
+            .OrderBy(static m => m.Locations.FirstOrDefault(static l => l.IsInSource)?.SourceSpan.Start ?? int.MaxValue)
+            .ThenBy(static m => m.Name, StringComparer.Ordinal)
+            .ToArray();
+
+        var postHandleMethods = classSymbol.GetMembers()
+            .OfType<IMethodSymbol>()
+            .Where(static m => m.MethodKind == MethodKind.Ordinary)
+            .Where(static m => IsPostHandleMethodName(m.Name))
+            .OrderBy(static m => m.Locations.FirstOrDefault(static l => l.IsInSource)?.SourceSpan.Start ?? int.MaxValue)
+            .ThenBy(static m => m.Name, StringComparer.Ordinal)
+            .ToArray();
+
+        var finallyMethod = classSymbol.GetMembers()
+            .OfType<IMethodSymbol>()
+            .Where(static m => m.MethodKind == MethodKind.Ordinary)
+            .Where(static m => IsFinallyMethodName(m.Name))
+            .OrderBy(static m => m.Locations.FirstOrDefault(static l => l.IsInSource)?.SourceSpan.Start ?? int.MaxValue)
+            .ThenBy(static m => m.Name, StringComparer.Ordinal)
             .FirstOrDefault();
 
         if (!IsSupportedHandlerMethodReturnType(handleMethod))
@@ -92,32 +117,59 @@ public static class HandlerModelFactory
             ]));
         }
 
-        if (loadMethod is not null && !IsSupportedHandlerMethodReturnType(loadMethod))
+        if (HasInvalidHandleTupleResponse(handleMethod, fmt))
+        {
+            return new(null, new([
+                Diagnostics.InvalidHandleTupleResponse(
+                    location: location,
+                    handlerName: classSymbol.ToDisplayString(fmt),
+                    returnType: handleMethod.ReturnType.ToDisplayString(fmt),
+                    methodName: handleMethod.Name)
+            ]));
+        }
+
+        var unsupportedPreHandleMethodDiagnostics = preHandleMethods
+            .Where(static m => !IsSupportedHandlerMethodReturnType(m))
+            .Select(m => Diagnostics.UnsupportedMethodReturnType(
+                location: location,
+                handlerName: classSymbol.ToDisplayString(fmt),
+                returnType: m.ReturnType.ToDisplayString(fmt),
+                methodName: m.Name))
+            .ToArray();
+        var unsupportedPostHandleMethodDiagnostics = postHandleMethods
+            .Where(static m => !IsSupportedHandlerMethodReturnType(m))
+            .Select(m => Diagnostics.UnsupportedMethodReturnType(
+                location: location,
+                handlerName: classSymbol.ToDisplayString(fmt),
+                returnType: m.ReturnType.ToDisplayString(fmt),
+                methodName: m.Name))
+            .ToArray();
+        if (unsupportedPreHandleMethodDiagnostics.Length > 0 || unsupportedPostHandleMethodDiagnostics.Length > 0)
+        {
+            return new(null, new(unsupportedPreHandleMethodDiagnostics.Concat(unsupportedPostHandleMethodDiagnostics).ToArray()));
+        }
+
+        // Validate Finally method return type if present
+        if (finallyMethod is not null && !IsSupportedFinallyReturnType(finallyMethod))
         {
             return new(null, new([
                 Diagnostics.UnsupportedMethodReturnType(
                     location: location,
                     handlerName: classSymbol.ToDisplayString(fmt),
-                    returnType: loadMethod.ReturnType.ToDisplayString(fmt),
-                    methodName: loadMethod.Name)
+                    returnType: finallyMethod.ReturnType.ToDisplayString(fmt),
+                    methodName: finallyMethod.Name)
             ]));
         }
 
-        var validateMethod = classSymbol.GetMembers("Validate")
-            .OfType<IMethodSymbol>()
-            .FirstOrDefault(m => IsSupportedValidateMethod(m, fmt));
-
         var handlePhase = new MethodPhase(PhaseType.Handle, handleMethod, fmt);
-        var loadPhase = loadMethod is null ? null : new MethodPhase(PhaseType.Before, loadMethod, fmt);
-        var validatePhase = validateMethod is null ? null : new MethodPhase(PhaseType.Before, validateMethod, fmt);
+        var preHandleCandidates = preHandleMethods
+            .Select(m => new MethodPhase(PhaseType.Before, m, fmt))
+            .ToList();
+        var postHandleCandidates = postHandleMethods
+            .Select(m => new MethodPhase(PhaseType.After, m, fmt))
+            .ToList();
 
-        var preHandleCandidates = new List<MethodPhase>();
-        if (loadPhase is not null)
-            preHandleCandidates.Add(loadPhase);
-        if (validatePhase is not null)
-            preHandleCandidates.Add(validatePhase);
-
-        if (!TryOrderPhases(preHandleCandidates, handlePhase, out var orderedMethods, out var cycleMethods))
+        if (!TryOrderPhases(preHandleCandidates, out var orderedPrePhases, out var cycleMethods))
         {
             return new(null, new([
                 Diagnostics.CyclicPhaseDependency(
@@ -126,6 +178,20 @@ public static class HandlerModelFactory
                     methodNames: cycleMethods!)
             ]));
         }
+
+        if (!TryOrderPhases(postHandleCandidates, out var orderedPostPhases, out cycleMethods))
+        {
+            return new(null, new([
+                Diagnostics.CyclicPhaseDependency(
+                    location: location,
+                    handlerName: classSymbol.ToDisplayString(fmt),
+                    methodNames: cycleMethods!)
+            ]));
+        }
+
+        var orderedMethods = new EquatableArray<MethodPhase>(orderedPrePhases
+            .Append(handlePhase)
+            .Concat(orderedPostPhases));
 
         
 
@@ -155,6 +221,38 @@ public static class HandlerModelFactory
         orderedMethods = new(orderedMethods
             .Select(phase => MarkFromServices(phase, knownPipelineTypes)));
 
+        // Build and validate Finally phase if present
+        MethodPhase? finallyPhase = null;
+        var finallyDiagnostics = new List<DiagnosticInfo>();
+        if (finallyMethod is not null)
+        {
+            finallyPhase = new MethodPhase(PhaseType.Finally, finallyMethod, fmt);
+            finallyPhase = MarkFromServices(finallyPhase, knownPipelineTypes);
+
+            var pipelineReturnTypes = new HashSet<string>(orderedMethods
+                .SelectMany(static phase => phase.Returns)
+                .Select(static element => element.FullType),
+                StringComparer.Ordinal);
+
+            // Validate that Finally parameters matching pipeline returns are nullable (MBG010)
+            foreach (var parameter in finallyPhase.Parameters)
+            {
+                if (!parameter.IsFromServices && pipelineReturnTypes.Contains(parameter.FullType) && !parameter.IsNullable)
+                {
+                    finallyDiagnostics.Add(Diagnostics.FinallyParameterMustBeNullable(
+                        location: location,
+                        handlerName: classSymbol.ToDisplayString(fmt),
+                        parameterName: parameter.LocalName,
+                        parameterType: parameter.FullType));
+                }
+            }
+
+            if (finallyDiagnostics.Count > 0)
+            {
+                return new(null, new(finallyDiagnostics.ToArray()));
+            }
+        }
+
         var ns = classSymbol.ContainingNamespace.IsGlobalNamespace
             ? null
             : classSymbol.ContainingNamespace.ToDisplayString();
@@ -167,7 +265,8 @@ public static class HandlerModelFactory
                 FullRequestType: requestType!,
                 FullResponseType: responseType,
                 Phases: orderedMethods,
-                LocalVariables: localVariables),
+                LocalVariables: localVariables,
+                FinallyPhase: finallyPhase),
             EquatableArray<DiagnosticInfo>.Empty);
     }
 
@@ -189,7 +288,6 @@ public static class HandlerModelFactory
 
     private static bool TryOrderPhases(
         IEnumerable<MethodPhase> phases,
-        MethodPhase handlePhase,
         out EquatableArray<MethodPhase> orderedPhases,
         out string? cycleMethodNames)
     {
@@ -224,7 +322,6 @@ public static class HandlerModelFactory
             ordered.Add(next.Phase);
         }
 
-        ordered.Add(handlePhase);
         orderedPhases = new(ordered);
         cycleMethodNames = null;
         return true;
@@ -244,6 +341,24 @@ public static class HandlerModelFactory
         }
 
         return true;
+    }
+
+    private static bool IsSupportedFinallyReturnType(IMethodSymbol method)
+    {
+        var returnType = method.ReturnType;
+        
+        // Finally supports void or non-generic Task only
+        if (returnType.SpecialType == SpecialType.System_Void)
+        {
+            return true;
+        }
+
+        if (returnType is INamedTypeSymbol { Name: "Task", TypeArguments.Length: 0 })
+        {
+            return true;
+        }
+
+        return false;
     }
 
     private static IEnumerable<LocalVariable> BuildReturnVariables(EquatableArray<MethodPhase> phases)
@@ -298,6 +413,37 @@ public static class HandlerModelFactory
 
     private sealed record PendingPhase(MethodPhase Phase, int SourceIndex);
 
+    private static bool IsPreHandleMethodName(string methodName)
+    {
+        return methodName == "Load"
+            || methodName == "LoadAsync"
+            || methodName == "Validate"
+            || methodName == "ValidateAsync"
+            || methodName.StartsWith("Before", StringComparison.Ordinal)
+            || methodName.EndsWith("Before", StringComparison.Ordinal)
+            || methodName.EndsWith("BeforeAsync", StringComparison.Ordinal);
+    }
+
+    private static bool IsPostHandleMethodName(string methodName)
+    {
+        return methodName.StartsWith("After", StringComparison.Ordinal)
+            || methodName.StartsWith("Post", StringComparison.Ordinal);
+    }
+
+    private static bool IsFinallyMethodName(string methodName)
+    {
+        return methodName == "Finally"
+            || methodName == "FinallyAsync";
+    }
+
+    private static bool IsHandleMethodName(string methodName)
+    {
+        return methodName == "Handle"
+            || methodName == "HandleAsync"
+            || methodName == "Execute"
+            || methodName == "ExecuteAsync";
+    }
+
     private static bool InferRequestType(
         IEnumerable<MethodPhase> orderedMethods,
         out string? requestType)
@@ -335,14 +481,37 @@ public static class HandlerModelFactory
         return false;
     }
 
-    private static bool IsSupportedValidateMethod(IMethodSymbol method, SymbolDisplayFormat format)
+    private static bool HasInvalidHandleTupleResponse(IMethodSymbol method, SymbolDisplayFormat format)
     {
-        var returnType = method.ReturnType;
-        if (returnType is INamedTypeSymbol { Name: "Task", TypeArguments.Length: 1 } taskType)
+        var returnType = UnwrapTask(method.ReturnType);
+        if (returnType is not INamedTypeSymbol { IsTupleType: true } tupleType)
         {
-            returnType = taskType.TypeArguments[0];
+            return false;
         }
 
-        return returnType.ToDisplayString(format) == "global::MiniBus.ValidationResult";
+        if (tupleType.TupleElements.Length == 0)
+        {
+            return false;
+        }
+
+        return IsValidationResultType(tupleType.TupleElements[0].Type, format);
+    }
+
+    private static ITypeSymbol UnwrapTask(ITypeSymbol returnType)
+    {
+        if (returnType is INamedTypeSymbol { Name: "Task", TypeArguments.Length: 1 } taskType)
+        {
+            return taskType.TypeArguments[0];
+        }
+
+        return returnType;
+    }
+
+    private static bool IsValidationResultType(ITypeSymbol type, SymbolDisplayFormat format)
+    {
+        var nonNullableType = type.NullableAnnotation == NullableAnnotation.Annotated
+            ? type.WithNullableAnnotation(NullableAnnotation.NotAnnotated)
+            : type;
+        return nonNullableType.ToDisplayString(format) == "global::MiniBus.ValidationResult";
     }
 }

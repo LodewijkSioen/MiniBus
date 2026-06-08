@@ -1,0 +1,69 @@
+﻿{
+  Model: {
+    Namespace: TestApp,
+    ClassName: FinallyVoidHandler,
+    FullClassName: global::TestApp.FinallyVoidHandler,
+    FullRequestType: global::TestApp.FinallyVoidHandler.Request,
+    FullResponseType: global::TestApp.FinallyVoidHandler.Response,
+    Phases: [
+      {
+        Type: Handle,
+        MethodName: Handle,
+        IsAsync: false,
+        IsStatic: false,
+        Parameters: [
+          {
+            LocalName: request,
+            FullType: global::TestApp.FinallyVoidHandler.Request,
+            IsNullable: false,
+            NotNullMessage: request cannot be null,
+            IsFromServices: false
+          }
+        ],
+        Returns: [
+          {
+            LocalName: fromHandle,
+            FullType: global::TestApp.FinallyVoidHandler.Response,
+            IsNullable: false,
+            NonNullLocalName: fromHandle,
+            IsValidationResult: false
+          }
+        ]
+      }
+    ],
+    LocalVariables: [
+      {
+        LocalName: fromHandle,
+        FullType: global::TestApp.FinallyVoidHandler.Response,
+        CheckNullability: false
+      },
+      {
+        LocalName: request,
+        FullType: global::TestApp.FinallyVoidHandler.Request,
+        CheckNullability: false
+      }
+    ],
+    FinallyPhase: {
+      Type: Finally,
+      MethodName: Finally,
+      IsAsync: false,
+      IsStatic: false,
+      Parameters: [
+        {
+          LocalName: request,
+          FullType: global::TestApp.FinallyVoidHandler.Request,
+          IsNullable: false,
+          NotNullMessage: request cannot be null,
+          IsFromServices: false
+        }
+      ],
+      Returns: null
+    },
+    DispatcherFullName: global::TestApp.FinallyVoidHandlerDispatcher,
+    DispatcherKey: global::TestApp.FinallyVoidHandler.Request|global::TestApp.FinallyVoidHandler.Response,
+    IsAnyAsync: false,
+    HasInstanceMethods: true,
+    HasFromServicesParameters: false
+  },
+  Diagnostics: null
+}

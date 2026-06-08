@@ -27,8 +27,8 @@ namespace TestApp
             if (!fromValidate.IsValid())
                 return global::System.Threading.Tasks.Task.FromResult(global::MiniBus.Result<global::TestApp.StaticConventionHandler.Response>.Invalid(fromValidate));
 
-            var response = global::TestApp.StaticConventionHandler.Handle(request, _serviceProvider.GetRequiredService<global::TestApp.IClock>());
-            return global::System.Threading.Tasks.Task.FromResult(global::MiniBus.Result<global::TestApp.StaticConventionHandler.Response>.Success(response));
+            var fromHandle = global::TestApp.StaticConventionHandler.Handle(request, _serviceProvider.GetRequiredService<global::TestApp.IClock>());
+            return global::System.Threading.Tasks.Task.FromResult(global::MiniBus.Result<global::TestApp.StaticConventionHandler.Response>.Success(fromHandle));
         }
     }
 }

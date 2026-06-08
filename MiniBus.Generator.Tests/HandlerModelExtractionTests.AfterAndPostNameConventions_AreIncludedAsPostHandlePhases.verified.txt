@@ -1,0 +1,113 @@
+﻿{
+  Model: {
+    Namespace: TestApp,
+    ClassName: PostConventionHandler,
+    FullClassName: global::TestApp.PostConventionHandler,
+    FullRequestType: global::TestApp.PostConventionHandler.Request,
+    FullResponseType: global::TestApp.PostConventionHandler.Response,
+    Phases: [
+      {
+        Type: Handle,
+        MethodName: Handle,
+        IsAsync: false,
+        IsStatic: false,
+        Parameters: [
+          {
+            LocalName: request,
+            FullType: global::TestApp.PostConventionHandler.Request,
+            IsNullable: false,
+            NotNullMessage: request cannot be null,
+            IsFromServices: false
+          }
+        ],
+        Returns: [
+          {
+            LocalName: fromHandle,
+            FullType: global::TestApp.PostConventionHandler.Response,
+            IsNullable: false,
+            NonNullLocalName: fromHandle,
+            IsValidationResult: false
+          }
+        ]
+      },
+      {
+        Type: After,
+        MethodName: AfterAudit,
+        IsAsync: false,
+        IsStatic: false,
+        Parameters: [
+          {
+            LocalName: response,
+            FullType: global::TestApp.PostConventionHandler.Response,
+            IsNullable: false,
+            NotNullMessage: response cannot be null,
+            IsFromServices: false
+          }
+        ],
+        Returns: [
+          {
+            LocalName: fromAfterAudit,
+            FullType: global::TestApp.PostConventionHandler.Audit,
+            IsNullable: false,
+            NonNullLocalName: fromAfterAudit,
+            IsValidationResult: false
+          }
+        ]
+      },
+      {
+        Type: After,
+        MethodName: PostValidate,
+        IsAsync: false,
+        IsStatic: false,
+        Parameters: [
+          {
+            LocalName: audit,
+            FullType: global::TestApp.PostConventionHandler.Audit,
+            IsNullable: false,
+            NotNullMessage: audit cannot be null,
+            IsFromServices: false
+          }
+        ],
+        Returns: [
+          {
+            LocalName: fromPostValidate,
+            FullType: global::MiniBus.ValidationResult,
+            IsNullable: false,
+            NonNullLocalName: fromPostValidate,
+            IsValidationResult: true
+          }
+        ]
+      }
+    ],
+    LocalVariables: [
+      {
+        LocalName: fromHandle,
+        FullType: global::TestApp.PostConventionHandler.Response,
+        CheckNullability: false,
+        IfNullErrorMessage: response cannot be null
+      },
+      {
+        LocalName: fromAfterAudit,
+        FullType: global::TestApp.PostConventionHandler.Audit,
+        CheckNullability: false,
+        IfNullErrorMessage: audit cannot be null
+      },
+      {
+        LocalName: fromPostValidate,
+        FullType: global::MiniBus.ValidationResult,
+        CheckNullability: false
+      },
+      {
+        LocalName: request,
+        FullType: global::TestApp.PostConventionHandler.Request,
+        CheckNullability: false
+      }
+    ],
+    DispatcherFullName: global::TestApp.PostConventionHandlerDispatcher,
+    DispatcherKey: global::TestApp.PostConventionHandler.Request|global::TestApp.PostConventionHandler.Response,
+    IsAnyAsync: false,
+    HasInstanceMethods: true,
+    HasFromServicesParameters: false
+  },
+  Diagnostics: null
+}

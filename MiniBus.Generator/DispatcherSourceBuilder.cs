@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -62,17 +63,66 @@ public static class DispatcherSourceBuilder
         sb.AppendLine($"{i}        Handle({model.FullRequestType} request)");
         sb.AppendLine($"{i}    {{");
 
+        // Hoist variables needed by Finally before try block
+        var hoistedTypes = new HashSet<string>(StringComparer.Ordinal);
+        var hoistedLocalNames = new Dictionary<string, string>(StringComparer.Ordinal);
+        if (model.FinallyPhase is not null)
+        {
+            var returnLocalsByType = model.Phases
+                .SelectMany(phase => phase.Returns)
+                .GroupBy(element => element.FullType)
+                .ToDictionary(group => group.Key, group => group.First().LocalName, StringComparer.Ordinal);
+
+            foreach (var param in model.FinallyPhase.Parameters)
+            {
+                if (!param.IsFromServices && returnLocalsByType.TryGetValue(param.FullType, out var nullableLocalName))
+                {
+                    hoistedTypes.Add(param.FullType);
+                    hoistedLocalNames[param.FullType] = nullableLocalName;
+                    sb.AppendLine($"{i}        {param.FullType}? {nullableLocalName} = null;");
+                }
+            }
+            if (hoistedTypes.Count > 0)
+                sb.AppendLine();
+        }
+
+        // Start try block if Finally exists
+        if (model.FinallyPhase is not null)
+        {
+            sb.AppendLine($"{i}        try");
+            sb.AppendLine($"{i}        {{");
+        }
+
+        string? responseLocalName = null;
+        var phaseIndent = model.FinallyPhase is not null ? i + "    " : i;
+
         foreach (var phase in model.Phases)
         {
             switch (phase.Type)
             {
                 case PhaseType.Before:
-                    BuildPrePhase(sb, model, phase, taskWrap, taskClose, i);
+                    BuildPipelinePhase(sb, model, phase, taskWrap, taskClose, phaseIndent, hoistedTypes);
                     break;
                 case PhaseType.Handle:
-                    BuildHandlePhase(sb, model, phase, taskWrap, taskClose, i);
+                    responseLocalName = BuildHandlePhase(sb, model, phase, taskWrap, taskClose, phaseIndent, hoistedTypes);
+                    break;
+                case PhaseType.After:
+                    BuildPipelinePhase(sb, model, phase, taskWrap, taskClose, phaseIndent, hoistedTypes);
                     break;
             }
+        }
+
+        var returnIndent = model.FinallyPhase is not null ? i + "            " : i + "        ";
+        sb.AppendLine($"{returnIndent}return {taskWrap}global::MiniBus.Result<{model.FullResponseType}>.Success({responseLocalName ?? "default!"}){taskClose};");
+
+        // Close try and add finally
+        if (model.FinallyPhase is not null)
+        {
+            sb.AppendLine($"{i}        }}");
+            sb.AppendLine($"{i}        finally");
+            sb.AppendLine($"{i}        {{");
+            BuildFinallyPhase(sb, model, model.FinallyPhase, i, hoistedLocalNames);
+            sb.AppendLine($"{i}        }}");
         }
 
         sb.AppendLine($"{i}    }}");
@@ -82,38 +132,74 @@ public static class DispatcherSourceBuilder
         return sb.ToString();
     }
 
-    private static void BuildPrePhase(StringBuilder sb, HandlerModel model, MethodPhase prePhase, string taskWrap, string taskClose, string indent)
+    private static void BuildPipelinePhase(StringBuilder sb, HandlerModel model, MethodPhase phase, string taskWrap, string taskClose, string indent)
     {
-        var awaitPrefix = prePhase.IsAsync ? "await " : "";
-        var callArguments = string.Join(", ", BuildCallArguments(prePhase, model.LocalVariables));
-        var methodTarget = prePhase.IsStatic ? model.FullClassName : "_handler";
-        if (prePhase.Returns.Count > 1)
+        BuildPipelinePhase(sb, model, phase, taskWrap, taskClose, indent, new());
+    }
+
+    private static void BuildPipelinePhase(StringBuilder sb, HandlerModel model, MethodPhase phase, string taskWrap, string taskClose, string indent, HashSet<string> hoistedTypes)
+    {
+        var awaitPrefix = phase.IsAsync ? "await " : "";
+        var callArguments = string.Join(", ", BuildCallArguments(phase, model.LocalVariables));
+        var methodTarget = phase.IsStatic ? model.FullClassName : "_handler";
+        if (phase.Returns.Count > 1)
         {
-            var varNames = string.Join(", ", prePhase.Returns.Select(e => e.LocalName));
-            sb.AppendLine($"{indent}        var ({varNames}) = {awaitPrefix}{methodTarget}.{prePhase.MethodName}({callArguments});");
+            var hasHoistedReturns = phase.Returns.Any(e => hoistedTypes.Contains(e.FullType));
+            if (!hasHoistedReturns)
+            {
+                var varNames = string.Join(", ", phase.Returns.Select(e => e.LocalName));
+                sb.AppendLine($"{indent}        var ({varNames}) = {awaitPrefix}{methodTarget}.{phase.MethodName}({callArguments});");
+            }
+            else if (phase.Returns.All(e => hoistedTypes.Contains(e.FullType)))
+            {
+                var varNames = string.Join(", ", phase.Returns.Select(e => e.LocalName));
+                sb.AppendLine($"{indent}        ({varNames}) = {awaitPrefix}{methodTarget}.{phase.MethodName}({callArguments});");
+            }
+            else
+            {
+                var tempNames = phase.Returns
+                    .Select((_, index) => $"__{phase.MethodName}Result{index}")
+                    .ToArray();
+                sb.AppendLine($"{indent}        var ({string.Join(", ", tempNames)}) = {awaitPrefix}{methodTarget}.{phase.MethodName}({callArguments});");
+
+                for (var index = 0; index < phase.Returns.Count; index++)
+                {
+                    var element = phase.Returns[index];
+                    var varKeyword = hoistedTypes.Contains(element.FullType) ? "" : "var ";
+                    sb.AppendLine($"{indent}        {varKeyword}{element.LocalName} = {tempNames[index]};");
+                }
+            }
         }
         else
         {
-            sb.AppendLine($"{indent}        var {prePhase.Returns[0].LocalName} = {awaitPrefix}{methodTarget}.{prePhase.MethodName}({callArguments});");
+            var isHoisted = hoistedTypes.Contains(phase.Returns[0].FullType);
+            var varKeyword = isHoisted ? "" : "var ";
+            sb.AppendLine($"{indent}        {varKeyword}{phase.Returns[0].LocalName} = {awaitPrefix}{methodTarget}.{phase.MethodName}({callArguments});");
         }
 
-        BuildReturnValueChecks(sb, model, prePhase.Returns, taskWrap, taskClose, indent);
+        BuildValidationResultChecks(sb, model, phase.Returns, taskWrap, taskClose, indent);
+        BuildNotFoundChecks(sb, model, phase.Returns, taskWrap, taskClose, indent);
 
         sb.AppendLine();
     }
 
-    private static void BuildReturnValueChecks(StringBuilder sb, HandlerModel model, EquatableArray<ReturnElement> returnValues, string taskWrap, string taskClose, string indent)
+    private static void BuildValidationResultChecks(StringBuilder sb, HandlerModel model, EquatableArray<ReturnElement> returnValues, string taskWrap, string taskClose, string indent)
     {
         foreach (var element in returnValues)
         {
-            var local = model.LocalVariables.First(l => l.FullType == element.FullType);
-
             if (element.IsValidationResult)
             {
                 sb.AppendLine($"{indent}        if (!{element.NonNullLocalName}.IsValid())");
                 sb.AppendLine($"{indent}            return {taskWrap}global::MiniBus.Result<{model.FullResponseType}>.Invalid({element.NonNullLocalName}){taskClose};");
             }
+        }
+    }
 
+    private static void BuildNotFoundChecks(StringBuilder sb, HandlerModel model, EquatableArray<ReturnElement> returnValues, string taskWrap, string taskClose, string indent)
+    {
+        foreach (var element in returnValues)
+        {
+            var local = model.LocalVariables.First(l => l.FullType == element.FullType);
             if (local.CheckNullability)
             {
                 var ifNullMessage = local.IfNullErrorMessage is null ? null : $"\"{local.IfNullErrorMessage}\"";
@@ -123,13 +209,57 @@ public static class DispatcherSourceBuilder
         }
     }
 
-    private static void BuildHandlePhase(StringBuilder sb, HandlerModel model, MethodPhase handle, string taskWrap, string taskClose, string indent)
+    private static string BuildHandlePhase(StringBuilder sb, HandlerModel model, MethodPhase handle, string taskWrap, string taskClose, string indent)
+    {
+        return BuildHandlePhase(sb, model, handle, taskWrap, taskClose, indent, new());
+    }
+
+    private static string BuildHandlePhase(StringBuilder sb, HandlerModel model, MethodPhase handle, string taskWrap, string taskClose, string indent, HashSet<string> hoistedTypes)
     {
         var handleAwait = handle.IsAsync ? "await " : "";
         var callArguments = string.Join(", ", BuildCallArguments(handle, model.LocalVariables));
         var methodTarget = handle.IsStatic ? model.FullClassName : "_handler";
-        sb.AppendLine($"{indent}        var response = {handleAwait}{methodTarget}.Handle({callArguments});");
-        sb.AppendLine($"{indent}        return {taskWrap}global::MiniBus.Result<{model.FullResponseType}>.Success(response){taskClose};");
+
+        if (handle.Returns.Count > 1)
+        {
+            var hasHoistedReturns = handle.Returns.Any(e => hoistedTypes.Contains(e.FullType));
+            if (!hasHoistedReturns)
+            {
+                var varNames = string.Join(", ", handle.Returns.Select(e => e.LocalName));
+                sb.AppendLine($"{indent}        var ({varNames}) = {handleAwait}{methodTarget}.{handle.MethodName}({callArguments});");
+            }
+            else if (handle.Returns.All(e => hoistedTypes.Contains(e.FullType)))
+            {
+                var varNames = string.Join(", ", handle.Returns.Select(e => e.LocalName));
+                sb.AppendLine($"{indent}        ({varNames}) = {handleAwait}{methodTarget}.{handle.MethodName}({callArguments});");
+            }
+            else
+            {
+                var tempNames = handle.Returns
+                    .Select((_, index) => $"__{handle.MethodName}Result{index}")
+                    .ToArray();
+                sb.AppendLine($"{indent}        var ({string.Join(", ", tempNames)}) = {handleAwait}{methodTarget}.{handle.MethodName}({callArguments});");
+
+                for (var index = 0; index < handle.Returns.Count; index++)
+                {
+                    var element = handle.Returns[index];
+                    var varKeyword = hoistedTypes.Contains(element.FullType) ? "" : "var ";
+                    sb.AppendLine($"{indent}        {varKeyword}{element.LocalName} = {tempNames[index]};");
+                }
+            }
+        }
+        else
+        {
+            var isHoisted = hoistedTypes.Contains(handle.Returns[0].FullType);
+            var varKeyword = isHoisted ? "" : "var ";
+            sb.AppendLine($"{indent}        {varKeyword}{handle.Returns[0].LocalName} = {handleAwait}{methodTarget}.{handle.MethodName}({callArguments});");
+        }
+
+        BuildValidationResultChecks(sb, model, handle.Returns, taskWrap, taskClose, indent);
+        BuildNotFoundChecks(sb, model, handle.Returns, taskWrap, taskClose, indent);
+        var firstReturn = handle.Returns[0];
+        var firstLocal = model.LocalVariables.FirstOrDefault(l => l.FullType == firstReturn.FullType);
+        return firstLocal?.CheckNullability == true ? firstReturn.NonNullLocalName : firstReturn.LocalName;
     }
 
     private static IEnumerable<string> BuildCallArguments(MethodPhase phase, EquatableArray<LocalVariable> returnElements)
@@ -145,6 +275,41 @@ public static class DispatcherSourceBuilder
             }
 
             yield return returnElements
+                .Single(local => local.FullType == parameter.FullType)
+                .LocalName;
+        }
+    }
+
+    private static void BuildFinallyPhase(StringBuilder sb, HandlerModel model, MethodPhase finallyPhase, string indent, IReadOnlyDictionary<string, string> hoistedLocalNames)
+    {
+        var awaitPrefix = finallyPhase.IsAsync ? "await " : "";
+        var callArguments = string.Join(", ", BuildFinallyCallArguments(finallyPhase, model.LocalVariables, hoistedLocalNames));
+        var methodTarget = finallyPhase.IsStatic ? model.FullClassName : "_handler";
+        sb.AppendLine($"{indent}            {awaitPrefix}{methodTarget}.{finallyPhase.MethodName}({callArguments});");
+    }
+
+    private static IEnumerable<string> BuildFinallyCallArguments(
+        MethodPhase finallyPhase,
+        EquatableArray<LocalVariable> localVariables,
+        IReadOnlyDictionary<string, string> hoistedLocalNames)
+    {
+        foreach (var parameter in finallyPhase.Parameters)
+        {
+            if (parameter.IsFromServices)
+            {
+                yield return parameter.IsNullable
+                    ? $"_serviceProvider.GetService<{parameter.FullType}>()"
+                    : $"_serviceProvider.GetRequiredService<{parameter.FullType}>()";
+                continue;
+            }
+
+            if (hoistedLocalNames.TryGetValue(parameter.FullType, out var hoistedLocalName))
+            {
+                yield return hoistedLocalName;
+                continue;
+            }
+
+            yield return localVariables
                 .Single(local => local.FullType == parameter.FullType)
                 .LocalName;
         }

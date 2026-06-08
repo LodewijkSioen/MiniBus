@@ -1,0 +1,76 @@
+﻿{
+  Model: {
+    Namespace: TestApp,
+    ClassName: FinallyDiParamsHandler,
+    FullClassName: global::TestApp.FinallyDiParamsHandler,
+    FullRequestType: global::TestApp.FinallyDiParamsHandler.Request,
+    FullResponseType: global::TestApp.FinallyDiParamsHandler.Response,
+    Phases: [
+      {
+        Type: Handle,
+        MethodName: Handle,
+        IsAsync: false,
+        IsStatic: false,
+        Parameters: [
+          {
+            LocalName: request,
+            FullType: global::TestApp.FinallyDiParamsHandler.Request,
+            IsNullable: false,
+            NotNullMessage: request cannot be null,
+            IsFromServices: false
+          }
+        ],
+        Returns: [
+          {
+            LocalName: fromHandle,
+            FullType: global::TestApp.FinallyDiParamsHandler.Response,
+            IsNullable: false,
+            NonNullLocalName: fromHandle,
+            IsValidationResult: false
+          }
+        ]
+      }
+    ],
+    LocalVariables: [
+      {
+        LocalName: fromHandle,
+        FullType: global::TestApp.FinallyDiParamsHandler.Response,
+        CheckNullability: false
+      },
+      {
+        LocalName: request,
+        FullType: global::TestApp.FinallyDiParamsHandler.Request,
+        CheckNullability: false
+      }
+    ],
+    FinallyPhase: {
+      Type: Finally,
+      MethodName: Finally,
+      IsAsync: false,
+      IsStatic: false,
+      Parameters: [
+        {
+          LocalName: request,
+          FullType: global::TestApp.FinallyDiParamsHandler.Request,
+          IsNullable: false,
+          NotNullMessage: request cannot be null,
+          IsFromServices: false
+        },
+        {
+          LocalName: service,
+          FullType: global::TestApp.IService,
+          IsNullable: false,
+          NotNullMessage: service cannot be null,
+          IsFromServices: true
+        }
+      ],
+      Returns: null
+    },
+    DispatcherFullName: global::TestApp.FinallyDiParamsHandlerDispatcher,
+    DispatcherKey: global::TestApp.FinallyDiParamsHandler.Request|global::TestApp.FinallyDiParamsHandler.Response,
+    IsAnyAsync: false,
+    HasInstanceMethods: true,
+    HasFromServicesParameters: true
+  },
+  Diagnostics: null
+}

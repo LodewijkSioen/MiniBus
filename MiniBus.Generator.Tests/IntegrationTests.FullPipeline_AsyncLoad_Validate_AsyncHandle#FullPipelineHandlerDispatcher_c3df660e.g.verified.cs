@@ -30,8 +30,8 @@ namespace TestApp
             if (!fromValidate.IsValid())
                 return global::MiniBus.Result<global::TestApp.FullPipelineHandler.Response>.Invalid(fromValidate);
 
-            var response = await _handler.Handle(fromLoadValue);
-            return global::MiniBus.Result<global::TestApp.FullPipelineHandler.Response>.Success(response);
+            var fromHandle = await _handler.Handle(fromLoadValue);
+            return global::MiniBus.Result<global::TestApp.FullPipelineHandler.Response>.Success(fromHandle);
         }
     }
 }

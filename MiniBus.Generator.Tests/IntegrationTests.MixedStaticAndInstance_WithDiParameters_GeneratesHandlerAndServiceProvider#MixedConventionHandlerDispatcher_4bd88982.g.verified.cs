@@ -29,8 +29,8 @@ namespace TestApp
             if (!fromValidate.IsValid())
                 return global::System.Threading.Tasks.Task.FromResult(global::MiniBus.Result<global::TestApp.MixedConventionHandler.Response>.Invalid(fromValidate));
 
-            var response = _handler.Handle(request);
-            return global::System.Threading.Tasks.Task.FromResult(global::MiniBus.Result<global::TestApp.MixedConventionHandler.Response>.Success(response));
+            var fromHandle = _handler.Handle(request);
+            return global::System.Threading.Tasks.Task.FromResult(global::MiniBus.Result<global::TestApp.MixedConventionHandler.Response>.Success(fromHandle));
         }
     }
 }

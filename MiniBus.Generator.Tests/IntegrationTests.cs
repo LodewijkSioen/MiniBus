@@ -39,6 +39,68 @@ public class IntegrationTests
     }
 
     [Test]
+    public Task FullPipeline_BeforeNamingConventions_AsyncHandle()
+    {
+        const string source = """
+            using MiniBus;
+            namespace TestApp;
+
+            [Handler]
+            public class BeforeConventionPipelineHandler
+            {
+                public record Request(int Id);
+                public record Entity(int Id, string Name);
+                public record Prepared(string Name);
+                public record Response(string Name);
+
+                public Entity BeforeLoad(Request request)
+                    => new Entity(request.Id, "item");
+
+                public Prepared NormalizeBefore(Entity entity)
+                    => new Prepared(entity.Name);
+
+                public ValidationResult Validate(Prepared prepared)
+                    => new ValidationResult();
+
+                public System.Threading.Tasks.Task<Response> Handle(Prepared prepared)
+                    => System.Threading.Tasks.Task.FromResult(new Response(prepared.Name));
+            }
+            """;
+
+        var driver = GeneratorTestHelper.RunDriver(source);
+        return Verify(driver);
+    }
+
+    [Test]
+    public Task FullPipeline_ExecuteAsyncHandleAlias()
+    {
+        const string source = """
+            using MiniBus;
+            namespace TestApp;
+
+            [Handler]
+            public class ExecuteAsyncPipelineHandler
+            {
+                public record Request(int Id);
+                public record Entity(int Id, string Name);
+                public record Response(string Name);
+
+                public Entity Load(Request request)
+                    => new Entity(request.Id, "item");
+
+                public ValidationResult Validate(Entity entity)
+                    => new ValidationResult();
+
+                public System.Threading.Tasks.Task<Response> ExecuteAsync(Entity entity)
+                    => System.Threading.Tasks.Task.FromResult(new Response(entity.Name));
+            }
+            """;
+
+        var driver = GeneratorTestHelper.RunDriver(source);
+        return Verify(driver);
+    }
+
+    [Test]
     public Task MultipleHandlers_GenerateSeparateDispatchersAndSharedRegistrations()
     {
         const string source = """
@@ -99,7 +161,7 @@ public class IntegrationTests
     }
 
     [Test]
-    public Task MissingHandleMethod_ProducesNoOutput()
+    public Task MissingHandleMethodAliases_ProducesNoOutput()
     {
         const string source = """
             using MiniBus;
@@ -250,6 +312,41 @@ public class IntegrationTests
     }
 
     [Test]
+    public void MultipleInvalidPreHandleReturns_ReportMBG007ForEach_AndSkipDispatcherGeneration()
+    {
+        const string source = """
+            using MiniBus;
+            namespace TestApp;
+
+            [Handler]
+            public class InvalidPreReturnsHandler
+            {
+                public record Request(int Id);
+                public record Response(string Value);
+
+                public void BeforeLoad(Request request) { }
+
+                public System.Threading.Tasks.Task NormalizeBefore(Request request)
+                    => System.Threading.Tasks.Task.CompletedTask;
+
+                public Response Handle(Request request)
+                    => new Response(request.Id.ToString());
+            }
+            """;
+
+        var result = GeneratorTestHelper.Run(source);
+
+        var unsupportedReturnDiagnostics = result.Diagnostics
+            .Where(d => d.Id == "MBG007")
+            .Select(d => d.GetMessage())
+            .ToArray();
+
+        Assert.That(unsupportedReturnDiagnostics.Any(message => message.Contains("BeforeLoad", StringComparison.Ordinal)), Is.True);
+        Assert.That(unsupportedReturnDiagnostics.Any(message => message.Contains("NormalizeBefore", StringComparison.Ordinal)), Is.True);
+        Assert.That(result.GeneratedSources.Any(s => s.Contains("InvalidPreReturnsHandlerDispatcher", StringComparison.Ordinal)), Is.False);
+    }
+
+    [Test]
     public void TaskHandleWithoutResult_ReportsMBG007_AndSkipsDispatcherGeneration()
     {
         const string source = """
@@ -301,6 +398,98 @@ public class IntegrationTests
 
         Assert.That(result.Diagnostics.Any(d => d.Id == "MBG008"), Is.True);
         Assert.That(result.GeneratedSources.Any(s => s.Contains("CyclicPipelineHandlerDispatcher", StringComparison.Ordinal)), Is.False);
+    }
+
+    [Test]
+    public void PostMethods_AreGeneratedAfterHandle_AndBeforeSuccessReturn()
+    {
+        const string source = """
+            using MiniBus;
+            namespace TestApp;
+
+            [Handler]
+            public class PostPipelineHandler
+            {
+                public record Request(int Id);
+                public record Response(string Value);
+                public record Audit(string Value);
+
+                public Response Handle(Request request)
+                    => new Response(request.Id.ToString());
+
+                public Audit AfterAudit(Response response)
+                    => new Audit(response.Value);
+            }
+            """;
+
+        var result = GeneratorTestHelper.Run(source);
+        var dispatcher = result.GeneratedSources.First(s => s.Contains("public class PostPipelineHandlerDispatcher", StringComparison.Ordinal));
+
+        var handleCallIndex = dispatcher.IndexOf(".Handle(", StringComparison.Ordinal);
+        var postCallIndex = dispatcher.IndexOf(".AfterAudit(", StringComparison.Ordinal);
+        var successCallIndex = dispatcher.IndexOf(".Success(", StringComparison.Ordinal);
+
+        Assert.That(handleCallIndex, Is.GreaterThanOrEqualTo(0));
+        Assert.That(postCallIndex, Is.GreaterThan(handleCallIndex));
+        Assert.That(successCallIndex, Is.GreaterThan(postCallIndex));
+    }
+
+    [Test]
+    public void PostMethodWithUnsupportedReturn_ReportsMBG007_AndSkipsDispatcherGeneration()
+    {
+        const string source = """
+            using MiniBus;
+            namespace TestApp;
+
+            [Handler]
+            public class InvalidPostReturnHandler
+            {
+                public record Request(int Id);
+                public record Response(string Value);
+
+                public Response Handle(Request request)
+                    => new Response(request.Id.ToString());
+
+                public void AfterAudit(Response response) { }
+            }
+            """;
+
+        var result = GeneratorTestHelper.Run(source);
+
+        Assert.That(result.Diagnostics.Any(d => d.Id == "MBG007"), Is.True);
+        Assert.That(result.GeneratedSources.Any(s => s.Contains("InvalidPostReturnHandlerDispatcher", StringComparison.Ordinal)), Is.False);
+    }
+
+    [Test]
+    public void CyclicPostDependencies_ReportMBG008_AndSkipDispatcherGeneration()
+    {
+        const string source = """
+            using MiniBus;
+            namespace TestApp;
+
+            [Handler]
+            public class CyclicPostPipelineHandler
+            {
+                public record Request(int Id);
+                public record Response(int Value);
+                public record A(int Value);
+                public record B(int Value);
+
+                public Response Handle(Request request)
+                    => new Response(request.Id);
+
+                public A AfterA(B value)
+                    => new A(value.Value);
+
+                public B PostB(A value)
+                    => new B(value.Value);
+            }
+            """;
+
+        var result = GeneratorTestHelper.Run(source);
+
+        Assert.That(result.Diagnostics.Any(d => d.Id == "MBG008"), Is.True);
+        Assert.That(result.GeneratedSources.Any(s => s.Contains("CyclicPostPipelineHandlerDispatcher", StringComparison.Ordinal)), Is.False);
     }
 
     [Test]
@@ -534,6 +723,64 @@ public class IntegrationTests
 
                 public Response Handle(Request request)
                     => new Response(request.Value);
+            }
+            """;
+
+        var driver = GeneratorTestHelper.RunDriver(source);
+        return Verify(driver);
+    }
+
+    [Test]
+    public Task FullPipeline_WithFinally()
+    {
+        const string source = """
+            using MiniBus;
+            namespace TestApp;
+
+            [Handler]
+            public class FullPipelineWithFinallyHandler
+            {
+                public record Request(int Id);
+                public record Response(string Name);
+                public record Entity(int Id, string Name);
+
+                public System.Threading.Tasks.Task<Entity?> Load(Request request)
+                    => System.Threading.Tasks.Task.FromResult<Entity?>(new Entity(request.Id, "item"));
+
+                public ValidationResult Validate(Entity entity)
+                    => new ValidationResult();
+
+                public System.Threading.Tasks.Task<Response> Handle(Entity entity)
+                    => System.Threading.Tasks.Task.FromResult(new Response(entity.Name));
+
+                public System.Threading.Tasks.Task FinallyAsync(Request request, Entity? entity)
+                    => System.Threading.Tasks.Task.CompletedTask;
+            }
+            """;
+
+        var driver = GeneratorTestHelper.RunDriver(source);
+        return Verify(driver);
+    }
+
+    [Test]
+    public Task NullableHandleReturn_WithPostHandle_EmitsNotFoundCheck()
+    {
+        const string source = """
+            using MiniBus;
+            namespace TestApp;
+
+            [Handler]
+            public class NullableHandleReturnHandler
+            {
+                public record Request(int Id);
+                public record Response(string Name);
+                public record Audit(string Value);
+
+                public Response? Handle(Request request)
+                    => request.Id > 0 ? new Response(request.Id.ToString()) : null;
+
+                public Audit AfterAudit(Response response)
+                    => new Audit(response.Name);
             }
             """;
 

@@ -22,8 +22,8 @@ namespace TestApp
             global::MiniBus.Result<global::TestApp.HandlerA.Response>>
             Handle(global::TestApp.HandlerA.Request request)
         {
-            var response = await _handler.Handle(request);
-            return global::MiniBus.Result<global::TestApp.HandlerA.Response>.Success(response);
+            var fromHandle = await _handler.Handle(request);
+            return global::MiniBus.Result<global::TestApp.HandlerA.Response>.Success(fromHandle);
         }
     }
 }

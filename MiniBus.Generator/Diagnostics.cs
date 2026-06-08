@@ -109,6 +109,22 @@ internal static class Diagnostics
         defaultSeverity: DiagnosticSeverity.Error,
         isEnabledByDefault: true);
 
+    private static readonly DiagnosticDescriptor InvalidHandleTupleResponseDescriptor = new(
+        id: "MBG009",
+        title: "Invalid Handle tuple response shape",
+        messageFormat: "Handler '{0}' has invalid {2} return type '{1}'. When the handle entry method returns a tuple, the first tuple element cannot be ValidationResult.",
+        category: "MiniBus.Generator",
+        defaultSeverity: DiagnosticSeverity.Error,
+        isEnabledByDefault: true);
+
+    private static readonly DiagnosticDescriptor FinallyParameterMustBeNullableDescriptor = new(
+        id: "MBG010",
+        title: "Finally parameter must be nullable",
+        messageFormat: "Handler '{0}' has Finally method with non-nullable parameter '{1}' of type '{2}' that matches a pipeline return type. Parameters matching pipeline returns must be nullable.",
+        category: "MiniBus.Generator",
+        defaultSeverity: DiagnosticSeverity.Error,
+        isEnabledByDefault: true);
+
     public static DiagnosticInfo DuplicateRequestType(
         Location location,
         string handlerName,
@@ -179,4 +195,24 @@ internal static class Diagnostics
             descriptor: CyclicPhaseDependencyDescriptor,
             location: location,
             messageArgs: [handlerName, methodNames]);
+
+    public static DiagnosticInfo InvalidHandleTupleResponse(
+        Location location,
+        string handlerName,
+        string returnType,
+        string methodName) =>
+        new (
+            descriptor: InvalidHandleTupleResponseDescriptor,
+            location: location,
+            messageArgs: [handlerName, returnType, methodName]);
+
+    public static DiagnosticInfo FinallyParameterMustBeNullable(
+        Location location,
+        string handlerName,
+        string parameterName,
+        string parameterType) =>
+        new (
+            descriptor: FinallyParameterMustBeNullableDescriptor,
+            location: location,
+            messageArgs: [handlerName, parameterName, parameterType]);
 }

@@ -121,6 +121,27 @@ public class HandlerModelExtractionTests
         await Verify(result);
     }
 
+    [Test]
+    public async Task ExecuteAsyncHandleAlias_IsDetectedAsHandleMethod()
+    {
+        const string source = """
+            using MiniBus;
+            namespace TestApp;
+            [Handler]
+            public class ExecuteAsyncHandler
+            {
+                public record Request(int Id);
+                public record Response(string Name);
+                public System.Threading.Tasks.Task<Response> ExecuteAsync(Request request)
+                    => System.Threading.Tasks.Task.FromResult(new Response(request.Id.ToString()));
+            }
+            """;
+
+        var result = HandlerModelFactory.GetHandlerModel(GetSymbol(source, "ExecuteAsyncHandler"), Location.None);
+
+        await Verify(result);
+    }
+
     // ── Load ──────────────────────────────────────────────────────────────
 
     [Test]
@@ -442,23 +463,71 @@ public class HandlerModelExtractionTests
     }
 
     [Test]
-    public async Task ValidateWithWrongReturnType_IsIgnored()
+    public async Task ValidateWithNonValidationResultReturn_IsIncluded()
     {
         const string source = """
             using MiniBus;
             namespace TestApp;
             [Handler]
-            public class WrongValidateHandler
+            public class NonValidationValidateHandler
             {
                 public record Request(string Value);
                 public record Response(string Out);
-                public string Validate(Request request) => "not a ValidationResult";
-                public System.Threading.Tasks.Task<Response> Handle(Request request)
-                    => System.Threading.Tasks.Task.FromResult(new Response(request.Value));
+                public string Validate(Request request) => request.Value;
+                public System.Threading.Tasks.Task<Response> Handle(string fromValidate)
+                    => System.Threading.Tasks.Task.FromResult(new Response(fromValidate));
             }
             """;
 
-        var result = HandlerModelFactory.GetHandlerModel(GetSymbol(source, "WrongValidateHandler"), Location.None);
+        var result = HandlerModelFactory.GetHandlerModel(GetSymbol(source, "NonValidationValidateHandler"), Location.None);
+
+        await Verify(result);
+    }
+
+    [Test]
+    public async Task ValidateReturningTupleWithValidationResult_IsIncluded()
+    {
+        const string source = """
+            using MiniBus;
+            namespace TestApp;
+            [Handler]
+            public class ValidateTupleHandler
+            {
+                public record Request(int Id);
+                public record Payload(int Value);
+                public record Response(int Value);
+
+                public (ValidationResult validation, Payload payload) Validate(Request request)
+                    => (new ValidationResult(), new Payload(request.Id));
+
+                public System.Threading.Tasks.Task<Response> Handle(Payload payload)
+                    => System.Threading.Tasks.Task.FromResult(new Response(payload.Value));
+            }
+            """;
+
+        var result = HandlerModelFactory.GetHandlerModel(GetSymbol(source, "ValidateTupleHandler"), Location.None);
+
+        await Verify(result);
+    }
+
+    [Test]
+    public async Task HandleTupleWithValidationResultFirst_ReportsMBG009_AndReturnsNullModel()
+    {
+        const string source = """
+            using MiniBus;
+            namespace TestApp;
+            [Handler]
+            public class InvalidHandleTupleHandler
+            {
+                public record Request(int Id);
+                public record Response(string Value);
+
+                public (ValidationResult validation, Response response) Handle(Request request)
+                    => (new ValidationResult(), new Response(request.Id.ToString()));
+            }
+            """;
+
+        var result = HandlerModelFactory.GetHandlerModel(GetSymbol(source, "InvalidHandleTupleHandler"), Location.None);
 
         await Verify(result);
     }
@@ -482,6 +551,97 @@ public class HandlerModelExtractionTests
             """;
 
         var result = HandlerModelFactory.GetHandlerModel(GetSymbol(source, "ValidateRequestTypeHandler"), Location.None);
+
+        await Verify(result);
+    }
+
+    [Test]
+    public async Task BeforeNameConventions_AndAsyncAliases_AreIncludedAsPreHandlePhases()
+    {
+        const string source = """
+            using MiniBus;
+            namespace TestApp;
+            [Handler]
+            public class BeforeConventionHandler
+            {
+                public record Request(string Value);
+                public record Entity(string Value);
+                public record Prepared(string Value);
+                public record Enriched(string Value);
+                public record Response(string Value);
+
+                public Entity LoadAsync(Request request) => new Entity(request.Value);
+
+                public Prepared BeforeNormalize(Entity entity) => new Prepared(entity.Value + "-prepared");
+
+                public Enriched NormalizeBeforeAsync(Prepared prepared) => new Enriched(prepared.Value + "-enriched");
+
+                public ValidationResult ValidateAsync(Enriched enriched) => new ValidationResult();
+
+                public Response Handle(Enriched enriched) => new Response(enriched.Value);
+            }
+            """;
+
+        var result = HandlerModelFactory.GetHandlerModel(GetSymbol(source, "BeforeConventionHandler"), Location.None);
+
+        await Verify(result);
+    }
+
+    [Test]
+    public async Task AfterAndPostNameConventions_AreIncludedAsPostHandlePhases()
+    {
+        const string source = """
+            using MiniBus;
+            namespace TestApp;
+            [Handler]
+            public class PostConventionHandler
+            {
+                public record Request(string Value);
+                public record Response(string Value);
+                public record Audit(string Value);
+
+                public Response Handle(Request request)
+                    => new Response(request.Value);
+
+                public Audit AfterAudit(Response response)
+                    => new Audit(response.Value + "-audit");
+
+                public ValidationResult PostValidate(Audit audit)
+                    => new ValidationResult();
+            }
+            """;
+
+        var result = HandlerModelFactory.GetHandlerModel(GetSymbol(source, "PostConventionHandler"), Location.None);
+
+        await Verify(result);
+    }
+
+    [Test]
+    public async Task PostOrder_DependencyBased_UsesSameMechanismAsPreHandle()
+    {
+        const string source = """
+            using MiniBus;
+            namespace TestApp;
+            [Handler]
+            public class PostOrderingHandler
+            {
+                public record Request(string Value);
+                public record Response(string Value);
+                public record Audit(string Value);
+                public record Envelope(string Value);
+
+                public Response Handle(Request request)
+                    => new Response(request.Value);
+
+                public Envelope PostWrap(Audit audit)
+                    => new Envelope(audit.Value);
+
+                public Audit AfterAudit(Response response)
+                    => new Audit(response.Value + "-audit");
+            }
+            """;
+
+        var result = HandlerModelFactory.GetHandlerModel(GetSymbol(source, "PostOrderingHandler"), Location.None);
 
         await Verify(result);
     }
@@ -558,6 +718,163 @@ public class HandlerModelExtractionTests
         var result2 = HandlerModelFactory.GetHandlerModel(GetSymbol(source, "BothValidateArgsHandler"), Location.None);
 
         Assert.That(result1, Is.EqualTo(result2));
+    }
+
+    // ── Finally ──────────────────────────────────────────────────────────
+
+    [Test]
+    public async Task FinallyMethod_IsDetectedAsFinallyPhase()
+    {
+        const string source = """
+            using MiniBus;
+            namespace TestApp;
+            [Handler]
+            public class FinallyHandler
+            {
+                public record Request(int Id);
+                public record Response(string Value);
+                public Response Handle(Request request) => new Response("test");
+                public void Finally(Request request) { }
+            }
+            """;
+
+        var result = HandlerModelFactory.GetHandlerModel(GetSymbol(source, "FinallyHandler"), Location.None);
+
+        await Verify(result);
+    }
+
+    [Test]
+    public async Task FinallyAsyncMethod_IsAsync()
+    {
+        const string source = """
+            using MiniBus;
+            namespace TestApp;
+            [Handler]
+            public class FinallyAsyncHandler
+            {
+                public record Request(int Id);
+                public record Response(string Value);
+                public Response Handle(Request request) => new Response("test");
+                public System.Threading.Tasks.Task FinallyAsync(Request request) => System.Threading.Tasks.Task.CompletedTask;
+            }
+            """;
+
+        var result = HandlerModelFactory.GetHandlerModel(GetSymbol(source, "FinallyAsyncHandler"), Location.None);
+
+        await Verify(result);
+    }
+
+    [Test]
+    public async Task FinallyParams_PipelineReturnTypes_AreNotFromServices()
+    {
+        const string source = """
+            using MiniBus;
+            namespace TestApp;
+            [Handler]
+            public class FinallyPipelineParamsHandler
+            {
+                public record Request(int Id);
+                public record Response(string Value);
+                public record Entity(int Id, string Name);
+                
+                public Entity Load(Request request) => new Entity(request.Id, "test");
+                public Response Handle(Entity entity) => new Response(entity.Name);
+                public void Finally(Request request, Entity? entity) { }
+            }
+            """;
+
+        var result = HandlerModelFactory.GetHandlerModel(GetSymbol(source, "FinallyPipelineParamsHandler"), Location.None);
+
+        await Verify(result);
+    }
+
+    [Test]
+    public async Task FinallyParams_UnknownTypes_AreFromServices()
+    {
+        const string source = """
+            using MiniBus;
+            namespace TestApp;
+            public interface IService;
+            
+            [Handler]
+            public class FinallyDiParamsHandler
+            {
+                public record Request(int Id);
+                public record Response(string Value);
+                public Response Handle(Request request) => new Response("test");
+                public void Finally(Request request, IService service) { }
+            }
+            """;
+
+        var result = HandlerModelFactory.GetHandlerModel(GetSymbol(source, "FinallyDiParamsHandler"), Location.None);
+
+        await Verify(result);
+    }
+
+    [Test]
+    public async Task FinallyWithVoidReturn_IsAccepted()
+    {
+        const string source = """
+            using MiniBus;
+            namespace TestApp;
+            [Handler]
+            public class FinallyVoidHandler
+            {
+                public record Request(int Id);
+                public record Response(string Value);
+                public Response Handle(Request request) => new Response("test");
+                public void Finally(Request request) { }
+            }
+            """;
+
+        var result = HandlerModelFactory.GetHandlerModel(GetSymbol(source, "FinallyVoidHandler"), Location.None);
+
+        await Verify(result);
+    }
+
+    [Test]
+    public async Task FinallyWithTaskReturn_IsAccepted()
+    {
+        const string source = """
+            using MiniBus;
+            namespace TestApp;
+            [Handler]
+            public class FinallyTaskHandler
+            {
+                public record Request(int Id);
+                public record Response(string Value);
+                public Response Handle(Request request) => new Response("test");
+                public System.Threading.Tasks.Task Finally(Request request) => System.Threading.Tasks.Task.CompletedTask;
+            }
+            """;
+
+        var result = HandlerModelFactory.GetHandlerModel(GetSymbol(source, "FinallyTaskHandler"), Location.None);
+
+        await Verify(result);
+    }
+
+    [Test]
+    public async Task FinallyWithNonNullablePipelineParam_ReportsMBG010()
+    {
+        const string source = """
+            using MiniBus;
+            namespace TestApp;
+            [Handler]
+            public class FinallyNonNullableHandler
+            {
+                public record Request(int Id);
+                public record Response(string Value);
+                public record Entity(int Id);
+                
+                public Entity? Load(Request request) => null;
+                public Response Handle(Entity entity) => new Response("test");
+                public void Finally(Entity entity) { }
+            }
+            """;
+
+        var result = HandlerModelFactory.GetHandlerModel(GetSymbol(source, "FinallyNonNullableHandler"), Location.None);
+
+        await Verify(result);
     }
 }
 
