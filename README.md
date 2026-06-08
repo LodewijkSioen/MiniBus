@@ -78,8 +78,12 @@ Each method is optional and may be sync or async
 Special cases:
 - If the return value is nullable and the dependant method defines that type
    as non-nullable, a result with `ResultStatus.NotFound` will be returned.
-- The `Validate` method must return a `ValidationResult` type. If that is 
-   not empty, a result with `ResultStatus.Invalid` will be returned.
+- Any pipeline method may return `ValidationResult`, either as the full return
+  value or as one tuple element.
+- If any returned `ValidationResult` is not empty, dispatch stops and returns
+  `ResultStatus.Invalid`.
+- If `Handle` returns a tuple, the first tuple element is used as the response
+  value and the remaining elements can still participate in validation checks.
 
 ## Result model
 
@@ -104,10 +108,12 @@ The following handler patterns are not supported by source generation:
   Example: all method parameters are already satisfied by earlier pipeline outputs (MBG005).
 - Pipelines that produce duplicate local values of the same type.  
   Example: tuple outputs with two elements of the same type (MBG006).
-- Unsupported `Load` or `Handle` return types.  
+- Unsupported `Load`, `Validate`, or `Handle` return types.  
   Example: `void Load(...)` or non-generic `Task Handle(...)` (MBG007).
 - Cyclic dependencies between pipeline methods.  
   Example: `Load` depends on a type from `Validate` while `Validate` also depends on a type from `Load` (MBG008).
+- `Handle` tuple responses where the first tuple element is `ValidationResult`.
+  The first tuple element is reserved as the successful response payload (MBG009).
 
 Additional runtime limitation:
 

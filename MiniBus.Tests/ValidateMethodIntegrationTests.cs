@@ -62,6 +62,42 @@ public class LoadValidateHandler
         => Task.FromResult(new Response(entity.Name));
 }
 
+[Handler]
+public class ValidateTupleResultHandler
+{
+    public record Request(string Value);
+    public record Prepared(string Value);
+    public record Response(string Value);
+
+    public (global::MiniBus.ValidationResult validation, Prepared prepared) Validate(Request request)
+    {
+        var errors = new global::MiniBus.ValidationResult();
+        if (string.IsNullOrWhiteSpace(request.Value))
+            errors.Add(new global::MiniBus.ValidationError("Value is required", "REQUIRED"));
+
+        return (errors, new Prepared(request.Value));
+    }
+
+    public Task<Response> Handle(Prepared prepared)
+        => Task.FromResult(new Response(prepared.Value.ToUpperInvariant()));
+}
+
+[Handler]
+public class HandleTupleValidationHandler
+{
+    public record Request(int Id);
+    public record Response(int Value);
+
+    public (Response response, global::MiniBus.ValidationResult validation) Handle(Request request)
+    {
+        var errors = new global::MiniBus.ValidationResult();
+        if (request.Id <= 0)
+            errors.Add(new global::MiniBus.ValidationError("Id must be positive", "POSITIVE"));
+
+        return (new Response(request.Id * 3), errors);
+    }
+}
+
 // ── Tests ─────────────────────────────────────────────────────────────────────
 
 [TestFixture]
@@ -153,5 +189,53 @@ public class ValidateMethodIntegrationTests
 
         Assert.That(result.IsSuccess, Is.True);
         Assert.That(result.Response!.Name, Is.EqualTo("item-42"));
+    }
+
+    [Test]
+    public async Task ValidateTupleResult_InvalidRequest_ReturnsInvalid()
+    {
+        using var scope = AppUnderTest.Services.CreateScope();
+        var bus = scope.ServiceProvider.GetRequiredService<MiniBus>();
+
+        var result = await bus.Handle(new ValidateTupleResultHandler.Request(""));
+
+        Assert.That(result.Status, Is.EqualTo(global::MiniBus.ResultStatus.Invalid));
+        Assert.That(result.ValidationErrors[0].Code, Is.EqualTo("REQUIRED"));
+    }
+
+    [Test]
+    public async Task ValidateTupleResult_ValidRequest_PassesToHandle()
+    {
+        using var scope = AppUnderTest.Services.CreateScope();
+        var bus = scope.ServiceProvider.GetRequiredService<MiniBus>();
+
+        var result = await bus.Handle(new ValidateTupleResultHandler.Request("hello"));
+
+        Assert.That(result.IsSuccess, Is.True);
+        Assert.That(result.Response!.Value, Is.EqualTo("HELLO"));
+    }
+
+    [Test]
+    public async Task HandleTupleValidation_InvalidRequest_ReturnsInvalid()
+    {
+        using var scope = AppUnderTest.Services.CreateScope();
+        var bus = scope.ServiceProvider.GetRequiredService<MiniBus>();
+
+        var result = await bus.Handle(new HandleTupleValidationHandler.Request(0));
+
+        Assert.That(result.Status, Is.EqualTo(global::MiniBus.ResultStatus.Invalid));
+        Assert.That(result.ValidationErrors[0].Code, Is.EqualTo("POSITIVE"));
+    }
+
+    [Test]
+    public async Task HandleTupleValidation_ValidRequest_UsesTupleItem1AsResponse()
+    {
+        using var scope = AppUnderTest.Services.CreateScope();
+        var bus = scope.ServiceProvider.GetRequiredService<MiniBus>();
+
+        var result = await bus.Handle(new HandleTupleValidationHandler.Request(5));
+
+        Assert.That(result.IsSuccess, Is.True);
+        Assert.That(result.Response!.Value, Is.EqualTo(15));
     }
 }

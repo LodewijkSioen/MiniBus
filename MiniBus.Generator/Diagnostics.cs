@@ -109,6 +109,14 @@ internal static class Diagnostics
         defaultSeverity: DiagnosticSeverity.Error,
         isEnabledByDefault: true);
 
+    private static readonly DiagnosticDescriptor InvalidHandleTupleResponseDescriptor = new(
+        id: "MBG009",
+        title: "Invalid Handle tuple response shape",
+        messageFormat: "Handler '{0}' has invalid Handle return type '{1}'. When Handle returns a tuple, the first tuple element cannot be ValidationResult.",
+        category: "MiniBus.Generator",
+        defaultSeverity: DiagnosticSeverity.Error,
+        isEnabledByDefault: true);
+
     public static DiagnosticInfo DuplicateRequestType(
         Location location,
         string handlerName,
@@ -179,4 +187,13 @@ internal static class Diagnostics
             descriptor: CyclicPhaseDependencyDescriptor,
             location: location,
             messageArgs: [handlerName, methodNames]);
+
+    public static DiagnosticInfo InvalidHandleTupleResponse(
+        Location location,
+        string handlerName,
+        string returnType) =>
+        new (
+            descriptor: InvalidHandleTupleResponseDescriptor,
+            location: location,
+            messageArgs: [handlerName, returnType]);
 }

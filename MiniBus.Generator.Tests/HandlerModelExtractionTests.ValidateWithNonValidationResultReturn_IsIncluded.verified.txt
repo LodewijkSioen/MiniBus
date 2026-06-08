@@ -1,0 +1,82 @@
+﻿{
+  Model: {
+    Namespace: TestApp,
+    ClassName: NonValidationValidateHandler,
+    FullClassName: global::TestApp.NonValidationValidateHandler,
+    FullRequestType: global::TestApp.NonValidationValidateHandler.Request,
+    FullResponseType: global::TestApp.NonValidationValidateHandler.Response,
+    Phases: [
+      {
+        MethodName: Validate,
+        IsAsync: false,
+        IsStatic: false,
+        Parameters: [
+          {
+            LocalName: request,
+            FullType: global::TestApp.NonValidationValidateHandler.Request,
+            IsNullable: false,
+            NotNullMessage: request cannot be null,
+            IsFromServices: false
+          }
+        ],
+        Returns: [
+          {
+            LocalName: fromValidate,
+            FullType: string,
+            IsNullable: false,
+            NonNullLocalName: fromValidate,
+            IsValidationResult: false
+          }
+        ]
+      },
+      {
+        Type: Handle,
+        MethodName: Handle,
+        IsAsync: true,
+        IsStatic: false,
+        Parameters: [
+          {
+            LocalName: fromValidate,
+            FullType: string,
+            IsNullable: false,
+            NotNullMessage: fromValidate cannot be null,
+            IsFromServices: false
+          }
+        ],
+        Returns: [
+          {
+            LocalName: fromHandle,
+            FullType: global::TestApp.NonValidationValidateHandler.Response,
+            IsNullable: false,
+            NonNullLocalName: fromHandle,
+            IsValidationResult: false
+          }
+        ]
+      }
+    ],
+    LocalVariables: [
+      {
+        LocalName: fromValidate,
+        FullType: string,
+        CheckNullability: false,
+        IfNullErrorMessage: fromValidate cannot be null
+      },
+      {
+        LocalName: fromHandle,
+        FullType: global::TestApp.NonValidationValidateHandler.Response,
+        CheckNullability: false
+      },
+      {
+        LocalName: request,
+        FullType: global::TestApp.NonValidationValidateHandler.Request,
+        CheckNullability: false
+      }
+    ],
+    DispatcherFullName: global::TestApp.NonValidationValidateHandlerDispatcher,
+    DispatcherKey: global::TestApp.NonValidationValidateHandler.Request|global::TestApp.NonValidationValidateHandler.Response,
+    IsAnyAsync: true,
+    HasInstanceMethods: true,
+    HasFromServicesParameters: false
+  },
+  Diagnostics: null
+}

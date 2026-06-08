@@ -1,0 +1,18 @@
+﻿{
+  Diagnostics: [
+    {
+      Descriptor: {
+        Id: MBG009,
+        Title: Invalid Handle tuple response shape,
+        MessageFormat: Handler '{0}' has invalid Handle return type '{1}'. When Handle returns a tuple, the first tuple element cannot be ValidationResult.,
+        Category: MiniBus.Generator,
+        DefaultSeverity: Error,
+        IsEnabledByDefault: true
+      },
+      MessageArgs: [
+        global::TestApp.InvalidHandleTupleHandler,
+        (global::MiniBus.ValidationResult validation, global::TestApp.InvalidHandleTupleHandler.Response response)
+      ]
+    }
+  ]
+}

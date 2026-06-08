@@ -442,23 +442,71 @@ public class HandlerModelExtractionTests
     }
 
     [Test]
-    public async Task ValidateWithWrongReturnType_IsIgnored()
+    public async Task ValidateWithNonValidationResultReturn_IsIncluded()
     {
         const string source = """
             using MiniBus;
             namespace TestApp;
             [Handler]
-            public class WrongValidateHandler
+            public class NonValidationValidateHandler
             {
                 public record Request(string Value);
                 public record Response(string Out);
-                public string Validate(Request request) => "not a ValidationResult";
-                public System.Threading.Tasks.Task<Response> Handle(Request request)
-                    => System.Threading.Tasks.Task.FromResult(new Response(request.Value));
+                public string Validate(Request request) => request.Value;
+                public System.Threading.Tasks.Task<Response> Handle(string fromValidate)
+                    => System.Threading.Tasks.Task.FromResult(new Response(fromValidate));
             }
             """;
 
-        var result = HandlerModelFactory.GetHandlerModel(GetSymbol(source, "WrongValidateHandler"), Location.None);
+        var result = HandlerModelFactory.GetHandlerModel(GetSymbol(source, "NonValidationValidateHandler"), Location.None);
+
+        await Verify(result);
+    }
+
+    [Test]
+    public async Task ValidateReturningTupleWithValidationResult_IsIncluded()
+    {
+        const string source = """
+            using MiniBus;
+            namespace TestApp;
+            [Handler]
+            public class ValidateTupleHandler
+            {
+                public record Request(int Id);
+                public record Payload(int Value);
+                public record Response(int Value);
+
+                public (ValidationResult validation, Payload payload) Validate(Request request)
+                    => (new ValidationResult(), new Payload(request.Id));
+
+                public System.Threading.Tasks.Task<Response> Handle(Payload payload)
+                    => System.Threading.Tasks.Task.FromResult(new Response(payload.Value));
+            }
+            """;
+
+        var result = HandlerModelFactory.GetHandlerModel(GetSymbol(source, "ValidateTupleHandler"), Location.None);
+
+        await Verify(result);
+    }
+
+    [Test]
+    public async Task HandleTupleWithValidationResultFirst_ReportsMBG009_AndReturnsNullModel()
+    {
+        const string source = """
+            using MiniBus;
+            namespace TestApp;
+            [Handler]
+            public class InvalidHandleTupleHandler
+            {
+                public record Request(int Id);
+                public record Response(string Value);
+
+                public (ValidationResult validation, Response response) Handle(Request request)
+                    => (new ValidationResult(), new Response(request.Id.ToString()));
+            }
+            """;
+
+        var result = HandlerModelFactory.GetHandlerModel(GetSymbol(source, "InvalidHandleTupleHandler"), Location.None);
 
         await Verify(result);
     }

@@ -22,8 +22,8 @@ namespace TestApp
             global::MiniBus.Result<global::TestApp.HandlerTwo.Response>>
             Handle(global::TestApp.SharedRequest request)
         {
-            var response = await _handler.Handle(request);
-            return global::MiniBus.Result<global::TestApp.HandlerTwo.Response>.Success(response);
+            var fromHandle = await _handler.Handle(request);
+            return global::MiniBus.Result<global::TestApp.HandlerTwo.Response>.Success(fromHandle);
         }
     }
 }

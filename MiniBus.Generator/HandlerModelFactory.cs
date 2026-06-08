@@ -81,6 +81,10 @@ public static class HandlerModelFactory
             .OfType<IMethodSymbol>()
             .FirstOrDefault();
 
+        var validateMethod = classSymbol.GetMembers("Validate")
+            .OfType<IMethodSymbol>()
+            .FirstOrDefault();
+
         if (!IsSupportedHandlerMethodReturnType(handleMethod))
         {
             return new(null, new([
@@ -89,6 +93,16 @@ public static class HandlerModelFactory
                     handlerName: classSymbol.ToDisplayString(fmt),
                     returnType: handleMethod.ReturnType.ToDisplayString(fmt),
                     methodName: handleMethod.Name)
+            ]));
+        }
+
+        if (HasInvalidHandleTupleResponse(handleMethod, fmt))
+        {
+            return new(null, new([
+                Diagnostics.InvalidHandleTupleResponse(
+                    location: location,
+                    handlerName: classSymbol.ToDisplayString(fmt),
+                    returnType: handleMethod.ReturnType.ToDisplayString(fmt))
             ]));
         }
 
@@ -103,9 +117,16 @@ public static class HandlerModelFactory
             ]));
         }
 
-        var validateMethod = classSymbol.GetMembers("Validate")
-            .OfType<IMethodSymbol>()
-            .FirstOrDefault(m => IsSupportedValidateMethod(m, fmt));
+        if (validateMethod is not null && !IsSupportedHandlerMethodReturnType(validateMethod))
+        {
+            return new(null, new([
+                Diagnostics.UnsupportedMethodReturnType(
+                    location: location,
+                    handlerName: classSymbol.ToDisplayString(fmt),
+                    returnType: validateMethod.ReturnType.ToDisplayString(fmt),
+                    methodName: validateMethod.Name)
+            ]));
+        }
 
         var handlePhase = new MethodPhase(PhaseType.Handle, handleMethod, fmt);
         var loadPhase = loadMethod is null ? null : new MethodPhase(PhaseType.Before, loadMethod, fmt);
@@ -335,14 +356,37 @@ public static class HandlerModelFactory
         return false;
     }
 
-    private static bool IsSupportedValidateMethod(IMethodSymbol method, SymbolDisplayFormat format)
+    private static bool HasInvalidHandleTupleResponse(IMethodSymbol method, SymbolDisplayFormat format)
     {
-        var returnType = method.ReturnType;
-        if (returnType is INamedTypeSymbol { Name: "Task", TypeArguments.Length: 1 } taskType)
+        var returnType = UnwrapTask(method.ReturnType);
+        if (returnType is not INamedTypeSymbol { IsTupleType: true } tupleType)
         {
-            returnType = taskType.TypeArguments[0];
+            return false;
         }
 
-        return returnType.ToDisplayString(format) == "global::MiniBus.ValidationResult";
+        if (tupleType.TupleElements.Length == 0)
+        {
+            return false;
+        }
+
+        return IsValidationResultType(tupleType.TupleElements[0].Type, format);
+    }
+
+    private static ITypeSymbol UnwrapTask(ITypeSymbol returnType)
+    {
+        if (returnType is INamedTypeSymbol { Name: "Task", TypeArguments.Length: 1 } taskType)
+        {
+            return taskType.TypeArguments[0];
+        }
+
+        return returnType;
+    }
+
+    private static bool IsValidationResultType(ITypeSymbol type, SymbolDisplayFormat format)
+    {
+        var nonNullableType = type.NullableAnnotation == NullableAnnotation.Annotated
+            ? type.WithNullableAnnotation(NullableAnnotation.NotAnnotated)
+            : type;
+        return nonNullableType.ToDisplayString(format) == "global::MiniBus.ValidationResult";
     }
 }

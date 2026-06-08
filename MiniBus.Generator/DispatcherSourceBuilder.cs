@@ -97,23 +97,29 @@ public static class DispatcherSourceBuilder
             sb.AppendLine($"{indent}        var {prePhase.Returns[0].LocalName} = {awaitPrefix}{methodTarget}.{prePhase.MethodName}({callArguments});");
         }
 
-        BuildReturnValueChecks(sb, model, prePhase.Returns, taskWrap, taskClose, indent);
+        BuildValidationResultChecks(sb, model, prePhase.Returns, taskWrap, taskClose, indent);
+        BuildNotFoundChecks(sb, model, prePhase.Returns, taskWrap, taskClose, indent);
 
         sb.AppendLine();
     }
 
-    private static void BuildReturnValueChecks(StringBuilder sb, HandlerModel model, EquatableArray<ReturnElement> returnValues, string taskWrap, string taskClose, string indent)
+    private static void BuildValidationResultChecks(StringBuilder sb, HandlerModel model, EquatableArray<ReturnElement> returnValues, string taskWrap, string taskClose, string indent)
     {
         foreach (var element in returnValues)
         {
-            var local = model.LocalVariables.First(l => l.FullType == element.FullType);
-
             if (element.IsValidationResult)
             {
                 sb.AppendLine($"{indent}        if (!{element.NonNullLocalName}.IsValid())");
                 sb.AppendLine($"{indent}            return {taskWrap}global::MiniBus.Result<{model.FullResponseType}>.Invalid({element.NonNullLocalName}){taskClose};");
             }
+        }
+    }
 
+    private static void BuildNotFoundChecks(StringBuilder sb, HandlerModel model, EquatableArray<ReturnElement> returnValues, string taskWrap, string taskClose, string indent)
+    {
+        foreach (var element in returnValues)
+        {
+            var local = model.LocalVariables.First(l => l.FullType == element.FullType);
             if (local.CheckNullability)
             {
                 var ifNullMessage = local.IfNullErrorMessage is null ? null : $"\"{local.IfNullErrorMessage}\"";
@@ -128,8 +134,20 @@ public static class DispatcherSourceBuilder
         var handleAwait = handle.IsAsync ? "await " : "";
         var callArguments = string.Join(", ", BuildCallArguments(handle, model.LocalVariables));
         var methodTarget = handle.IsStatic ? model.FullClassName : "_handler";
-        sb.AppendLine($"{indent}        var response = {handleAwait}{methodTarget}.Handle({callArguments});");
-        sb.AppendLine($"{indent}        return {taskWrap}global::MiniBus.Result<{model.FullResponseType}>.Success(response){taskClose};");
+
+        if (handle.Returns.Count > 1)
+        {
+            var varNames = string.Join(", ", handle.Returns.Select(e => e.LocalName));
+            sb.AppendLine($"{indent}        var ({varNames}) = {handleAwait}{methodTarget}.Handle({callArguments});");
+        }
+        else
+        {
+            sb.AppendLine($"{indent}        var {handle.Returns[0].LocalName} = {handleAwait}{methodTarget}.Handle({callArguments});");
+        }
+
+        BuildValidationResultChecks(sb, model, handle.Returns, taskWrap, taskClose, indent);
+
+        sb.AppendLine($"{indent}        return {taskWrap}global::MiniBus.Result<{model.FullResponseType}>.Success({handle.Returns[0].LocalName}){taskClose};");
     }
 
     private static IEnumerable<string> BuildCallArguments(MethodPhase phase, EquatableArray<LocalVariable> returnElements)

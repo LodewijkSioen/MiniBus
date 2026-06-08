@@ -1,0 +1,94 @@
+﻿{
+  Model: {
+    Namespace: TestApp,
+    ClassName: ValidateTupleHandler,
+    FullClassName: global::TestApp.ValidateTupleHandler,
+    FullRequestType: global::TestApp.ValidateTupleHandler.Request,
+    FullResponseType: global::TestApp.ValidateTupleHandler.Response,
+    Phases: [
+      {
+        MethodName: Validate,
+        IsAsync: false,
+        IsStatic: false,
+        Parameters: [
+          {
+            LocalName: request,
+            FullType: global::TestApp.ValidateTupleHandler.Request,
+            IsNullable: false,
+            NotNullMessage: request cannot be null,
+            IsFromServices: false
+          }
+        ],
+        Returns: [
+          {
+            LocalName: validationValidate,
+            FullType: global::MiniBus.ValidationResult,
+            IsNullable: false,
+            NonNullLocalName: validationValidate,
+            IsValidationResult: true
+          },
+          {
+            LocalName: payloadValidate,
+            FullType: global::TestApp.ValidateTupleHandler.Payload,
+            IsNullable: false,
+            NonNullLocalName: payloadValidate,
+            IsValidationResult: false
+          }
+        ]
+      },
+      {
+        Type: Handle,
+        MethodName: Handle,
+        IsAsync: true,
+        IsStatic: false,
+        Parameters: [
+          {
+            LocalName: payload,
+            FullType: global::TestApp.ValidateTupleHandler.Payload,
+            IsNullable: false,
+            NotNullMessage: payload cannot be null,
+            IsFromServices: false
+          }
+        ],
+        Returns: [
+          {
+            LocalName: fromHandle,
+            FullType: global::TestApp.ValidateTupleHandler.Response,
+            IsNullable: false,
+            NonNullLocalName: fromHandle,
+            IsValidationResult: false
+          }
+        ]
+      }
+    ],
+    LocalVariables: [
+      {
+        LocalName: validationValidate,
+        FullType: global::MiniBus.ValidationResult,
+        CheckNullability: false
+      },
+      {
+        LocalName: payloadValidate,
+        FullType: global::TestApp.ValidateTupleHandler.Payload,
+        CheckNullability: false,
+        IfNullErrorMessage: payload cannot be null
+      },
+      {
+        LocalName: fromHandle,
+        FullType: global::TestApp.ValidateTupleHandler.Response,
+        CheckNullability: false
+      },
+      {
+        LocalName: request,
+        FullType: global::TestApp.ValidateTupleHandler.Request,
+        CheckNullability: false
+      }
+    ],
+    DispatcherFullName: global::TestApp.ValidateTupleHandlerDispatcher,
+    DispatcherKey: global::TestApp.ValidateTupleHandler.Request|global::TestApp.ValidateTupleHandler.Response,
+    IsAnyAsync: true,
+    HasInstanceMethods: true,
+    HasFromServicesParameters: false
+  },
+  Diagnostics: null
+}
