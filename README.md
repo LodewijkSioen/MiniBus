@@ -64,7 +64,7 @@ Behind the scenes, the MiniBus source generator will create:
 
 ## Pipeline behavior
 
-Minibus enables pipeline behavior by looking for pre-handle and post-handle method aliases and naming conventions:
+MiniBus enables pipeline behavior by looking for pre-handle and post-handle method aliases and naming conventions:
 - Exact aliases: `Load`, `LoadAsync`, `Validate`, `ValidateAsync`
 - Name patterns: any method name that starts with `Before`, ends with `Before`, or ends with `BeforeAsync`
 - Post-handle name patterns: any method name that starts with `After` or `Post`
