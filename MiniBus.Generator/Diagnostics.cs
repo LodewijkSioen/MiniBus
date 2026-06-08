@@ -117,6 +117,14 @@ internal static class Diagnostics
         defaultSeverity: DiagnosticSeverity.Error,
         isEnabledByDefault: true);
 
+    private static readonly DiagnosticDescriptor FinallyParameterMustBeNullableDescriptor = new(
+        id: "MBG010",
+        title: "Finally parameter must be nullable",
+        messageFormat: "Handler '{0}' has Finally method with non-nullable parameter '{1}' of type '{2}' that matches a pipeline return type. Parameters matching pipeline returns must be nullable.",
+        category: "MiniBus.Generator",
+        defaultSeverity: DiagnosticSeverity.Error,
+        isEnabledByDefault: true);
+
     public static DiagnosticInfo DuplicateRequestType(
         Location location,
         string handlerName,
@@ -196,4 +204,14 @@ internal static class Diagnostics
             descriptor: InvalidHandleTupleResponseDescriptor,
             location: location,
             messageArgs: [handlerName, returnType]);
+
+    public static DiagnosticInfo FinallyParameterMustBeNullable(
+        Location location,
+        string handlerName,
+        string parameterName,
+        string parameterType) =>
+        new (
+            descriptor: FinallyParameterMustBeNullableDescriptor,
+            location: location,
+            messageArgs: [handlerName, parameterName, parameterType]);
 }

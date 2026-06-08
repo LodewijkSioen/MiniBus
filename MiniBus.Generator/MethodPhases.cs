@@ -24,7 +24,8 @@ public enum PhaseType
 {
     Before,
     Handle,
-    After
+    After,
+    Finally
 }
 
 
@@ -83,7 +84,13 @@ public sealed record MethodPhase
         var (innerType, isAsync) = UnwrapTask(methodSymbol.ReturnType);
         IsAsync = isAsync;
 
-        if (innerType is INamedTypeSymbol { IsTupleType: true } tupleType)
+        // Handle void and non-generic Task returns (used by Finally phase) - they have no return values
+        if (innerType.SpecialType == SpecialType.System_Void ||
+            (innerType is INamedTypeSymbol { Name: "Task", TypeArguments.Length: 0 }))
+        {
+            Returns = EquatableArray<ReturnElement>.Empty;
+        }
+        else if (innerType is INamedTypeSymbol { IsTupleType: true } tupleType)
         {
             var elements = new List<ReturnElement>();
             foreach (var elem in tupleType.TupleElements)
@@ -116,6 +123,17 @@ public sealed record MethodPhase
         }
     }
 
+    private MethodPhase()
+    {
+        // Dummy constructor for record initialization - not used directly
+        Type = PhaseType.Before;
+        MethodName = "";
+        IsAsync = false;
+        IsStatic = false;
+        Parameters = EquatableArray<InputParameter>.Empty;
+        Returns = EquatableArray<ReturnElement>.Empty;
+    }
+
     public PhaseType Type { get; }
     public string MethodName { get; }
     public bool IsAsync { get; }
@@ -127,6 +145,8 @@ public sealed record MethodPhase
     {
         if (returnType is INamedTypeSymbol { Name: "Task", TypeArguments.Length: 1 } task)
             return (task.TypeArguments[0], true);
+        if (returnType is INamedTypeSymbol { Name: "Task", TypeArguments.Length: 0 })
+            return (returnType, true);
         return (returnType, false);
     }
 }

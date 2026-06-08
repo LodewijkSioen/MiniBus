@@ -729,4 +729,36 @@ public class IntegrationTests
         var driver = GeneratorTestHelper.RunDriver(source);
         return Verify(driver);
     }
+
+    [Test]
+    public Task FullPipeline_WithFinally()
+    {
+        const string source = """
+            using MiniBus;
+            namespace TestApp;
+
+            [Handler]
+            public class FullPipelineWithFinallyHandler
+            {
+                public record Request(int Id);
+                public record Response(string Name);
+                public record Entity(int Id, string Name);
+
+                public System.Threading.Tasks.Task<Entity?> Load(Request request)
+                    => System.Threading.Tasks.Task.FromResult<Entity?>(new Entity(request.Id, "item"));
+
+                public ValidationResult Validate(Entity entity)
+                    => new ValidationResult();
+
+                public System.Threading.Tasks.Task<Response> Handle(Entity entity)
+                    => System.Threading.Tasks.Task.FromResult(new Response(entity.Name));
+
+                public System.Threading.Tasks.Task FinallyAsync(Request request, Entity? entity)
+                    => System.Threading.Tasks.Task.CompletedTask;
+            }
+            """;
+
+        var driver = GeneratorTestHelper.RunDriver(source);
+        return Verify(driver);
+    }
 }

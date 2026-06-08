@@ -719,5 +719,162 @@ public class HandlerModelExtractionTests
 
         Assert.That(result1, Is.EqualTo(result2));
     }
+
+    // ── Finally ──────────────────────────────────────────────────────────
+
+    [Test]
+    public async Task FinallyMethod_IsDetectedAsFinallyPhase()
+    {
+        const string source = """
+            using MiniBus;
+            namespace TestApp;
+            [Handler]
+            public class FinallyHandler
+            {
+                public record Request(int Id);
+                public record Response(string Value);
+                public Response Handle(Request request) => new Response("test");
+                public void Finally(Request request) { }
+            }
+            """;
+
+        var result = HandlerModelFactory.GetHandlerModel(GetSymbol(source, "FinallyHandler"), Location.None);
+
+        await Verify(result);
+    }
+
+    [Test]
+    public async Task FinallyAsyncMethod_IsAsync()
+    {
+        const string source = """
+            using MiniBus;
+            namespace TestApp;
+            [Handler]
+            public class FinallyAsyncHandler
+            {
+                public record Request(int Id);
+                public record Response(string Value);
+                public Response Handle(Request request) => new Response("test");
+                public System.Threading.Tasks.Task FinallyAsync(Request request) => System.Threading.Tasks.Task.CompletedTask;
+            }
+            """;
+
+        var result = HandlerModelFactory.GetHandlerModel(GetSymbol(source, "FinallyAsyncHandler"), Location.None);
+
+        await Verify(result);
+    }
+
+    [Test]
+    public async Task FinallyParams_PipelineReturnTypes_AreNotFromServices()
+    {
+        const string source = """
+            using MiniBus;
+            namespace TestApp;
+            [Handler]
+            public class FinallyPipelineParamsHandler
+            {
+                public record Request(int Id);
+                public record Response(string Value);
+                public record Entity(int Id, string Name);
+                
+                public Entity Load(Request request) => new Entity(request.Id, "test");
+                public Response Handle(Entity entity) => new Response(entity.Name);
+                public void Finally(Request request, Entity? entity) { }
+            }
+            """;
+
+        var result = HandlerModelFactory.GetHandlerModel(GetSymbol(source, "FinallyPipelineParamsHandler"), Location.None);
+
+        await Verify(result);
+    }
+
+    [Test]
+    public async Task FinallyParams_UnknownTypes_AreFromServices()
+    {
+        const string source = """
+            using MiniBus;
+            namespace TestApp;
+            public interface IService;
+            
+            [Handler]
+            public class FinallyDiParamsHandler
+            {
+                public record Request(int Id);
+                public record Response(string Value);
+                public Response Handle(Request request) => new Response("test");
+                public void Finally(Request request, IService service) { }
+            }
+            """;
+
+        var result = HandlerModelFactory.GetHandlerModel(GetSymbol(source, "FinallyDiParamsHandler"), Location.None);
+
+        await Verify(result);
+    }
+
+    [Test]
+    public async Task FinallyWithVoidReturn_IsAccepted()
+    {
+        const string source = """
+            using MiniBus;
+            namespace TestApp;
+            [Handler]
+            public class FinallyVoidHandler
+            {
+                public record Request(int Id);
+                public record Response(string Value);
+                public Response Handle(Request request) => new Response("test");
+                public void Finally(Request request) { }
+            }
+            """;
+
+        var result = HandlerModelFactory.GetHandlerModel(GetSymbol(source, "FinallyVoidHandler"), Location.None);
+
+        await Verify(result);
+    }
+
+    [Test]
+    public async Task FinallyWithTaskReturn_IsAccepted()
+    {
+        const string source = """
+            using MiniBus;
+            namespace TestApp;
+            [Handler]
+            public class FinallyTaskHandler
+            {
+                public record Request(int Id);
+                public record Response(string Value);
+                public Response Handle(Request request) => new Response("test");
+                public System.Threading.Tasks.Task Finally(Request request) => System.Threading.Tasks.Task.CompletedTask;
+            }
+            """;
+
+        var result = HandlerModelFactory.GetHandlerModel(GetSymbol(source, "FinallyTaskHandler"), Location.None);
+
+        await Verify(result);
+    }
+
+    [Test]
+    public async Task FinallyWithNonNullablePipelineParam_ReportsMBG010()
+    {
+        const string source = """
+            using MiniBus;
+            namespace TestApp;
+            [Handler]
+            public class FinallyNonNullableHandler
+            {
+                public record Request(int Id);
+                public record Response(string Value);
+                public record Entity(int Id);
+                
+                public Entity? Load(Request request) => null;
+                public Response Handle(Entity entity) => new Response("test");
+                public void Finally(Entity entity) { }
+            }
+            """;
+
+        var result = HandlerModelFactory.GetHandlerModel(GetSymbol(source, "FinallyNonNullableHandler"), Location.None);
+
+        await Verify(result);
+    }
 }
 

@@ -17,14 +17,15 @@ public sealed record HandlerModel(
     string FullRequestType,
     string FullResponseType,
     EquatableArray<MethodPhase> Phases,
-    EquatableArray<LocalVariable> LocalVariables)
+    EquatableArray<LocalVariable> LocalVariables,
+    MethodPhase? FinallyPhase = null)
 {
     // "global::TestApp.DummyHandler" + "Dispatcher" = "global::TestApp.DummyHandlerDispatcher"
     public string DispatcherFullName => FullClassName + "Dispatcher";
     public string DispatcherKey => $"{FullRequestType}|{FullResponseType}";
-    public bool IsAnyAsync => Phases.Any(p => p.IsAsync);
-    public bool HasInstanceMethods => Phases.Any(p => !p.IsStatic);
-    public bool HasFromServicesParameters => Phases.Any(p => p.Parameters.Any(ip => ip.IsFromServices));
+    public bool IsAnyAsync => Phases.Any(p => p.IsAsync) || (FinallyPhase?.IsAsync ?? false);
+    public bool HasInstanceMethods => Phases.Any(p => !p.IsStatic) || (FinallyPhase is { IsStatic: false });
+    public bool HasFromServicesParameters => Phases.Any(p => p.Parameters.Any(ip => ip.IsFromServices)) || (FinallyPhase?.Parameters.Any(ip => ip.IsFromServices) ?? false);
 }
 
 public static class HandlerModelFactory
@@ -97,6 +98,14 @@ public static class HandlerModelFactory
             .ThenBy(static m => m.Name, StringComparer.Ordinal)
             .ToArray();
 
+        var finallyMethod = classSymbol.GetMembers()
+            .OfType<IMethodSymbol>()
+            .Where(static m => m.MethodKind == MethodKind.Ordinary)
+            .Where(static m => IsFinallyMethodName(m.Name))
+            .OrderBy(static m => m.Locations.FirstOrDefault(static l => l.IsInSource)?.SourceSpan.Start ?? int.MaxValue)
+            .ThenBy(static m => m.Name, StringComparer.Ordinal)
+            .FirstOrDefault();
+
         if (!IsSupportedHandlerMethodReturnType(handleMethod))
         {
             return new(null, new([
@@ -137,6 +146,18 @@ public static class HandlerModelFactory
         if (unsupportedPreHandleMethodDiagnostics.Length > 0 || unsupportedPostHandleMethodDiagnostics.Length > 0)
         {
             return new(null, new(unsupportedPreHandleMethodDiagnostics.Concat(unsupportedPostHandleMethodDiagnostics).ToArray()));
+        }
+
+        // Validate Finally method return type if present
+        if (finallyMethod is not null && !IsSupportedFinallyReturnType(finallyMethod))
+        {
+            return new(null, new([
+                Diagnostics.UnsupportedMethodReturnType(
+                    location: location,
+                    handlerName: classSymbol.ToDisplayString(fmt),
+                    returnType: finallyMethod.ReturnType.ToDisplayString(fmt),
+                    methodName: finallyMethod.Name)
+            ]));
         }
 
         var handlePhase = new MethodPhase(PhaseType.Handle, handleMethod, fmt);
@@ -199,6 +220,38 @@ public static class HandlerModelFactory
         orderedMethods = new(orderedMethods
             .Select(phase => MarkFromServices(phase, knownPipelineTypes)));
 
+        // Build and validate Finally phase if present
+        MethodPhase? finallyPhase = null;
+        var finallyDiagnostics = new List<DiagnosticInfo>();
+        if (finallyMethod is not null)
+        {
+            finallyPhase = new MethodPhase(PhaseType.Finally, finallyMethod, fmt);
+            finallyPhase = MarkFromServices(finallyPhase, knownPipelineTypes);
+
+            var pipelineReturnTypes = new HashSet<string>(orderedMethods
+                .SelectMany(static phase => phase.Returns)
+                .Select(static element => element.FullType),
+                StringComparer.Ordinal);
+
+            // Validate that Finally parameters matching pipeline returns are nullable (MBG010)
+            foreach (var parameter in finallyPhase.Parameters)
+            {
+                if (!parameter.IsFromServices && pipelineReturnTypes.Contains(parameter.FullType) && !parameter.IsNullable)
+                {
+                    finallyDiagnostics.Add(Diagnostics.FinallyParameterMustBeNullable(
+                        location: location,
+                        handlerName: classSymbol.ToDisplayString(fmt),
+                        parameterName: parameter.LocalName,
+                        parameterType: parameter.FullType));
+                }
+            }
+
+            if (finallyDiagnostics.Count > 0)
+            {
+                return new(null, new(finallyDiagnostics.ToArray()));
+            }
+        }
+
         var ns = classSymbol.ContainingNamespace.IsGlobalNamespace
             ? null
             : classSymbol.ContainingNamespace.ToDisplayString();
@@ -211,7 +264,8 @@ public static class HandlerModelFactory
                 FullRequestType: requestType!,
                 FullResponseType: responseType,
                 Phases: orderedMethods,
-                LocalVariables: localVariables),
+                LocalVariables: localVariables,
+                FinallyPhase: finallyPhase),
             EquatableArray<DiagnosticInfo>.Empty);
     }
 
@@ -288,6 +342,24 @@ public static class HandlerModelFactory
         return true;
     }
 
+    private static bool IsSupportedFinallyReturnType(IMethodSymbol method)
+    {
+        var returnType = method.ReturnType;
+        
+        // Finally supports void or non-generic Task only
+        if (returnType.SpecialType == SpecialType.System_Void)
+        {
+            return true;
+        }
+
+        if (returnType is INamedTypeSymbol { Name: "Task", TypeArguments.Length: 0 })
+        {
+            return true;
+        }
+
+        return false;
+    }
+
     private static IEnumerable<LocalVariable> BuildReturnVariables(EquatableArray<MethodPhase> phases)
     {
         var allReturns = phases.SelectMany(p => p.Returns);
@@ -355,6 +427,12 @@ public static class HandlerModelFactory
     {
         return methodName.StartsWith("After", StringComparison.Ordinal)
             || methodName.StartsWith("Post", StringComparison.Ordinal);
+    }
+
+    private static bool IsFinallyMethodName(string methodName)
+    {
+        return methodName == "Finally"
+            || methodName == "FinallyAsync";
     }
 
     private static bool IsHandleMethodName(string methodName)
