@@ -121,6 +121,27 @@ public class HandlerModelExtractionTests
         await Verify(result);
     }
 
+    [Test]
+    public async Task ExecuteAsyncHandleAlias_IsDetectedAsHandleMethod()
+    {
+        const string source = """
+            using MiniBus;
+            namespace TestApp;
+            [Handler]
+            public class ExecuteAsyncHandler
+            {
+                public record Request(int Id);
+                public record Response(string Name);
+                public System.Threading.Tasks.Task<Response> ExecuteAsync(Request request)
+                    => System.Threading.Tasks.Task.FromResult(new Response(request.Id.ToString()));
+            }
+            """;
+
+        var result = HandlerModelFactory.GetHandlerModel(GetSymbol(source, "ExecuteAsyncHandler"), Location.None);
+
+        await Verify(result);
+    }
+
     // ── Load ──────────────────────────────────────────────────────────────
 
     [Test]

@@ -138,11 +138,11 @@ public static class DispatcherSourceBuilder
         if (handle.Returns.Count > 1)
         {
             var varNames = string.Join(", ", handle.Returns.Select(e => e.LocalName));
-            sb.AppendLine($"{indent}        var ({varNames}) = {handleAwait}{methodTarget}.Handle({callArguments});");
+            sb.AppendLine($"{indent}        var ({varNames}) = {handleAwait}{methodTarget}.{handle.MethodName}({callArguments});");
         }
         else
         {
-            sb.AppendLine($"{indent}        var {handle.Returns[0].LocalName} = {handleAwait}{methodTarget}.Handle({callArguments});");
+            sb.AppendLine($"{indent}        var {handle.Returns[0].LocalName} = {handleAwait}{methodTarget}.{handle.MethodName}({callArguments});");
         }
 
         BuildValidationResultChecks(sb, model, handle.Returns, taskWrap, taskClose, indent);

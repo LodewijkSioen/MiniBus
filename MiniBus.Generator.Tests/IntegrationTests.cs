@@ -72,6 +72,35 @@ public class IntegrationTests
     }
 
     [Test]
+    public Task FullPipeline_ExecuteAsyncHandleAlias()
+    {
+        const string source = """
+            using MiniBus;
+            namespace TestApp;
+
+            [Handler]
+            public class ExecuteAsyncPipelineHandler
+            {
+                public record Request(int Id);
+                public record Entity(int Id, string Name);
+                public record Response(string Name);
+
+                public Entity Load(Request request)
+                    => new Entity(request.Id, "item");
+
+                public ValidationResult Validate(Entity entity)
+                    => new ValidationResult();
+
+                public System.Threading.Tasks.Task<Response> ExecuteAsync(Entity entity)
+                    => System.Threading.Tasks.Task.FromResult(new Response(entity.Name));
+            }
+            """;
+
+        var driver = GeneratorTestHelper.RunDriver(source);
+        return Verify(driver);
+    }
+
+    [Test]
     public Task MultipleHandlers_GenerateSeparateDispatchersAndSharedRegistrations()
     {
         const string source = """
@@ -132,7 +161,7 @@ public class IntegrationTests
     }
 
     [Test]
-    public Task MissingHandleMethod_ProducesNoOutput()
+    public Task MissingHandleMethodAliases_ProducesNoOutput()
     {
         const string source = """
             using MiniBus;

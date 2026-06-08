@@ -23,7 +23,8 @@ var provider = services.BuildServiceProvider();
 
 ## Define a handler
 
-Mark a class with `[Handler]`. That class must containe a `Handle` method:
+Mark a class with `[Handler]`. That class must contain one handle entry method alias:
+- `Handle`, `HandleAsync`, `Execute`, or `ExecuteAsync`
 - This method can be sync or async
 - Extra method parameters will be resolved from the registered services
 
@@ -71,7 +72,7 @@ Generated dispatchers execute pipeline methods in the order required by
    the next method
 - If a return value is a tuple, the deconstructed items are available to the
    dependant methods
-- The first unmatched parameter of the Handle method is concidered the request type
+- The first unmatched parameter of the handle entry method is considered the request type
 - All other unmatched parameters will be resolved from the registered services
 
 Each pre-handle method is optional and may be sync or async.
@@ -109,8 +110,8 @@ The following handler patterns are not supported by source generation:
   Example: all method parameters are already satisfied by earlier pipeline outputs (MBG005).
 - Pipelines that produce duplicate local values of the same type.  
   Example: tuple outputs with two elements of the same type (MBG006).
-- Unsupported pre-handle or `Handle` return types.
-  Example: `void BeforeLoad(...)` or non-generic `Task Handle(...)` (MBG007).
+- Unsupported pre-handle or handle entry method return types.
+  Example: `void BeforeLoad(...)` or non-generic `Task ExecuteAsync(...)` (MBG007).
 - Cyclic dependencies between pipeline methods.  
   Example: `Load` depends on a type from `Validate` while `Validate` also depends on a type from `Load` (MBG008).
 - `Handle` tuple responses where the first tuple element is `ValidationResult`.

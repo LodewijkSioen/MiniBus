@@ -69,8 +69,12 @@ public static class HandlerModelFactory
 
 
 
-        var handleMethod = classSymbol.GetMembers("Handle")
+        var handleMethod = classSymbol.GetMembers()
             .OfType<IMethodSymbol>()
+            .Where(static m => m.MethodKind == MethodKind.Ordinary)
+            .Where(static m => IsHandleMethodName(m.Name))
+            .OrderBy(static m => m.Locations.FirstOrDefault(static l => l.IsInSource)?.SourceSpan.Start ?? int.MaxValue)
+            .ThenBy(static m => m.Name, StringComparer.Ordinal)
             .FirstOrDefault(static m => m.Parameters.Length >= 1);
         if (handleMethod is null)
         {
@@ -314,6 +318,14 @@ public static class HandlerModelFactory
             || methodName.StartsWith("Before", StringComparison.Ordinal)
             || methodName.EndsWith("Before", StringComparison.Ordinal)
             || methodName.EndsWith("BeforeAsync", StringComparison.Ordinal);
+    }
+
+    private static bool IsHandleMethodName(string methodName)
+    {
+        return methodName == "Handle"
+            || methodName == "HandleAsync"
+            || methodName == "Execute"
+            || methodName == "ExecuteAsync";
     }
 
     private static bool InferRequestType(
