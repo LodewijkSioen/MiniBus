@@ -1,0 +1,113 @@
+﻿{
+  Model: {
+    Namespace: TestApp,
+    ClassName: PostOrderingHandler,
+    FullClassName: global::TestApp.PostOrderingHandler,
+    FullRequestType: global::TestApp.PostOrderingHandler.Request,
+    FullResponseType: global::TestApp.PostOrderingHandler.Response,
+    Phases: [
+      {
+        Type: Handle,
+        MethodName: Handle,
+        IsAsync: false,
+        IsStatic: false,
+        Parameters: [
+          {
+            LocalName: request,
+            FullType: global::TestApp.PostOrderingHandler.Request,
+            IsNullable: false,
+            NotNullMessage: request cannot be null,
+            IsFromServices: false
+          }
+        ],
+        Returns: [
+          {
+            LocalName: fromHandle,
+            FullType: global::TestApp.PostOrderingHandler.Response,
+            IsNullable: false,
+            NonNullLocalName: fromHandle,
+            IsValidationResult: false
+          }
+        ]
+      },
+      {
+        Type: After,
+        MethodName: AfterAudit,
+        IsAsync: false,
+        IsStatic: false,
+        Parameters: [
+          {
+            LocalName: response,
+            FullType: global::TestApp.PostOrderingHandler.Response,
+            IsNullable: false,
+            NotNullMessage: response cannot be null,
+            IsFromServices: false
+          }
+        ],
+        Returns: [
+          {
+            LocalName: fromAfterAudit,
+            FullType: global::TestApp.PostOrderingHandler.Audit,
+            IsNullable: false,
+            NonNullLocalName: fromAfterAudit,
+            IsValidationResult: false
+          }
+        ]
+      },
+      {
+        Type: After,
+        MethodName: PostWrap,
+        IsAsync: false,
+        IsStatic: false,
+        Parameters: [
+          {
+            LocalName: audit,
+            FullType: global::TestApp.PostOrderingHandler.Audit,
+            IsNullable: false,
+            NotNullMessage: audit cannot be null,
+            IsFromServices: false
+          }
+        ],
+        Returns: [
+          {
+            LocalName: fromPostWrap,
+            FullType: global::TestApp.PostOrderingHandler.Envelope,
+            IsNullable: false,
+            NonNullLocalName: fromPostWrap,
+            IsValidationResult: false
+          }
+        ]
+      }
+    ],
+    LocalVariables: [
+      {
+        LocalName: fromHandle,
+        FullType: global::TestApp.PostOrderingHandler.Response,
+        CheckNullability: false,
+        IfNullErrorMessage: response cannot be null
+      },
+      {
+        LocalName: fromAfterAudit,
+        FullType: global::TestApp.PostOrderingHandler.Audit,
+        CheckNullability: false,
+        IfNullErrorMessage: audit cannot be null
+      },
+      {
+        LocalName: fromPostWrap,
+        FullType: global::TestApp.PostOrderingHandler.Envelope,
+        CheckNullability: false
+      },
+      {
+        LocalName: request,
+        FullType: global::TestApp.PostOrderingHandler.Request,
+        CheckNullability: false
+      }
+    ],
+    DispatcherFullName: global::TestApp.PostOrderingHandlerDispatcher,
+    DispatcherKey: global::TestApp.PostOrderingHandler.Request|global::TestApp.PostOrderingHandler.Response,
+    IsAnyAsync: false,
+    HasInstanceMethods: true,
+    HasFromServicesParameters: false
+  },
+  Diagnostics: null
+}

@@ -89,6 +89,14 @@ public static class HandlerModelFactory
             .ThenBy(static m => m.Name, StringComparer.Ordinal)
             .ToArray();
 
+        var postHandleMethods = classSymbol.GetMembers()
+            .OfType<IMethodSymbol>()
+            .Where(static m => m.MethodKind == MethodKind.Ordinary)
+            .Where(static m => IsPostHandleMethodName(m.Name))
+            .OrderBy(static m => m.Locations.FirstOrDefault(static l => l.IsInSource)?.SourceSpan.Start ?? int.MaxValue)
+            .ThenBy(static m => m.Name, StringComparer.Ordinal)
+            .ToArray();
+
         if (!IsSupportedHandlerMethodReturnType(handleMethod))
         {
             return new(null, new([
@@ -118,17 +126,28 @@ public static class HandlerModelFactory
                 returnType: m.ReturnType.ToDisplayString(fmt),
                 methodName: m.Name))
             .ToArray();
-        if (unsupportedPreHandleMethodDiagnostics.Length > 0)
+        var unsupportedPostHandleMethodDiagnostics = postHandleMethods
+            .Where(static m => !IsSupportedHandlerMethodReturnType(m))
+            .Select(m => Diagnostics.UnsupportedMethodReturnType(
+                location: location,
+                handlerName: classSymbol.ToDisplayString(fmt),
+                returnType: m.ReturnType.ToDisplayString(fmt),
+                methodName: m.Name))
+            .ToArray();
+        if (unsupportedPreHandleMethodDiagnostics.Length > 0 || unsupportedPostHandleMethodDiagnostics.Length > 0)
         {
-            return new(null, new(unsupportedPreHandleMethodDiagnostics));
+            return new(null, new(unsupportedPreHandleMethodDiagnostics.Concat(unsupportedPostHandleMethodDiagnostics).ToArray()));
         }
 
         var handlePhase = new MethodPhase(PhaseType.Handle, handleMethod, fmt);
         var preHandleCandidates = preHandleMethods
             .Select(m => new MethodPhase(PhaseType.Before, m, fmt))
             .ToList();
+        var postHandleCandidates = postHandleMethods
+            .Select(m => new MethodPhase(PhaseType.After, m, fmt))
+            .ToList();
 
-        if (!TryOrderPhases(preHandleCandidates, handlePhase, out var orderedMethods, out var cycleMethods))
+        if (!TryOrderPhases(preHandleCandidates, out var orderedPrePhases, out var cycleMethods))
         {
             return new(null, new([
                 Diagnostics.CyclicPhaseDependency(
@@ -137,6 +156,20 @@ public static class HandlerModelFactory
                     methodNames: cycleMethods!)
             ]));
         }
+
+        if (!TryOrderPhases(postHandleCandidates, out var orderedPostPhases, out cycleMethods))
+        {
+            return new(null, new([
+                Diagnostics.CyclicPhaseDependency(
+                    location: location,
+                    handlerName: classSymbol.ToDisplayString(fmt),
+                    methodNames: cycleMethods!)
+            ]));
+        }
+
+        var orderedMethods = new EquatableArray<MethodPhase>(orderedPrePhases
+            .Append(handlePhase)
+            .Concat(orderedPostPhases));
 
         
 
@@ -200,7 +233,6 @@ public static class HandlerModelFactory
 
     private static bool TryOrderPhases(
         IEnumerable<MethodPhase> phases,
-        MethodPhase handlePhase,
         out EquatableArray<MethodPhase> orderedPhases,
         out string? cycleMethodNames)
     {
@@ -235,7 +267,6 @@ public static class HandlerModelFactory
             ordered.Add(next.Phase);
         }
 
-        ordered.Add(handlePhase);
         orderedPhases = new(ordered);
         cycleMethodNames = null;
         return true;
@@ -318,6 +349,12 @@ public static class HandlerModelFactory
             || methodName.StartsWith("Before", StringComparison.Ordinal)
             || methodName.EndsWith("Before", StringComparison.Ordinal)
             || methodName.EndsWith("BeforeAsync", StringComparison.Ordinal);
+    }
+
+    private static bool IsPostHandleMethodName(string methodName)
+    {
+        return methodName.StartsWith("After", StringComparison.Ordinal)
+            || methodName.StartsWith("Post", StringComparison.Ordinal);
     }
 
     private static bool IsHandleMethodName(string methodName)

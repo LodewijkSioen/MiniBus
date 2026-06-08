@@ -588,6 +588,65 @@ public class HandlerModelExtractionTests
     }
 
     [Test]
+    public async Task AfterAndPostNameConventions_AreIncludedAsPostHandlePhases()
+    {
+        const string source = """
+            using MiniBus;
+            namespace TestApp;
+            [Handler]
+            public class PostConventionHandler
+            {
+                public record Request(string Value);
+                public record Response(string Value);
+                public record Audit(string Value);
+
+                public Response Handle(Request request)
+                    => new Response(request.Value);
+
+                public Audit AfterAudit(Response response)
+                    => new Audit(response.Value + "-audit");
+
+                public ValidationResult PostValidate(Audit audit)
+                    => new ValidationResult();
+            }
+            """;
+
+        var result = HandlerModelFactory.GetHandlerModel(GetSymbol(source, "PostConventionHandler"), Location.None);
+
+        await Verify(result);
+    }
+
+    [Test]
+    public async Task PostOrder_DependencyBased_UsesSameMechanismAsPreHandle()
+    {
+        const string source = """
+            using MiniBus;
+            namespace TestApp;
+            [Handler]
+            public class PostOrderingHandler
+            {
+                public record Request(string Value);
+                public record Response(string Value);
+                public record Audit(string Value);
+                public record Envelope(string Value);
+
+                public Response Handle(Request request)
+                    => new Response(request.Value);
+
+                public Envelope PostWrap(Audit audit)
+                    => new Envelope(audit.Value);
+
+                public Audit AfterAudit(Response response)
+                    => new Audit(response.Value + "-audit");
+            }
+            """;
+
+        var result = HandlerModelFactory.GetHandlerModel(GetSymbol(source, "PostOrderingHandler"), Location.None);
+
+        await Verify(result);
+    }
+
+    [Test]
     public async Task StaticHandle_IsStaticTrue_AndHasNoInstanceMethods()
     {
         const string source = """

@@ -5,7 +5,9 @@ heavely inspired by Wolverine's "Compound Handler" pattern.
 
 ## Why
 Because I wanted to learn a few things about Source Generators and because I felt
-the need for a minimal friction in-memory request-response bus.
+the need for a minimal friction in-memory request-response bus.  
+I also needed a project to experiment with AI assisted coding. So this project
+was built using Pair Programming with Copilot.
 
 ## Setup
 
@@ -62,9 +64,10 @@ Behind the scenes, the MiniBus source generator will create:
 
 ## Pipeline behavior
 
-Minibus enables pipeline behavior by looking for pre-handle method aliases and naming conventions:
+Minibus enables pipeline behavior by looking for pre-handle and post-handle method aliases and naming conventions:
 - Exact aliases: `Load`, `LoadAsync`, `Validate`, `ValidateAsync`
 - Name patterns: any method name that starts with `Before`, ends with `Before`, or ends with `BeforeAsync`
+- Post-handle name patterns: any method name that starts with `After` or `Post`
 
 Generated dispatchers execute pipeline methods in the order required by
  their dependencies:
@@ -74,8 +77,11 @@ Generated dispatchers execute pipeline methods in the order required by
    dependant methods
 - The first unmatched parameter of the handle entry method is considered the request type
 - All other unmatched parameters will be resolved from the registered services
+- Pre-handle methods run before `Handle`, post-handle methods run after `Handle`
+- Post-handle methods use the same dependency-based ordering mechanism as pre-handle methods
+- The dispatcher only returns the final `Result.Success(...)` after all post-handle methods have completed
 
-Each pre-handle method is optional and may be sync or async.
+Each pre-handle and post-handle method is optional and may be sync or async.
 
 Special cases:
 - If the return value is nullable and the dependant method defines that type
@@ -86,6 +92,7 @@ Special cases:
   `ResultStatus.Invalid`.
 - If `Handle` returns a tuple, the first tuple element is used as the response
   value and the remaining elements can still participate in validation checks.
+- Post-handle methods do not replace the response payload. The successful response value still comes from `Handle`.
 
 ## Result model
 
@@ -110,8 +117,8 @@ The following handler patterns are not supported by source generation:
   Example: all method parameters are already satisfied by earlier pipeline outputs (MBG005).
 - Pipelines that produce duplicate local values of the same type.  
   Example: tuple outputs with two elements of the same type (MBG006).
-- Unsupported pre-handle or handle entry method return types.
-  Example: `void BeforeLoad(...)` or non-generic `Task ExecuteAsync(...)` (MBG007).
+- Unsupported pre-handle, post-handle, or handle entry method return types.
+  Example: `void BeforeLoad(...)`, `void AfterAudit(...)`, or non-generic `Task ExecuteAsync(...)` (MBG007).
 - Cyclic dependencies between pipeline methods.  
   Example: `Load` depends on a type from `Validate` while `Validate` also depends on a type from `Load` (MBG008).
 - `Handle` tuple responses where the first tuple element is `ValidationResult`.

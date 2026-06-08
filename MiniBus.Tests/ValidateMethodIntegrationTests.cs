@@ -98,6 +98,28 @@ public class HandleTupleValidationHandler
     }
 }
 
+[Handler]
+public class PostValidationHandler
+{
+    public record Request(string Value);
+    public record Response(string Value);
+    public record Audit(string Value);
+
+    public Response Handle(Request request)
+        => new Response(request.Value.ToUpperInvariant());
+
+    public Audit? AfterLoad(Response response)
+        => response.Value == "MISSING" ? null : new Audit(response.Value);
+
+    public global::MiniBus.ValidationResult PostValidate(Audit audit)
+    {
+        var errors = new global::MiniBus.ValidationResult();
+        if (audit.Value == "INVALID")
+            errors.Add(new global::MiniBus.ValidationError("Value is invalid", "POST_INVALID"));
+        return errors;
+    }
+}
+
 // ── Tests ─────────────────────────────────────────────────────────────────────
 
 [TestFixture]
@@ -237,5 +259,42 @@ public class ValidateMethodIntegrationTests
 
         Assert.That(result.IsSuccess, Is.True);
         Assert.That(result.Response!.Value, Is.EqualTo(15));
+    }
+
+    [Test]
+    public async Task PostValidation_ValidRequest_ReturnsSuccess()
+    {
+        using var scope = AppUnderTest.Services.CreateScope();
+        var bus = scope.ServiceProvider.GetRequiredService<MiniBus>();
+
+        var result = await bus.Handle(new PostValidationHandler.Request("ok"));
+
+        Assert.That(result.IsSuccess, Is.True);
+        Assert.That(result.Response!.Value, Is.EqualTo("OK"));
+    }
+
+    [Test]
+    public async Task PostValidation_InvalidPostStep_ReturnsInvalid()
+    {
+        using var scope = AppUnderTest.Services.CreateScope();
+        var bus = scope.ServiceProvider.GetRequiredService<MiniBus>();
+
+        var result = await bus.Handle(new PostValidationHandler.Request("invalid"));
+
+        Assert.That(result.IsSuccess, Is.False);
+        Assert.That(result.Status, Is.EqualTo(global::MiniBus.ResultStatus.Invalid));
+        Assert.That(result.ValidationErrors[0].Code, Is.EqualTo("POST_INVALID"));
+    }
+
+    [Test]
+    public async Task PostValidation_NullPostOutput_ReturnsNotFound()
+    {
+        using var scope = AppUnderTest.Services.CreateScope();
+        var bus = scope.ServiceProvider.GetRequiredService<MiniBus>();
+
+        var result = await bus.Handle(new PostValidationHandler.Request("missing"));
+
+        Assert.That(result.IsSuccess, Is.False);
+        Assert.That(result.Status, Is.EqualTo(global::MiniBus.ResultStatus.NotFound));
     }
 }

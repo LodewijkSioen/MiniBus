@@ -62,18 +62,25 @@ public static class DispatcherSourceBuilder
         sb.AppendLine($"{i}        Handle({model.FullRequestType} request)");
         sb.AppendLine($"{i}    {{");
 
+        string? responseLocalName = null;
+
         foreach (var phase in model.Phases)
         {
             switch (phase.Type)
             {
                 case PhaseType.Before:
-                    BuildPrePhase(sb, model, phase, taskWrap, taskClose, i);
+                    BuildPipelinePhase(sb, model, phase, taskWrap, taskClose, i);
                     break;
                 case PhaseType.Handle:
-                    BuildHandlePhase(sb, model, phase, taskWrap, taskClose, i);
+                    responseLocalName = BuildHandlePhase(sb, model, phase, taskWrap, taskClose, i);
+                    break;
+                case PhaseType.After:
+                    BuildPipelinePhase(sb, model, phase, taskWrap, taskClose, i);
                     break;
             }
         }
+
+        sb.AppendLine($"{i}        return {taskWrap}global::MiniBus.Result<{model.FullResponseType}>.Success({responseLocalName ?? "default!"}){taskClose};");
 
         sb.AppendLine($"{i}    }}");
         sb.AppendLine($"{i}}}");
@@ -82,23 +89,23 @@ public static class DispatcherSourceBuilder
         return sb.ToString();
     }
 
-    private static void BuildPrePhase(StringBuilder sb, HandlerModel model, MethodPhase prePhase, string taskWrap, string taskClose, string indent)
+    private static void BuildPipelinePhase(StringBuilder sb, HandlerModel model, MethodPhase phase, string taskWrap, string taskClose, string indent)
     {
-        var awaitPrefix = prePhase.IsAsync ? "await " : "";
-        var callArguments = string.Join(", ", BuildCallArguments(prePhase, model.LocalVariables));
-        var methodTarget = prePhase.IsStatic ? model.FullClassName : "_handler";
-        if (prePhase.Returns.Count > 1)
+        var awaitPrefix = phase.IsAsync ? "await " : "";
+        var callArguments = string.Join(", ", BuildCallArguments(phase, model.LocalVariables));
+        var methodTarget = phase.IsStatic ? model.FullClassName : "_handler";
+        if (phase.Returns.Count > 1)
         {
-            var varNames = string.Join(", ", prePhase.Returns.Select(e => e.LocalName));
-            sb.AppendLine($"{indent}        var ({varNames}) = {awaitPrefix}{methodTarget}.{prePhase.MethodName}({callArguments});");
+            var varNames = string.Join(", ", phase.Returns.Select(e => e.LocalName));
+            sb.AppendLine($"{indent}        var ({varNames}) = {awaitPrefix}{methodTarget}.{phase.MethodName}({callArguments});");
         }
         else
         {
-            sb.AppendLine($"{indent}        var {prePhase.Returns[0].LocalName} = {awaitPrefix}{methodTarget}.{prePhase.MethodName}({callArguments});");
+            sb.AppendLine($"{indent}        var {phase.Returns[0].LocalName} = {awaitPrefix}{methodTarget}.{phase.MethodName}({callArguments});");
         }
 
-        BuildValidationResultChecks(sb, model, prePhase.Returns, taskWrap, taskClose, indent);
-        BuildNotFoundChecks(sb, model, prePhase.Returns, taskWrap, taskClose, indent);
+        BuildValidationResultChecks(sb, model, phase.Returns, taskWrap, taskClose, indent);
+        BuildNotFoundChecks(sb, model, phase.Returns, taskWrap, taskClose, indent);
 
         sb.AppendLine();
     }
@@ -129,7 +136,7 @@ public static class DispatcherSourceBuilder
         }
     }
 
-    private static void BuildHandlePhase(StringBuilder sb, HandlerModel model, MethodPhase handle, string taskWrap, string taskClose, string indent)
+    private static string BuildHandlePhase(StringBuilder sb, HandlerModel model, MethodPhase handle, string taskWrap, string taskClose, string indent)
     {
         var handleAwait = handle.IsAsync ? "await " : "";
         var callArguments = string.Join(", ", BuildCallArguments(handle, model.LocalVariables));
@@ -146,8 +153,7 @@ public static class DispatcherSourceBuilder
         }
 
         BuildValidationResultChecks(sb, model, handle.Returns, taskWrap, taskClose, indent);
-
-        sb.AppendLine($"{indent}        return {taskWrap}global::MiniBus.Result<{model.FullResponseType}>.Success({handle.Returns[0].LocalName}){taskClose};");
+        return handle.Returns[0].LocalName;
     }
 
     private static IEnumerable<string> BuildCallArguments(MethodPhase phase, EquatableArray<LocalVariable> returnElements)

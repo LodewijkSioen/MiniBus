@@ -401,6 +401,98 @@ public class IntegrationTests
     }
 
     [Test]
+    public void PostMethods_AreGeneratedAfterHandle_AndBeforeSuccessReturn()
+    {
+        const string source = """
+            using MiniBus;
+            namespace TestApp;
+
+            [Handler]
+            public class PostPipelineHandler
+            {
+                public record Request(int Id);
+                public record Response(string Value);
+                public record Audit(string Value);
+
+                public Response Handle(Request request)
+                    => new Response(request.Id.ToString());
+
+                public Audit AfterAudit(Response response)
+                    => new Audit(response.Value);
+            }
+            """;
+
+        var result = GeneratorTestHelper.Run(source);
+        var dispatcher = result.GeneratedSources.First(s => s.Contains("public class PostPipelineHandlerDispatcher", StringComparison.Ordinal));
+
+        var handleCallIndex = dispatcher.IndexOf(".Handle(", StringComparison.Ordinal);
+        var postCallIndex = dispatcher.IndexOf(".AfterAudit(", StringComparison.Ordinal);
+        var successCallIndex = dispatcher.IndexOf(".Success(", StringComparison.Ordinal);
+
+        Assert.That(handleCallIndex, Is.GreaterThanOrEqualTo(0));
+        Assert.That(postCallIndex, Is.GreaterThan(handleCallIndex));
+        Assert.That(successCallIndex, Is.GreaterThan(postCallIndex));
+    }
+
+    [Test]
+    public void PostMethodWithUnsupportedReturn_ReportsMBG007_AndSkipsDispatcherGeneration()
+    {
+        const string source = """
+            using MiniBus;
+            namespace TestApp;
+
+            [Handler]
+            public class InvalidPostReturnHandler
+            {
+                public record Request(int Id);
+                public record Response(string Value);
+
+                public Response Handle(Request request)
+                    => new Response(request.Id.ToString());
+
+                public void AfterAudit(Response response) { }
+            }
+            """;
+
+        var result = GeneratorTestHelper.Run(source);
+
+        Assert.That(result.Diagnostics.Any(d => d.Id == "MBG007"), Is.True);
+        Assert.That(result.GeneratedSources.Any(s => s.Contains("InvalidPostReturnHandlerDispatcher", StringComparison.Ordinal)), Is.False);
+    }
+
+    [Test]
+    public void CyclicPostDependencies_ReportMBG008_AndSkipDispatcherGeneration()
+    {
+        const string source = """
+            using MiniBus;
+            namespace TestApp;
+
+            [Handler]
+            public class CyclicPostPipelineHandler
+            {
+                public record Request(int Id);
+                public record Response(int Value);
+                public record A(int Value);
+                public record B(int Value);
+
+                public Response Handle(Request request)
+                    => new Response(request.Id);
+
+                public A AfterA(B value)
+                    => new A(value.Value);
+
+                public B PostB(A value)
+                    => new B(value.Value);
+            }
+            """;
+
+        var result = GeneratorTestHelper.Run(source);
+
+        Assert.That(result.Diagnostics.Any(d => d.Id == "MBG008"), Is.True);
+        Assert.That(result.GeneratedSources.Any(s => s.Contains("CyclicPostPipelineHandlerDispatcher", StringComparison.Ordinal)), Is.False);
+    }
+
+    [Test]
     public void DuplicateRequestType_Diagnostics_AreDeterministicallyOrdered()
     {
         const string source = """

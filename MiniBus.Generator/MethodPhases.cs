@@ -23,7 +23,8 @@ public sealed record InputParameter(
 public enum PhaseType
 {
     Before,
-    Handle
+    Handle,
+    After
 }
 
 
