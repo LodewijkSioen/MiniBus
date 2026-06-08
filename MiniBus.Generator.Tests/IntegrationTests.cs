@@ -761,4 +761,30 @@ public class IntegrationTests
         var driver = GeneratorTestHelper.RunDriver(source);
         return Verify(driver);
     }
+
+    [Test]
+    public Task NullableHandleReturn_WithPostHandle_EmitsNotFoundCheck()
+    {
+        const string source = """
+            using MiniBus;
+            namespace TestApp;
+
+            [Handler]
+            public class NullableHandleReturnHandler
+            {
+                public record Request(int Id);
+                public record Response(string Name);
+                public record Audit(string Value);
+
+                public Response? Handle(Request request)
+                    => request.Id > 0 ? new Response(request.Id.ToString()) : null;
+
+                public Audit AfterAudit(Response response)
+                    => new Audit(response.Name);
+            }
+            """;
+
+        var driver = GeneratorTestHelper.RunDriver(source);
+        return Verify(driver);
+    }
 }

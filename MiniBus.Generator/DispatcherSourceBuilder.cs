@@ -256,7 +256,10 @@ public static class DispatcherSourceBuilder
         }
 
         BuildValidationResultChecks(sb, model, handle.Returns, taskWrap, taskClose, indent);
-        return handle.Returns[0].LocalName;
+        BuildNotFoundChecks(sb, model, handle.Returns, taskWrap, taskClose, indent);
+        var firstReturn = handle.Returns[0];
+        var firstLocal = model.LocalVariables.FirstOrDefault(l => l.FullType == firstReturn.FullType);
+        return firstLocal?.CheckNullability == true ? firstReturn.NonNullLocalName : firstReturn.LocalName;
     }
 
     private static IEnumerable<string> BuildCallArguments(MethodPhase phase, EquatableArray<LocalVariable> returnElements)
