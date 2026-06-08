@@ -123,7 +123,8 @@ public static class HandlerModelFactory
                 Diagnostics.InvalidHandleTupleResponse(
                     location: location,
                     handlerName: classSymbol.ToDisplayString(fmt),
-                    returnType: handleMethod.ReturnType.ToDisplayString(fmt))
+                    returnType: handleMethod.ReturnType.ToDisplayString(fmt),
+                    methodName: handleMethod.Name)
             ]));
         }
 

@@ -112,7 +112,7 @@ internal static class Diagnostics
     private static readonly DiagnosticDescriptor InvalidHandleTupleResponseDescriptor = new(
         id: "MBG009",
         title: "Invalid Handle tuple response shape",
-        messageFormat: "Handler '{0}' has invalid Handle return type '{1}'. When Handle returns a tuple, the first tuple element cannot be ValidationResult.",
+        messageFormat: "Handler '{0}' has invalid {2} return type '{1}'. When the handle entry method returns a tuple, the first tuple element cannot be ValidationResult.",
         category: "MiniBus.Generator",
         defaultSeverity: DiagnosticSeverity.Error,
         isEnabledByDefault: true);
@@ -199,11 +199,12 @@ internal static class Diagnostics
     public static DiagnosticInfo InvalidHandleTupleResponse(
         Location location,
         string handlerName,
-        string returnType) =>
+        string returnType,
+        string methodName) =>
         new (
             descriptor: InvalidHandleTupleResponseDescriptor,
             location: location,
-            messageArgs: [handlerName, returnType]);
+            messageArgs: [handlerName, returnType, methodName]);
 
     public static DiagnosticInfo FinallyParameterMustBeNullable(
         Location location,
