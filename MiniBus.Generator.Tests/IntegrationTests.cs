@@ -39,6 +39,39 @@ public class IntegrationTests
     }
 
     [Test]
+    public Task FullPipeline_BeforeNamingConventions_AsyncHandle()
+    {
+        const string source = """
+            using MiniBus;
+            namespace TestApp;
+
+            [Handler]
+            public class BeforeConventionPipelineHandler
+            {
+                public record Request(int Id);
+                public record Entity(int Id, string Name);
+                public record Prepared(string Name);
+                public record Response(string Name);
+
+                public Entity BeforeLoad(Request request)
+                    => new Entity(request.Id, "item");
+
+                public Prepared NormalizeBefore(Entity entity)
+                    => new Prepared(entity.Name);
+
+                public ValidationResult Validate(Prepared prepared)
+                    => new ValidationResult();
+
+                public System.Threading.Tasks.Task<Response> Handle(Prepared prepared)
+                    => System.Threading.Tasks.Task.FromResult(new Response(prepared.Name));
+            }
+            """;
+
+        var driver = GeneratorTestHelper.RunDriver(source);
+        return Verify(driver);
+    }
+
+    [Test]
     public Task MultipleHandlers_GenerateSeparateDispatchersAndSharedRegistrations()
     {
         const string source = """
@@ -247,6 +280,41 @@ public class IntegrationTests
 
         Assert.That(result.Diagnostics.Any(d => d.Id == "MBG007"), Is.True);
         Assert.That(result.GeneratedSources.Any(s => s.Contains("VoidLoadHandlerDispatcher", StringComparison.Ordinal)), Is.False);
+    }
+
+    [Test]
+    public void MultipleInvalidPreHandleReturns_ReportMBG007ForEach_AndSkipDispatcherGeneration()
+    {
+        const string source = """
+            using MiniBus;
+            namespace TestApp;
+
+            [Handler]
+            public class InvalidPreReturnsHandler
+            {
+                public record Request(int Id);
+                public record Response(string Value);
+
+                public void BeforeLoad(Request request) { }
+
+                public System.Threading.Tasks.Task NormalizeBefore(Request request)
+                    => System.Threading.Tasks.Task.CompletedTask;
+
+                public Response Handle(Request request)
+                    => new Response(request.Id.ToString());
+            }
+            """;
+
+        var result = GeneratorTestHelper.Run(source);
+
+        var unsupportedReturnDiagnostics = result.Diagnostics
+            .Where(d => d.Id == "MBG007")
+            .Select(d => d.GetMessage())
+            .ToArray();
+
+        Assert.That(unsupportedReturnDiagnostics.Any(message => message.Contains("BeforeLoad", StringComparison.Ordinal)), Is.True);
+        Assert.That(unsupportedReturnDiagnostics.Any(message => message.Contains("NormalizeBefore", StringComparison.Ordinal)), Is.True);
+        Assert.That(result.GeneratedSources.Any(s => s.Contains("InvalidPreReturnsHandlerDispatcher", StringComparison.Ordinal)), Is.False);
     }
 
     [Test]

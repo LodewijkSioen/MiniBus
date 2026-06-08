@@ -1,0 +1,139 @@
+﻿{
+  Model: {
+    Namespace: TestApp,
+    ClassName: BeforeConventionHandler,
+    FullClassName: global::TestApp.BeforeConventionHandler,
+    FullRequestType: global::TestApp.BeforeConventionHandler.Request,
+    FullResponseType: global::TestApp.BeforeConventionHandler.Response,
+    Phases: [
+      {
+        MethodName: BeforeLoad,
+        IsAsync: false,
+        IsStatic: false,
+        Parameters: [
+          {
+            LocalName: request,
+            FullType: global::TestApp.BeforeConventionHandler.Request,
+            IsNullable: false,
+            NotNullMessage: request cannot be null,
+            IsFromServices: false
+          }
+        ],
+        Returns: [
+          {
+            LocalName: fromBeforeLoad,
+            FullType: global::TestApp.BeforeConventionHandler.Entity,
+            IsNullable: false,
+            NonNullLocalName: fromBeforeLoad,
+            IsValidationResult: false
+          }
+        ]
+      },
+      {
+        MethodName: NormalizeBefore,
+        IsAsync: false,
+        IsStatic: false,
+        Parameters: [
+          {
+            LocalName: entity,
+            FullType: global::TestApp.BeforeConventionHandler.Entity,
+            IsNullable: false,
+            NotNullMessage: entity cannot be null,
+            IsFromServices: false
+          }
+        ],
+        Returns: [
+          {
+            LocalName: fromNormalizeBefore,
+            FullType: global::TestApp.BeforeConventionHandler.Prepared,
+            IsNullable: false,
+            NonNullLocalName: fromNormalizeBefore,
+            IsValidationResult: false
+          }
+        ]
+      },
+      {
+        MethodName: Validate,
+        IsAsync: false,
+        IsStatic: false,
+        Parameters: [
+          {
+            LocalName: prepared,
+            FullType: global::TestApp.BeforeConventionHandler.Prepared,
+            IsNullable: false,
+            NotNullMessage: prepared cannot be null,
+            IsFromServices: false
+          }
+        ],
+        Returns: [
+          {
+            LocalName: fromValidate,
+            FullType: global::MiniBus.ValidationResult,
+            IsNullable: false,
+            NonNullLocalName: fromValidate,
+            IsValidationResult: true
+          }
+        ]
+      },
+      {
+        Type: Handle,
+        MethodName: Handle,
+        IsAsync: false,
+        IsStatic: false,
+        Parameters: [
+          {
+            LocalName: prepared,
+            FullType: global::TestApp.BeforeConventionHandler.Prepared,
+            IsNullable: false,
+            NotNullMessage: prepared cannot be null,
+            IsFromServices: false
+          }
+        ],
+        Returns: [
+          {
+            LocalName: fromHandle,
+            FullType: global::TestApp.BeforeConventionHandler.Response,
+            IsNullable: false,
+            NonNullLocalName: fromHandle,
+            IsValidationResult: false
+          }
+        ]
+      }
+    ],
+    LocalVariables: [
+      {
+        LocalName: fromBeforeLoad,
+        FullType: global::TestApp.BeforeConventionHandler.Entity,
+        CheckNullability: false,
+        IfNullErrorMessage: entity cannot be null
+      },
+      {
+        LocalName: fromNormalizeBefore,
+        FullType: global::TestApp.BeforeConventionHandler.Prepared,
+        CheckNullability: false,
+        IfNullErrorMessage: prepared cannot be null
+      },
+      {
+        LocalName: fromValidate,
+        FullType: global::MiniBus.ValidationResult,
+        CheckNullability: false
+      },
+      {
+        LocalName: fromHandle,
+        FullType: global::TestApp.BeforeConventionHandler.Response,
+        CheckNullability: false
+      },
+      {
+        LocalName: request,
+        FullType: global::TestApp.BeforeConventionHandler.Request,
+        CheckNullability: false
+      }
+    ],
+    DispatcherFullName: global::TestApp.BeforeConventionHandlerDispatcher,
+    DispatcherKey: global::TestApp.BeforeConventionHandler.Request|global::TestApp.BeforeConventionHandler.Response,
+    IsAnyAsync: false,
+    HasInstanceMethods: true,
+    HasFromServicesParameters: false
+  },
+  Diagnostics: null
+}

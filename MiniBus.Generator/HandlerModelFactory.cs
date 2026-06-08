@@ -77,13 +77,13 @@ public static class HandlerModelFactory
             return new(null, EquatableArray<DiagnosticInfo>.Empty);
         }
 
-        var loadMethod = classSymbol.GetMembers("Load")
+        var preHandleMethods = classSymbol.GetMembers()
             .OfType<IMethodSymbol>()
-            .FirstOrDefault();
-
-        var validateMethod = classSymbol.GetMembers("Validate")
-            .OfType<IMethodSymbol>()
-            .FirstOrDefault();
+            .Where(static m => m.MethodKind == MethodKind.Ordinary)
+            .Where(static m => IsPreHandleMethodName(m.Name))
+            .OrderBy(static m => m.Locations.FirstOrDefault(static l => l.IsInSource)?.SourceSpan.Start ?? int.MaxValue)
+            .ThenBy(static m => m.Name, StringComparer.Ordinal)
+            .ToArray();
 
         if (!IsSupportedHandlerMethodReturnType(handleMethod))
         {
@@ -106,37 +106,23 @@ public static class HandlerModelFactory
             ]));
         }
 
-        if (loadMethod is not null && !IsSupportedHandlerMethodReturnType(loadMethod))
+        var unsupportedPreHandleMethodDiagnostics = preHandleMethods
+            .Where(static m => !IsSupportedHandlerMethodReturnType(m))
+            .Select(m => Diagnostics.UnsupportedMethodReturnType(
+                location: location,
+                handlerName: classSymbol.ToDisplayString(fmt),
+                returnType: m.ReturnType.ToDisplayString(fmt),
+                methodName: m.Name))
+            .ToArray();
+        if (unsupportedPreHandleMethodDiagnostics.Length > 0)
         {
-            return new(null, new([
-                Diagnostics.UnsupportedMethodReturnType(
-                    location: location,
-                    handlerName: classSymbol.ToDisplayString(fmt),
-                    returnType: loadMethod.ReturnType.ToDisplayString(fmt),
-                    methodName: loadMethod.Name)
-            ]));
-        }
-
-        if (validateMethod is not null && !IsSupportedHandlerMethodReturnType(validateMethod))
-        {
-            return new(null, new([
-                Diagnostics.UnsupportedMethodReturnType(
-                    location: location,
-                    handlerName: classSymbol.ToDisplayString(fmt),
-                    returnType: validateMethod.ReturnType.ToDisplayString(fmt),
-                    methodName: validateMethod.Name)
-            ]));
+            return new(null, new(unsupportedPreHandleMethodDiagnostics));
         }
 
         var handlePhase = new MethodPhase(PhaseType.Handle, handleMethod, fmt);
-        var loadPhase = loadMethod is null ? null : new MethodPhase(PhaseType.Before, loadMethod, fmt);
-        var validatePhase = validateMethod is null ? null : new MethodPhase(PhaseType.Before, validateMethod, fmt);
-
-        var preHandleCandidates = new List<MethodPhase>();
-        if (loadPhase is not null)
-            preHandleCandidates.Add(loadPhase);
-        if (validatePhase is not null)
-            preHandleCandidates.Add(validatePhase);
+        var preHandleCandidates = preHandleMethods
+            .Select(m => new MethodPhase(PhaseType.Before, m, fmt))
+            .ToList();
 
         if (!TryOrderPhases(preHandleCandidates, handlePhase, out var orderedMethods, out var cycleMethods))
         {
@@ -318,6 +304,17 @@ public static class HandlerModelFactory
     private static bool HasOutputs(MethodPhase phase) => phase.Returns.Count > 0;
 
     private sealed record PendingPhase(MethodPhase Phase, int SourceIndex);
+
+    private static bool IsPreHandleMethodName(string methodName)
+    {
+        return methodName == "Load"
+            || methodName == "LoadAsync"
+            || methodName == "Validate"
+            || methodName == "ValidateAsync"
+            || methodName.StartsWith("Before", StringComparison.Ordinal)
+            || methodName.EndsWith("Before", StringComparison.Ordinal)
+            || methodName.EndsWith("BeforeAsync", StringComparison.Ordinal);
+    }
 
     private static bool InferRequestType(
         IEnumerable<MethodPhase> orderedMethods,

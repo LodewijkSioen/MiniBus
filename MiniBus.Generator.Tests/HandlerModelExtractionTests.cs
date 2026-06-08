@@ -535,6 +535,38 @@ public class HandlerModelExtractionTests
     }
 
     [Test]
+    public async Task BeforeNameConventions_AndAsyncAliases_AreIncludedAsPreHandlePhases()
+    {
+        const string source = """
+            using MiniBus;
+            namespace TestApp;
+            [Handler]
+            public class BeforeConventionHandler
+            {
+                public record Request(string Value);
+                public record Entity(string Value);
+                public record Prepared(string Value);
+                public record Enriched(string Value);
+                public record Response(string Value);
+
+                public Entity LoadAsync(Request request) => new Entity(request.Value);
+
+                public Prepared BeforeNormalize(Entity entity) => new Prepared(entity.Value + "-prepared");
+
+                public Enriched NormalizeBeforeAsync(Prepared prepared) => new Enriched(prepared.Value + "-enriched");
+
+                public ValidationResult ValidateAsync(Enriched enriched) => new ValidationResult();
+
+                public Response Handle(Enriched enriched) => new Response(enriched.Value);
+            }
+            """;
+
+        var result = HandlerModelFactory.GetHandlerModel(GetSymbol(source, "BeforeConventionHandler"), Location.None);
+
+        await Verify(result);
+    }
+
+    [Test]
     public async Task StaticHandle_IsStaticTrue_AndHasNoInstanceMethods()
     {
         const string source = """
