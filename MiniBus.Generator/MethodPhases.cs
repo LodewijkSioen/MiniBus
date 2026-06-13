@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using Microsoft.CodeAnalysis;
 using System.Linq;
@@ -7,10 +8,12 @@ namespace MiniBus.Generator;
 public sealed record ReturnElement(
     string LocalName,
     string FullType,
-    bool IsNullable)
+    bool IsNullable,
+    bool IsResultType)
 {
     public string NonNullLocalName => IsNullable ? LocalName + "Value" : LocalName;
-    public bool IsValidationResult => FullType.Equals("global::MiniBus.ValidationResult");
+
+    public bool IsValidationResult => IsResultType;
 }
 
 public sealed record InputParameter(
@@ -101,11 +104,12 @@ public sealed record MethodPhase
                     ? elemType.WithNullableAnnotation(NullableAnnotation.NotAnnotated)
                     : elemType;
                 var fullType = nonNullType.ToDisplayString(format);
+                var isResultType = ImplementsResultInterface(nonNullType);
                 var rawName = elem.Name;
                 var localName = rawName.Length > 0 && char.IsUpper(rawName[0])
                     ? char.ToLower(rawName[0]) + rawName.Substring(1)
                     : rawName;
-                elements.Add(new(string.Concat(localName, MethodName), fullType, isNullable));
+                elements.Add(new(string.Concat(localName, MethodName), fullType, isNullable, isResultType));
             }
 
             Returns = new(elements);
@@ -117,21 +121,11 @@ public sealed record MethodPhase
                 ? innerType.WithNullableAnnotation(NullableAnnotation.NotAnnotated)
                 : innerType;
             var fullType = nonNullable.ToDisplayString(format);
+            var isResultType = ImplementsResultInterface(nonNullable);
             Returns = new([
-                new(string.Concat("from", MethodName), fullType, isNullable)
+                new(string.Concat("from", MethodName), fullType, isNullable, isResultType)
             ]);
         }
-    }
-
-    private MethodPhase()
-    {
-        // Dummy constructor for record initialization - not used directly
-        Type = PhaseType.Before;
-        MethodName = "";
-        IsAsync = false;
-        IsStatic = false;
-        Parameters = EquatableArray<InputParameter>.Empty;
-        Returns = EquatableArray<ReturnElement>.Empty;
     }
 
     public PhaseType Type { get; }
@@ -149,4 +143,18 @@ public sealed record MethodPhase
             return (returnType, true);
         return (returnType, false);
     }
+
+    private static bool ImplementsResultInterface(ITypeSymbol type)
+    {
+        if (type.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat)
+                .Equals("global::MiniBus.IValidationResult", StringComparison.Ordinal))
+        {
+            return true;
+        }
+
+        return type.AllInterfaces.Any(interfaceType =>
+            interfaceType.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat)
+                .Equals("global::MiniBus.IValidationResult", StringComparison.Ordinal));
+    }
+
 }

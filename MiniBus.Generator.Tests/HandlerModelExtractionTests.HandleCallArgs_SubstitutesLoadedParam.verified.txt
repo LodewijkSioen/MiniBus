@@ -5,6 +5,10 @@
     FullClassName: global::TestApp.LoadedArgHandler,
     FullRequestType: global::TestApp.LoadedArgHandler.Request,
     FullResponseType: global::TestApp.LoadedArgHandler.Response,
+    ResultValueTypes: [
+      global::TestApp.LoadedArgHandler.Response,
+      global::MiniBus.NotFoundResult
+    ],
     Phases: [
       {
         MethodName: Load,
@@ -24,6 +28,7 @@
             LocalName: fromLoad,
             FullType: global::TestApp.LoadedArgHandler.Entity,
             IsNullable: true,
+            IsResultType: false,
             NonNullLocalName: fromLoadValue,
             IsValidationResult: false
           }
@@ -48,6 +53,7 @@
             LocalName: fromHandle,
             FullType: global::TestApp.LoadedArgHandler.Response,
             IsNullable: false,
+            IsResultType: false,
             NonNullLocalName: fromHandle,
             IsValidationResult: false
           }

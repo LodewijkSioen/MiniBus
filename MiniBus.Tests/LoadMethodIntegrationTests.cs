@@ -89,8 +89,21 @@ public class LoadMethodIntegrationTests
 
         var result = await bus.Handle(new NullableLoadHandler.Request(ReturnNull: true));
 
-        Assert.That(result.IsSuccess, Is.False);
-        Assert.That(result.Status, Is.EqualTo(global::MiniBus.ResultStatus.NotFound));
+        Assert.That(result.Value, Is.TypeOf<global::MiniBus.NotFoundResult>());
+    }
+
+    [Test]
+    public async Task LoadReturnsNull_Match_UsesNotFoundBranch()
+    {
+        using var scope = AppUnderTest.Services.CreateScope();
+        var bus = scope.ServiceProvider.GetRequiredService<MiniBus>();
+
+        var result = await bus.Handle(new NullableLoadHandler.Request(ReturnNull: true));
+        var marker = result.Match(
+            onSuccess: _ => "success",
+            onNotFound: _ => "notfound");
+
+        Assert.That(marker, Is.EqualTo("notfound"));
     }
 
     [Test]
@@ -100,9 +113,10 @@ public class LoadMethodIntegrationTests
         var bus = scope.ServiceProvider.GetRequiredService<MiniBus>();
 
         var result = await bus.Handle(new NullableLoadHandler.Request(ReturnNull: false));
+        var response = result.Match(r => r, _ => null!);
 
-        Assert.That(result.IsSuccess, Is.True);
-        Assert.That(result.Response!.Value, Is.EqualTo("loaded!"));
+        Assert.That(response, Is.Not.Null);
+        Assert.That(response.Value, Is.EqualTo("loaded!"));
     }
 
     [Test]
@@ -112,9 +126,10 @@ public class LoadMethodIntegrationTests
         var bus = scope.ServiceProvider.GetRequiredService<MiniBus>();
 
         var result = await bus.Handle(new LoadWithBothParamsHandler.Request("hello"));
+        var response = result.Match(r => r, _ => null!);
 
-        Assert.That(result.IsSuccess, Is.True);
-        Assert.That(result.Response!.Combined, Is.EqualTo("hello: world"));
+        Assert.That(response, Is.Not.Null);
+        Assert.That(response.Combined, Is.EqualTo("hello: world"));
     }
 
     [Test]
@@ -125,8 +140,7 @@ public class LoadMethodIntegrationTests
 
         var result = await bus.Handle(new SyncLoadHandler.Request(Id: 0));
 
-        Assert.That(result.IsSuccess, Is.False);
-        Assert.That(result.Status, Is.EqualTo(global::MiniBus.ResultStatus.NotFound));
+        Assert.That(result.Value, Is.TypeOf<global::MiniBus.NotFoundResult>());
     }
 
     [Test]
@@ -136,9 +150,10 @@ public class LoadMethodIntegrationTests
         var bus = scope.ServiceProvider.GetRequiredService<MiniBus>();
 
         var result = await bus.Handle(new SyncLoadHandler.Request(Id: 4));
+        var response = result.Match(r => r, _ => null!);
 
-        Assert.That(result.IsSuccess, Is.True);
-        Assert.That(result.Response!.Value, Is.EqualTo(12));
+        Assert.That(response, Is.Not.Null);
+        Assert.That(response.Value, Is.EqualTo(12));
     }
 
     [Test]
@@ -148,12 +163,10 @@ public class LoadMethodIntegrationTests
         var bus = scope.ServiceProvider.GetRequiredService<MiniBus>();
 
         var result = await bus.Handle(new NotFoundMessageHandler.Request(ReturnNull: true));
+        var notFound = result.Match(_ => null!, r => r);
 
-        Assert.That(result.IsSuccess, Is.False);
-        Assert.That(result.Status, Is.EqualTo(global::MiniBus.ResultStatus.NotFound));
-        Assert.That(result.ValidationErrors, Has.Count.EqualTo(1));
-        Assert.That(result.ValidationErrors[0].Message, Is.EqualTo("Entity not found"));
-        Assert.That(result.ValidationErrors[0].Code, Is.EqualTo("notfound"));
+        Assert.That(notFound, Is.Not.Null);
+        Assert.That(notFound.Message, Is.EqualTo("Entity not found"));
     }
 
     [Test]
@@ -163,11 +176,9 @@ public class LoadMethodIntegrationTests
         var bus = scope.ServiceProvider.GetRequiredService<MiniBus>();
 
         var result = await bus.Handle(new RequiredNoMessageHandler.Request(ReturnNull: true));
+        var notFound = result.Match(_ => null!, r => r);
 
-        Assert.That(result.IsSuccess, Is.False);
-        Assert.That(result.Status, Is.EqualTo(global::MiniBus.ResultStatus.NotFound));
-        Assert.That(result.ValidationErrors, Has.Count.EqualTo(1));
-        Assert.That(result.ValidationErrors[0].Message, Is.EqualTo("loaded cannot be null"));
-        Assert.That(result.ValidationErrors[0].Code, Is.EqualTo("notfound"));
+        Assert.That(notFound, Is.Not.Null);
+        Assert.That(notFound.Message, Is.EqualTo("loaded cannot be null"));
     }
 }

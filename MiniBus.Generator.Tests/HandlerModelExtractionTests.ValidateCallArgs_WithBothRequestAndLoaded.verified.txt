@@ -5,6 +5,11 @@
     FullClassName: global::TestApp.BothValidateArgsHandler,
     FullRequestType: global::TestApp.BothValidateArgsHandler.Request,
     FullResponseType: global::TestApp.BothValidateArgsHandler.Response,
+    ResultValueTypes: [
+      global::TestApp.BothValidateArgsHandler.Response,
+      global::MiniBus.ValidationResult,
+      global::MiniBus.NotFoundResult
+    ],
     Phases: [
       {
         MethodName: Load,
@@ -24,6 +29,7 @@
             LocalName: fromLoad,
             FullType: global::TestApp.BothValidateArgsHandler.Entity,
             IsNullable: true,
+            IsResultType: false,
             NonNullLocalName: fromLoadValue,
             IsValidationResult: false
           }
@@ -54,6 +60,7 @@
             LocalName: fromValidate,
             FullType: global::MiniBus.ValidationResult,
             IsNullable: false,
+            IsResultType: true,
             NonNullLocalName: fromValidate,
             IsValidationResult: true
           }
@@ -78,6 +85,7 @@
             LocalName: fromHandle,
             FullType: global::TestApp.BothValidateArgsHandler.Response,
             IsNullable: false,
+            IsResultType: false,
             NonNullLocalName: fromHandle,
             IsValidationResult: false
           }

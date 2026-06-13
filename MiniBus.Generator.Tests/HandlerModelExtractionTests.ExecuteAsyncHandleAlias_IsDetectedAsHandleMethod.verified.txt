@@ -5,6 +5,9 @@
     FullClassName: global::TestApp.ExecuteAsyncHandler,
     FullRequestType: global::TestApp.ExecuteAsyncHandler.Request,
     FullResponseType: global::TestApp.ExecuteAsyncHandler.Response,
+    ResultValueTypes: [
+      global::TestApp.ExecuteAsyncHandler.Response
+    ],
     Phases: [
       {
         Type: Handle,
@@ -25,6 +28,7 @@
             LocalName: fromExecuteAsync,
             FullType: global::TestApp.ExecuteAsyncHandler.Response,
             IsNullable: false,
+            IsResultType: false,
             NonNullLocalName: fromExecuteAsync,
             IsValidationResult: false
           }

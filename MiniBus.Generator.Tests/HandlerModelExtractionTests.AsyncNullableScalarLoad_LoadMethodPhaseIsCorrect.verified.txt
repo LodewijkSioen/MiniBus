@@ -5,6 +5,10 @@
     FullClassName: global::TestApp.EntityHandler,
     FullRequestType: global::TestApp.EntityHandler.Request,
     FullResponseType: global::TestApp.EntityHandler.Response,
+    ResultValueTypes: [
+      global::TestApp.EntityHandler.Response,
+      global::MiniBus.NotFoundResult
+    ],
     Phases: [
       {
         MethodName: Load,
@@ -24,6 +28,7 @@
             LocalName: fromLoad,
             FullType: global::TestApp.EntityHandler.Entity,
             IsNullable: true,
+            IsResultType: false,
             NonNullLocalName: fromLoadValue,
             IsValidationResult: false
           }
@@ -48,6 +53,7 @@
             LocalName: fromHandle,
             FullType: global::TestApp.EntityHandler.Response,
             IsNullable: false,
+            IsResultType: false,
             NonNullLocalName: fromHandle,
             IsValidationResult: false
           }

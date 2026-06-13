@@ -1,71 +1,22 @@
-using System.Diagnostics.CodeAnalysis;
-
 namespace MiniBus;
 
-public enum ResultStatus
+public interface IValidationResult
 {
-    Ok,
-    NotFound,
-    Invalid
+    bool IsValid();
 }
 
-public class Result<TResponse> 
-    where TResponse : notnull
-{
-    private Result()
-    {
-        ValidationErrors = new ValidationResult();
-    }
-
-    [MemberNotNullWhen(true, nameof(Response))]
-    public bool IsSuccess => Status == ResultStatus.Ok;
-
-    public ResultStatus Status { get; init; }
-
-    public TResponse? Response { get; init; }
-
-    public ValidationResult ValidationErrors { get; init; }
-
-    public static Result<TResponse> Success(TResponse response)
-    {
-        if (response is null)
-        {
-            throw new ArgumentNullException(nameof(response));
-        }
-
-        return new()
-        {
-            Status = ResultStatus.Ok,
-            Response = response
-        };
-    }
-
-    public static Result<TResponse> NotFound(string? message = null) => new()
-    {
-        Status = ResultStatus.NotFound,
-        ValidationErrors = message is null
-            ? new ValidationResult()
-            : new ValidationResult { new ValidationError(message, "notfound") }
-    };
-
-    public static Result<TResponse> Invalid(ValidationResult errors)
-    {
-        if (errors is null)
-        {
-            throw new ArgumentNullException(nameof(errors));
-        }
-
-        return new()
-        {
-            Status = ResultStatus.Invalid,
-            ValidationErrors = errors
-        };
-    }
-}
-
-public class ValidationResult : List<ValidationError>
+public class ValidationResult<TError> : List<TError>, IValidationResult
 {
     public bool IsValid() => Count == 0;
+}
+
+public class ValidationResult : ValidationResult<ValidationError>
+{
+}
+
+public sealed record NotFoundResult(string Message) : IValidationResult
+{
+    public bool IsValid() => false;
 }
 
 public record ValidationError(string Message, string? Code = null);

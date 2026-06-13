@@ -5,6 +5,10 @@
     FullClassName: global::TestApp.SyncValidateHandler,
     FullRequestType: global::TestApp.SyncValidateHandler.Request,
     FullResponseType: global::TestApp.SyncValidateHandler.Response,
+    ResultValueTypes: [
+      global::TestApp.SyncValidateHandler.Response,
+      global::MiniBus.ValidationResult
+    ],
     Phases: [
       {
         MethodName: Validate,
@@ -24,6 +28,7 @@
             LocalName: fromValidate,
             FullType: global::MiniBus.ValidationResult,
             IsNullable: false,
+            IsResultType: true,
             NonNullLocalName: fromValidate,
             IsValidationResult: true
           }
@@ -48,6 +53,7 @@
             LocalName: fromHandle,
             FullType: global::TestApp.SyncValidateHandler.Response,
             IsNullable: false,
+            IsResultType: false,
             NonNullLocalName: fromHandle,
             IsValidationResult: false
           }

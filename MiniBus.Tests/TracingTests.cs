@@ -64,8 +64,7 @@ public class TracingTests
         var activity = _activities[0];
         Assert.That(activity.OperationName, Is.EqualTo("minibus.dispatch SimpleHandler"));
         Assert.That(activity.GetTagItem("minibus.request.type"), Is.EqualTo(typeof(SimpleHandler.Request).FullName));
-        Assert.That(activity.GetTagItem("minibus.response.type"), Is.EqualTo(typeof(SimpleHandler.Response).FullName));
-        Assert.That(activity.GetTagItem("minibus.result.status"), Is.EqualTo("Ok"));
+        Assert.That(activity.GetTagItem("minibus.result.type"), Is.EqualTo(typeof(SimpleHandler.Response).FullName));
         Assert.That(activity.Status, Is.EqualTo(ActivityStatusCode.Unset));
     }
 
@@ -79,7 +78,7 @@ public class TracingTests
 
         Assert.That(_activities, Has.Count.EqualTo(1));
         var activity = _activities[0];
-        Assert.That(activity.GetTagItem("minibus.result.status"), Is.EqualTo("NotFound"));
+        Assert.That(activity.GetTagItem("minibus.result.type"), Is.EqualTo(typeof(global::MiniBus.NotFoundResult).FullName));
         Assert.That(activity.Status, Is.EqualTo(ActivityStatusCode.Unset));
     }
 
@@ -93,7 +92,7 @@ public class TracingTests
 
         Assert.That(_activities, Has.Count.EqualTo(1));
         var activity = _activities[0];
-        Assert.That(activity.GetTagItem("minibus.result.status"), Is.EqualTo("Invalid"));
+        Assert.That(activity.GetTagItem("minibus.result.type"), Is.EqualTo(typeof(global::MiniBus.ValidationResult).FullName));
         Assert.That(activity.Status, Is.EqualTo(ActivityStatusCode.Unset));
     }
 

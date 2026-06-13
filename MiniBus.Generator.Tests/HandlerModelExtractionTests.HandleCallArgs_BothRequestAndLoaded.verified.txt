@@ -5,6 +5,10 @@
     FullClassName: global::TestApp.BothArgsHandler,
     FullRequestType: global::TestApp.BothArgsHandler.Request,
     FullResponseType: global::TestApp.BothArgsHandler.Response,
+    ResultValueTypes: [
+      global::TestApp.BothArgsHandler.Response,
+      global::MiniBus.NotFoundResult
+    ],
     Phases: [
       {
         MethodName: Load,
@@ -24,6 +28,7 @@
             LocalName: fromLoad,
             FullType: global::TestApp.BothArgsHandler.Entity,
             IsNullable: true,
+            IsResultType: false,
             NonNullLocalName: fromLoadValue,
             IsValidationResult: false
           }
@@ -55,6 +60,7 @@
             LocalName: fromHandle,
             FullType: global::TestApp.BothArgsHandler.Response,
             IsNullable: false,
+            IsResultType: false,
             NonNullLocalName: fromHandle,
             IsValidationResult: false
           }

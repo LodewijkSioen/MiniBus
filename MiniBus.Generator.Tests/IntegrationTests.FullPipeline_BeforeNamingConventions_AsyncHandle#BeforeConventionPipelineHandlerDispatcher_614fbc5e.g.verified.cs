@@ -4,11 +4,50 @@
 
 namespace TestApp
 {
-    public class BeforeConventionPipelineHandlerDispatcher
+    public sealed class BeforeConventionPipelineHandlerDispatcher
         : global::MiniBus.IDispatcher<
             global::TestApp.BeforeConventionPipelineHandler.Request,
-            global::TestApp.BeforeConventionPipelineHandler.Response>
+            BeforeConventionPipelineHandlerDispatcher.Result>
     {
+        public sealed class Result : global::MiniBus.IDispatchResult
+        {
+            private Result() { }
+
+            public Result(global::TestApp.BeforeConventionPipelineHandler.Response value)
+            {
+                if (value is null)
+                {
+                    throw new global::System.ArgumentNullException(nameof(value));
+                }
+
+                Value = value;
+            }
+
+            public Result(global::MiniBus.ValidationResult value)
+            {
+                if (value is null)
+                {
+                    throw new global::System.ArgumentNullException(nameof(value));
+                }
+
+                Value = value;
+            }
+
+            public object? Value { get; }
+
+            public T Match<T>(
+                global::System.Func<global::TestApp.BeforeConventionPipelineHandler.Response, T> onSuccess,
+                global::System.Func<global::MiniBus.ValidationResult, T> onInvalid
+            )
+            {
+                return Value switch
+                {
+                    global::TestApp.BeforeConventionPipelineHandler.Response value => onSuccess(value),
+                    global::MiniBus.ValidationResult value => onInvalid(value),
+                    _ => throw new global::System.InvalidOperationException("Unknown result value type.")
+                };
+            }
+        }
         private readonly global::TestApp.BeforeConventionPipelineHandler _handler;
 
         public BeforeConventionPipelineHandlerDispatcher(global::TestApp.BeforeConventionPipelineHandler handler)
@@ -18,8 +57,7 @@ namespace TestApp
 
         public string HandlerName => nameof(global::TestApp.BeforeConventionPipelineHandler);
 
-        public async global::System.Threading.Tasks.Task<
-            global::MiniBus.Result<global::TestApp.BeforeConventionPipelineHandler.Response>>
+        public async global::System.Threading.Tasks.Task<Result>
             Handle(global::TestApp.BeforeConventionPipelineHandler.Request request)
         {
             var fromBeforeLoad = _handler.BeforeLoad(request);
@@ -27,11 +65,11 @@ namespace TestApp
             var fromNormalizeBefore = _handler.NormalizeBefore(fromBeforeLoad);
 
             var fromValidate = _handler.Validate(fromNormalizeBefore);
-            if (!fromValidate.IsValid())
-                return global::MiniBus.Result<global::TestApp.BeforeConventionPipelineHandler.Response>.Invalid(fromValidate);
+            if (fromValidate is global::MiniBus.IValidationResult fromValidateValidationResult && !fromValidateValidationResult.IsValid())
+                return new Result(fromValidate);
 
             var fromHandle = await _handler.Handle(fromNormalizeBefore);
-            return global::MiniBus.Result<global::TestApp.BeforeConventionPipelineHandler.Response>.Success(fromHandle);
+            return new Result(fromHandle);
         }
     }
 }

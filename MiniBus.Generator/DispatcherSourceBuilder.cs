@@ -25,11 +25,13 @@ public static class DispatcherSourceBuilder
 
         if (inNs) { sb.AppendLine($"namespace {model.Namespace}"); sb.AppendLine("{"); }
 
-        sb.AppendLine($"{i}public class {model.ClassName}Dispatcher");
+        sb.AppendLine($"{i}public sealed class {model.ClassName}Dispatcher");
         sb.AppendLine($"{i}    : global::MiniBus.IDispatcher<");
         sb.AppendLine($"{i}        {model.FullRequestType},");
-        sb.AppendLine($"{i}        {model.FullResponseType}>");
+        sb.AppendLine($"{i}        {model.ClassName}Dispatcher.Result>");
         sb.AppendLine($"{i}{{");
+
+        ResultTypeSourceBuilder.Build(sb, model, i);
 
         if (model.HasInstanceMethods)
             sb.AppendLine($"{i}    private readonly {model.FullClassName} _handler;");
@@ -58,8 +60,7 @@ public static class DispatcherSourceBuilder
         sb.AppendLine();
         sb.AppendLine($"{i}    public string HandlerName => nameof({model.FullClassName});");
         sb.AppendLine();
-        sb.AppendLine($"{i}    public {asyncKeyword}global::System.Threading.Tasks.Task<");
-        sb.AppendLine($"{i}        global::MiniBus.Result<{model.FullResponseType}>>");
+        sb.AppendLine($"{i}    public {asyncKeyword}global::System.Threading.Tasks.Task<Result>");
         sb.AppendLine($"{i}        Handle({model.FullRequestType} request)");
         sb.AppendLine($"{i}    {{");
 
@@ -113,7 +114,7 @@ public static class DispatcherSourceBuilder
         }
 
         var returnIndent = model.FinallyPhase is not null ? i + "            " : i + "        ";
-        sb.AppendLine($"{returnIndent}return {taskWrap}global::MiniBus.Result<{model.FullResponseType}>.Success({responseLocalName ?? "default!"}){taskClose};");
+        sb.AppendLine($"{returnIndent}return {taskWrap}new Result({responseLocalName ?? "default!"}){taskClose};");
 
         // Close try and add finally
         if (model.FinallyPhase is not null)
@@ -130,11 +131,6 @@ public static class DispatcherSourceBuilder
         if (inNs) sb.AppendLine("}");
 
         return sb.ToString();
-    }
-
-    private static void BuildPipelinePhase(StringBuilder sb, HandlerModel model, MethodPhase phase, string taskWrap, string taskClose, string indent)
-    {
-        BuildPipelinePhase(sb, model, phase, taskWrap, taskClose, indent, new());
     }
 
     private static void BuildPipelinePhase(StringBuilder sb, HandlerModel model, MethodPhase phase, string taskWrap, string taskClose, string indent, HashSet<string> hoistedTypes)
@@ -177,20 +173,21 @@ public static class DispatcherSourceBuilder
             sb.AppendLine($"{indent}        {varKeyword}{phase.Returns[0].LocalName} = {awaitPrefix}{methodTarget}.{phase.MethodName}({callArguments});");
         }
 
-        BuildValidationResultChecks(sb, model, phase.Returns, taskWrap, taskClose, indent);
+        BuildValidationResultChecks(sb, phase.Returns, taskWrap, taskClose, indent);
         BuildNotFoundChecks(sb, model, phase.Returns, taskWrap, taskClose, indent);
 
         sb.AppendLine();
     }
 
-    private static void BuildValidationResultChecks(StringBuilder sb, HandlerModel model, EquatableArray<ReturnElement> returnValues, string taskWrap, string taskClose, string indent)
+    private static void BuildValidationResultChecks(StringBuilder sb, EquatableArray<ReturnElement> returnValues, string taskWrap, string taskClose, string indent)
     {
         foreach (var element in returnValues)
         {
-            if (element.IsValidationResult)
+            if (element.IsResultType)
             {
-                sb.AppendLine($"{indent}        if (!{element.NonNullLocalName}.IsValid())");
-                sb.AppendLine($"{indent}            return {taskWrap}global::MiniBus.Result<{model.FullResponseType}>.Invalid({element.NonNullLocalName}){taskClose};");
+                var validationResultLocalName = $"{element.LocalName}ValidationResult";
+                sb.AppendLine($"{indent}        if ({element.LocalName} is global::MiniBus.IValidationResult {validationResultLocalName} && !{validationResultLocalName}.IsValid())");
+                sb.AppendLine($"{indent}            return {taskWrap}new Result({element.LocalName}){taskClose};");
             }
         }
     }
@@ -202,16 +199,11 @@ public static class DispatcherSourceBuilder
             var local = model.LocalVariables.First(l => l.FullType == element.FullType);
             if (local.CheckNullability)
             {
-                var ifNullMessage = local.IfNullErrorMessage is null ? null : $"\"{local.IfNullErrorMessage}\"";
+                var ifNullMessage = local.IfNullErrorMessage is null ? "notfound" : $"\"{local.IfNullErrorMessage}\"";
                 sb.AppendLine($"{indent}        if ({element.LocalName} is not {{ }} {element.NonNullLocalName})");
-                sb.AppendLine($"{indent}            return {taskWrap}global::MiniBus.Result<{model.FullResponseType}>.NotFound({ifNullMessage}){taskClose};");
+                sb.AppendLine($"{indent}            return {taskWrap}new Result(new global::MiniBus.NotFoundResult({ifNullMessage})){taskClose};");
             }
         }
-    }
-
-    private static string BuildHandlePhase(StringBuilder sb, HandlerModel model, MethodPhase handle, string taskWrap, string taskClose, string indent)
-    {
-        return BuildHandlePhase(sb, model, handle, taskWrap, taskClose, indent, new());
     }
 
     private static string BuildHandlePhase(StringBuilder sb, HandlerModel model, MethodPhase handle, string taskWrap, string taskClose, string indent, HashSet<string> hoistedTypes)
@@ -255,7 +247,7 @@ public static class DispatcherSourceBuilder
             sb.AppendLine($"{indent}        {varKeyword}{handle.Returns[0].LocalName} = {handleAwait}{methodTarget}.{handle.MethodName}({callArguments});");
         }
 
-        BuildValidationResultChecks(sb, model, handle.Returns, taskWrap, taskClose, indent);
+        BuildValidationResultChecks(sb, handle.Returns, taskWrap, taskClose, indent);
         BuildNotFoundChecks(sb, model, handle.Returns, taskWrap, taskClose, indent);
         var firstReturn = handle.Returns[0];
         var firstLocal = model.LocalVariables.FirstOrDefault(l => l.FullType == firstReturn.FullType);

@@ -5,6 +5,10 @@
     FullClassName: global::TestApp.ConventionDiHandler,
     FullRequestType: global::TestApp.ConventionDiHandler.Request,
     FullResponseType: global::TestApp.ConventionDiHandler.Response,
+    ResultValueTypes: [
+      global::TestApp.ConventionDiHandler.Response,
+      global::MiniBus.ValidationResult
+    ],
     Phases: [
       {
         MethodName: Validate,
@@ -31,6 +35,7 @@
             LocalName: fromValidate,
             FullType: global::MiniBus.ValidationResult,
             IsNullable: false,
+            IsResultType: true,
             NonNullLocalName: fromValidate,
             IsValidationResult: true
           }
@@ -62,6 +67,7 @@
             LocalName: fromHandle,
             FullType: global::TestApp.ConventionDiHandler.Response,
             IsNullable: false,
+            IsResultType: false,
             NonNullLocalName: fromHandle,
             IsValidationResult: false
           }

@@ -15,7 +15,7 @@ namespace MiniBus
             services.AddTransient<
                 global::MiniBus.IDispatcher<
                     global::TestApp.NullableHandleReturnHandler.Request,
-                    global::TestApp.NullableHandleReturnHandler.Response>,
+                    global::TestApp.NullableHandleReturnHandlerDispatcher.Result>,
                 global::TestApp.NullableHandleReturnHandlerDispatcher>();
             return services;
         }
@@ -24,8 +24,8 @@ namespace MiniBus
     // ── Typed MiniBus extension methods ──────────────────────────────
     public static class MiniBusExtensions
     {
-        public static global::System.Threading.Tasks.Task<global::MiniBus.Result<global::TestApp.NullableHandleReturnHandler.Response>>
+        public static global::System.Threading.Tasks.Task<global::TestApp.NullableHandleReturnHandlerDispatcher.Result>
             Handle(this global::MiniBus.MiniBus bus, global::TestApp.NullableHandleReturnHandler.Request request)
-            => bus.Handle<global::TestApp.NullableHandleReturnHandler.Request, global::TestApp.NullableHandleReturnHandler.Response>(request);
+            => bus.Handle<global::TestApp.NullableHandleReturnHandler.Request, global::TestApp.NullableHandleReturnHandlerDispatcher.Result>(request);
     }
 }

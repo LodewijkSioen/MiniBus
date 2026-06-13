@@ -5,6 +5,9 @@
     FullClassName: global::TestApp.StaticOnlyHandler,
     FullRequestType: global::TestApp.StaticOnlyHandler.Request,
     FullResponseType: global::TestApp.StaticOnlyHandler.Response,
+    ResultValueTypes: [
+      global::TestApp.StaticOnlyHandler.Response
+    ],
     Phases: [
       {
         Type: Handle,
@@ -25,6 +28,7 @@
             LocalName: fromHandle,
             FullType: global::TestApp.StaticOnlyHandler.Response,
             IsNullable: false,
+            IsResultType: false,
             NonNullLocalName: fromHandle,
             IsValidationResult: false
           }

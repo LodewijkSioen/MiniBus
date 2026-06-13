@@ -5,6 +5,9 @@
     FullClassName: global::TestApp.FinallyPipelineParamsHandler,
     FullRequestType: global::TestApp.FinallyPipelineParamsHandler.Request,
     FullResponseType: global::TestApp.FinallyPipelineParamsHandler.Response,
+    ResultValueTypes: [
+      global::TestApp.FinallyPipelineParamsHandler.Response
+    ],
     Phases: [
       {
         MethodName: Load,
@@ -24,6 +27,7 @@
             LocalName: fromLoad,
             FullType: global::TestApp.FinallyPipelineParamsHandler.Entity,
             IsNullable: false,
+            IsResultType: false,
             NonNullLocalName: fromLoad,
             IsValidationResult: false
           }
@@ -48,6 +52,7 @@
             LocalName: fromHandle,
             FullType: global::TestApp.FinallyPipelineParamsHandler.Response,
             IsNullable: false,
+            IsResultType: false,
             NonNullLocalName: fromHandle,
             IsValidationResult: false
           }

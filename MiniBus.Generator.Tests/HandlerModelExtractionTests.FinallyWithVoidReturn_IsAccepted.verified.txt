@@ -5,6 +5,9 @@
     FullClassName: global::TestApp.FinallyVoidHandler,
     FullRequestType: global::TestApp.FinallyVoidHandler.Request,
     FullResponseType: global::TestApp.FinallyVoidHandler.Response,
+    ResultValueTypes: [
+      global::TestApp.FinallyVoidHandler.Response
+    ],
     Phases: [
       {
         Type: Handle,
@@ -25,6 +28,7 @@
             LocalName: fromHandle,
             FullType: global::TestApp.FinallyVoidHandler.Response,
             IsNullable: false,
+            IsResultType: false,
             NonNullLocalName: fromHandle,
             IsValidationResult: false
           }

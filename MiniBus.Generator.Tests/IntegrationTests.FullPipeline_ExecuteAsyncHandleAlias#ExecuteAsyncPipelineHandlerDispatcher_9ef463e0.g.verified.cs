@@ -4,11 +4,50 @@
 
 namespace TestApp
 {
-    public class ExecuteAsyncPipelineHandlerDispatcher
+    public sealed class ExecuteAsyncPipelineHandlerDispatcher
         : global::MiniBus.IDispatcher<
             global::TestApp.ExecuteAsyncPipelineHandler.Request,
-            global::TestApp.ExecuteAsyncPipelineHandler.Response>
+            ExecuteAsyncPipelineHandlerDispatcher.Result>
     {
+        public sealed class Result : global::MiniBus.IDispatchResult
+        {
+            private Result() { }
+
+            public Result(global::TestApp.ExecuteAsyncPipelineHandler.Response value)
+            {
+                if (value is null)
+                {
+                    throw new global::System.ArgumentNullException(nameof(value));
+                }
+
+                Value = value;
+            }
+
+            public Result(global::MiniBus.ValidationResult value)
+            {
+                if (value is null)
+                {
+                    throw new global::System.ArgumentNullException(nameof(value));
+                }
+
+                Value = value;
+            }
+
+            public object? Value { get; }
+
+            public T Match<T>(
+                global::System.Func<global::TestApp.ExecuteAsyncPipelineHandler.Response, T> onSuccess,
+                global::System.Func<global::MiniBus.ValidationResult, T> onInvalid
+            )
+            {
+                return Value switch
+                {
+                    global::TestApp.ExecuteAsyncPipelineHandler.Response value => onSuccess(value),
+                    global::MiniBus.ValidationResult value => onInvalid(value),
+                    _ => throw new global::System.InvalidOperationException("Unknown result value type.")
+                };
+            }
+        }
         private readonly global::TestApp.ExecuteAsyncPipelineHandler _handler;
 
         public ExecuteAsyncPipelineHandlerDispatcher(global::TestApp.ExecuteAsyncPipelineHandler handler)
@@ -18,18 +57,17 @@ namespace TestApp
 
         public string HandlerName => nameof(global::TestApp.ExecuteAsyncPipelineHandler);
 
-        public async global::System.Threading.Tasks.Task<
-            global::MiniBus.Result<global::TestApp.ExecuteAsyncPipelineHandler.Response>>
+        public async global::System.Threading.Tasks.Task<Result>
             Handle(global::TestApp.ExecuteAsyncPipelineHandler.Request request)
         {
             var fromLoad = _handler.Load(request);
 
             var fromValidate = _handler.Validate(fromLoad);
-            if (!fromValidate.IsValid())
-                return global::MiniBus.Result<global::TestApp.ExecuteAsyncPipelineHandler.Response>.Invalid(fromValidate);
+            if (fromValidate is global::MiniBus.IValidationResult fromValidateValidationResult && !fromValidateValidationResult.IsValid())
+                return new Result(fromValidate);
 
             var fromExecuteAsync = await _handler.ExecuteAsync(fromLoad);
-            return global::MiniBus.Result<global::TestApp.ExecuteAsyncPipelineHandler.Response>.Success(fromExecuteAsync);
+            return new Result(fromExecuteAsync);
         }
     }
 }

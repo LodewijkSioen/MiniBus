@@ -5,6 +5,10 @@
     FullClassName: global::TestApp.ValidateRequestTypeHandler,
     FullRequestType: global::TestApp.ValidateRequestTypeHandler.Command,
     FullResponseType: global::TestApp.ValidateRequestTypeHandler.Response,
+    ResultValueTypes: [
+      global::TestApp.ValidateRequestTypeHandler.Response,
+      global::MiniBus.ValidationResult
+    ],
     Phases: [
       {
         MethodName: Validate,
@@ -24,6 +28,7 @@
             LocalName: fromValidate,
             FullType: global::MiniBus.ValidationResult,
             IsNullable: false,
+            IsResultType: true,
             NonNullLocalName: fromValidate,
             IsValidationResult: true
           }
@@ -55,6 +60,7 @@
             LocalName: fromHandle,
             FullType: global::TestApp.ValidateRequestTypeHandler.Response,
             IsNullable: false,
+            IsResultType: false,
             NonNullLocalName: fromHandle,
             IsValidationResult: false
           }

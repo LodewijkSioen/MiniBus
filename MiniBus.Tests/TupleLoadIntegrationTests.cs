@@ -62,9 +62,10 @@ public class TupleLoadIntegrationTests
         var bus = scope.ServiceProvider.GetRequiredService<MiniBus>();
 
         var result = await bus.Handle(new TupleLoadHandler.Request(1, 2));
+        var response = result.Match(r => r, _ => null!);
 
-        Assert.That(result.IsSuccess, Is.True);
-        Assert.That(result.Response!.Value, Is.EqualTo("entity-1|config-2"));
+        Assert.That(response, Is.Not.Null);
+        Assert.That(response.Value, Is.EqualTo("entity-1|config-2"));
     }
 
     [Test]
@@ -76,7 +77,7 @@ public class TupleLoadIntegrationTests
         // EntityId = 0 → entity is null
         var result = await bus.Handle(new TupleLoadHandler.Request(0, 2));
 
-        Assert.That(result.Status, Is.EqualTo(global::MiniBus.ResultStatus.NotFound));
+        Assert.That(result.Value, Is.TypeOf<global::MiniBus.NotFoundResult>());
     }
 
     [Test]
@@ -88,7 +89,7 @@ public class TupleLoadIntegrationTests
         // ConfigId = 0 → config is null
         var result = await bus.Handle(new TupleLoadHandler.Request(1, 0));
 
-        Assert.That(result.Status, Is.EqualTo(global::MiniBus.ResultStatus.NotFound));
+        Assert.That(result.Value, Is.TypeOf<global::MiniBus.NotFoundResult>());
     }
 
     [Test]
@@ -98,9 +99,10 @@ public class TupleLoadIntegrationTests
         var bus = scope.ServiceProvider.GetRequiredService<MiniBus>();
 
         var result = await bus.Handle(new TupleLoadWithValidateHandler.Request(5, 3));
+        var response = result.Match(r => r, _ => null!, _ => null!);
 
-        Assert.That(result.IsSuccess, Is.True);
-        Assert.That(result.Response!.Value, Is.EqualTo("e-5|cfg-3"));
+        Assert.That(response, Is.Not.Null);
+        Assert.That(response!.Value, Is.EqualTo("e-5|cfg-3"));
     }
 
     [Test]
@@ -111,8 +113,9 @@ public class TupleLoadIntegrationTests
 
         // EntityId = 999 → load succeeds but validate rejects
         var result = await bus.Handle(new TupleLoadWithValidateHandler.Request(999, 1));
+        var errors = result.Match(_ => null!, r => r, _ => null!);
 
-        Assert.That(result.Status, Is.EqualTo(global::MiniBus.ResultStatus.Invalid));
-        Assert.That(result.ValidationErrors[0].Code, Is.EqualTo("RANGE"));
+        Assert.That(errors, Is.Not.Null);
+        Assert.That(errors[0].Code, Is.EqualTo("RANGE"));
     }
 }

@@ -5,6 +5,9 @@
     FullClassName: global::TestApp.SyncHandler,
     FullRequestType: global::TestApp.SyncHandler.Request,
     FullResponseType: global::TestApp.SyncHandler.Response,
+    ResultValueTypes: [
+      global::TestApp.SyncHandler.Response
+    ],
     Phases: [
       {
         Type: Handle,
@@ -25,6 +28,7 @@
             LocalName: fromHandle,
             FullType: global::TestApp.SyncHandler.Response,
             IsNullable: false,
+            IsResultType: false,
             NonNullLocalName: fromHandle,
             IsValidationResult: false
           }

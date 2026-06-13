@@ -15,7 +15,7 @@ namespace MiniBus
             services.AddTransient<
                 global::MiniBus.IDispatcher<
                     global::TestApp.FullPipelineHandler.Request,
-                    global::TestApp.FullPipelineHandler.Response>,
+                    global::TestApp.FullPipelineHandlerDispatcher.Result>,
                 global::TestApp.FullPipelineHandlerDispatcher>();
             return services;
         }
@@ -24,8 +24,8 @@ namespace MiniBus
     // ── Typed MiniBus extension methods ──────────────────────────────
     public static class MiniBusExtensions
     {
-        public static global::System.Threading.Tasks.Task<global::MiniBus.Result<global::TestApp.FullPipelineHandler.Response>>
+        public static global::System.Threading.Tasks.Task<global::TestApp.FullPipelineHandlerDispatcher.Result>
             Handle(this global::MiniBus.MiniBus bus, global::TestApp.FullPipelineHandler.Request request)
-            => bus.Handle<global::TestApp.FullPipelineHandler.Request, global::TestApp.FullPipelineHandler.Response>(request);
+            => bus.Handle<global::TestApp.FullPipelineHandler.Request, global::TestApp.FullPipelineHandlerDispatcher.Result>(request);
     }
 }

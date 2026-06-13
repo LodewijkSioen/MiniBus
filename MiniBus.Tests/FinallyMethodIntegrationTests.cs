@@ -57,7 +57,7 @@ public class FinallyMethodIntegrationTests
 
         var result = await bus.Handle(new FinallyPipelineHandler.Request("ok"));
 
-        Assert.That(result.IsSuccess, Is.True);
+        Assert.That(result.Value, Is.TypeOf<FinallyPipelineHandler.Response>());
         Assert.That(probe.Observations, Has.Count.EqualTo(1));
 
         var call = probe.Observations[0];
@@ -78,7 +78,7 @@ public class FinallyMethodIntegrationTests
 
         var result = await bus.Handle(new FinallyPipelineHandler.Request("notfound"));
 
-        Assert.That(result.Status, Is.EqualTo(global::MiniBus.ResultStatus.NotFound));
+        Assert.That(result.Value, Is.TypeOf<global::MiniBus.NotFoundResult>());
         Assert.That(probe.Observations, Has.Count.EqualTo(1));
 
         var call = probe.Observations[0];
@@ -98,7 +98,7 @@ public class FinallyMethodIntegrationTests
 
         var result = await bus.Handle(new FinallyPipelineHandler.Request("invalid"));
 
-        Assert.That(result.Status, Is.EqualTo(global::MiniBus.ResultStatus.Invalid));
+        Assert.That(result.Value, Is.TypeOf<global::MiniBus.ValidationResult>());
         Assert.That(probe.Observations, Has.Count.EqualTo(1));
 
         var call = probe.Observations[0];

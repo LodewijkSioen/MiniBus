@@ -5,6 +5,11 @@
     FullClassName: global::TestApp.RequestOnlyValidateHandler,
     FullRequestType: global::TestApp.RequestOnlyValidateHandler.Request,
     FullResponseType: global::TestApp.RequestOnlyValidateHandler.Response,
+    ResultValueTypes: [
+      global::TestApp.RequestOnlyValidateHandler.Response,
+      global::MiniBus.ValidationResult,
+      global::MiniBus.NotFoundResult
+    ],
     Phases: [
       {
         MethodName: Load,
@@ -24,6 +29,7 @@
             LocalName: fromLoad,
             FullType: global::TestApp.RequestOnlyValidateHandler.Entity,
             IsNullable: true,
+            IsResultType: false,
             NonNullLocalName: fromLoadValue,
             IsValidationResult: false
           }
@@ -47,6 +53,7 @@
             LocalName: fromValidate,
             FullType: global::MiniBus.ValidationResult,
             IsNullable: false,
+            IsResultType: true,
             NonNullLocalName: fromValidate,
             IsValidationResult: true
           }
@@ -71,6 +78,7 @@
             LocalName: fromHandle,
             FullType: global::TestApp.RequestOnlyValidateHandler.Response,
             IsNullable: false,
+            IsResultType: false,
             NonNullLocalName: fromHandle,
             IsValidationResult: false
           }

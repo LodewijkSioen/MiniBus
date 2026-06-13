@@ -5,6 +5,9 @@
     FullClassName: global::TestApp.NonValidationValidateHandler,
     FullRequestType: global::TestApp.NonValidationValidateHandler.Request,
     FullResponseType: global::TestApp.NonValidationValidateHandler.Response,
+    ResultValueTypes: [
+      global::TestApp.NonValidationValidateHandler.Response
+    ],
     Phases: [
       {
         MethodName: Validate,
@@ -24,6 +27,7 @@
             LocalName: fromValidate,
             FullType: string,
             IsNullable: false,
+            IsResultType: false,
             NonNullLocalName: fromValidate,
             IsValidationResult: false
           }
@@ -48,6 +52,7 @@
             LocalName: fromHandle,
             FullType: global::TestApp.NonValidationValidateHandler.Response,
             IsNullable: false,
+            IsResultType: false,
             NonNullLocalName: fromHandle,
             IsValidationResult: false
           }

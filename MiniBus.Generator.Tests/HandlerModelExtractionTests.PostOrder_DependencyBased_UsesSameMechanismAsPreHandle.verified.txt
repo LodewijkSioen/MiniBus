@@ -5,6 +5,9 @@
     FullClassName: global::TestApp.PostOrderingHandler,
     FullRequestType: global::TestApp.PostOrderingHandler.Request,
     FullResponseType: global::TestApp.PostOrderingHandler.Response,
+    ResultValueTypes: [
+      global::TestApp.PostOrderingHandler.Response
+    ],
     Phases: [
       {
         Type: Handle,
@@ -25,6 +28,7 @@
             LocalName: fromHandle,
             FullType: global::TestApp.PostOrderingHandler.Response,
             IsNullable: false,
+            IsResultType: false,
             NonNullLocalName: fromHandle,
             IsValidationResult: false
           }
@@ -49,6 +53,7 @@
             LocalName: fromAfterAudit,
             FullType: global::TestApp.PostOrderingHandler.Audit,
             IsNullable: false,
+            IsResultType: false,
             NonNullLocalName: fromAfterAudit,
             IsValidationResult: false
           }
@@ -73,6 +78,7 @@
             LocalName: fromPostWrap,
             FullType: global::TestApp.PostOrderingHandler.Envelope,
             IsNullable: false,
+            IsResultType: false,
             NonNullLocalName: fromPostWrap,
             IsValidationResult: false
           }

@@ -5,6 +5,10 @@
     FullClassName: global::TestApp.ValidateTupleHandler,
     FullRequestType: global::TestApp.ValidateTupleHandler.Request,
     FullResponseType: global::TestApp.ValidateTupleHandler.Response,
+    ResultValueTypes: [
+      global::TestApp.ValidateTupleHandler.Response,
+      global::MiniBus.ValidationResult
+    ],
     Phases: [
       {
         MethodName: Validate,
@@ -24,6 +28,7 @@
             LocalName: validationValidate,
             FullType: global::MiniBus.ValidationResult,
             IsNullable: false,
+            IsResultType: true,
             NonNullLocalName: validationValidate,
             IsValidationResult: true
           },
@@ -31,6 +36,7 @@
             LocalName: payloadValidate,
             FullType: global::TestApp.ValidateTupleHandler.Payload,
             IsNullable: false,
+            IsResultType: false,
             NonNullLocalName: payloadValidate,
             IsValidationResult: false
           }
@@ -55,6 +61,7 @@
             LocalName: fromHandle,
             FullType: global::TestApp.ValidateTupleHandler.Response,
             IsNullable: false,
+            IsResultType: false,
             NonNullLocalName: fromHandle,
             IsValidationResult: false
           }

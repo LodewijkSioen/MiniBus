@@ -511,7 +511,7 @@ public class HandlerModelExtractionTests
     }
 
     [Test]
-    public async Task HandleTupleWithValidationResultFirst_ReportsMBG009_AndReturnsNullModel()
+    public async Task HandleTupleWithValidationResultFirst_IsAllowed()
     {
         const string source = """
             using MiniBus;

@@ -312,6 +312,93 @@ public class IntegrationTests
     }
 
     [Test]
+    public void MatchParameterNames_UseSemanticNames_ForSingleValidationAndNotFound()
+    {
+        const string source = """
+            using MiniBus;
+            namespace TestApp;
+
+            [Handler]
+            public class MatchSemanticNamesHandler
+            {
+                public record Request(bool ReturnNull);
+                public record Loaded(string Value);
+                public record Response(string Value);
+
+                public Loaded? Load(Request request)
+                    => request.ReturnNull ? null : new Loaded("ok");
+
+                public ValidationResult Validate(Loaded loaded)
+                    => new ValidationResult();
+
+                public Response Handle(Loaded loaded)
+                    => new Response(loaded.Value);
+            }
+            """;
+
+        var result = GeneratorTestHelper.Run(source);
+        var dispatcher = result.GeneratedSources.Single(s => s.Contains("class MatchSemanticNamesHandlerDispatcher", StringComparison.Ordinal));
+
+        Assert.That(dispatcher.Contains("global::System.Func<global::TestApp.MatchSemanticNamesHandler.Response, T> onSuccess", StringComparison.Ordinal), Is.True);
+        Assert.That(dispatcher.Contains("global::System.Func<global::MiniBus.ValidationResult, T> onInvalid", StringComparison.Ordinal), Is.True);
+        Assert.That(dispatcher.Contains("global::System.Func<global::MiniBus.NotFoundResult, T> onNotFound", StringComparison.Ordinal), Is.True);
+    }
+
+    [Test]
+    public void MatchParameterNames_NameCollisions_AreNumberedDeterministically()
+    {
+        const string source = """
+            using MiniBus;
+            namespace TestApp;
+
+            [Handler]
+            public class MatchNameCollisionHandler
+            {
+                public record Request(int Id);
+                public record Response(int Value);
+
+                public static class A
+                {
+                    public record Error(string Message);
+                }
+
+                public static class B
+                {
+                    public record Error(string Message);
+                }
+
+                public ValidationResult<A.Error> Validate(Request request)
+                    => new ValidationResult<A.Error>();
+
+                public ValidationResult<B.Error> BeforeValidateB(Request request)
+                    => new ValidationResult<B.Error>();
+
+                public Response Handle(Request request)
+                    => new Response(request.Id);
+            }
+            """;
+
+        var result = GeneratorTestHelper.Run(source);
+        var dispatcher = result.GeneratedSources.Single(s => s.Contains("class MatchNameCollisionHandlerDispatcher", StringComparison.Ordinal));
+
+        var matchStart = dispatcher.IndexOf("public T Match<T>(", StringComparison.Ordinal);
+        Assert.That(matchStart, Is.GreaterThanOrEqualTo(0));
+
+        var signatureEnd = dispatcher.IndexOf("\n            {", matchStart, StringComparison.Ordinal);
+        Assert.That(signatureEnd, Is.GreaterThan(matchStart));
+
+        var signature = dispatcher.Substring(matchStart, signatureEnd - matchStart);
+        var parameterNames = System.Text.RegularExpressions.Regex.Matches(signature, "\\bon[A-Za-z0-9_]+\\b")
+            .Select(static m => m.Value)
+            .Distinct(StringComparer.Ordinal)
+            .ToArray();
+
+        Assert.That(parameterNames, Does.Contain("onSuccess"));
+        Assert.That(parameterNames, Does.Not.Contain("onInvalid"));
+        Assert.That(parameterNames, Has.Length.EqualTo(3));
+    }
+
+    [Test]
     public void MultipleInvalidPreHandleReturns_ReportMBG007ForEach_AndSkipDispatcherGeneration()
     {
         const string source = """
@@ -401,6 +488,74 @@ public class IntegrationTests
     }
 
     [Test]
+    public void MixedValidationErrorTypes_GenerateDispatcher()
+    {
+        const string source = """
+            using MiniBus;
+            namespace TestApp;
+
+            public record DomainValidationError(string Message);
+
+            [Handler]
+            public class MixedValidationErrorTypesHandler
+            {
+                public record Request(int Id);
+                public record Entity(int Id);
+                public record Response(string Value);
+
+                public ValidationResult Validate(Request request)
+                    => new ValidationResult();
+
+                public ValidationResult<DomainValidationError> PostValidate(Entity entity)
+                    => new ValidationResult<DomainValidationError>();
+
+                public Entity Load(Request request)
+                    => new Entity(request.Id);
+
+                public Response Handle(Entity entity)
+                    => new Response(entity.Id.ToString());
+            }
+            """;
+
+        var result = GeneratorTestHelper.Run(source);
+
+        Assert.That(result.Diagnostics, Is.Empty);
+        Assert.That(result.GeneratedSources.Any(s => s.Contains("MixedValidationErrorTypesHandlerDispatcher", StringComparison.Ordinal)), Is.True);
+    }
+
+    [Test]
+    public void SingleGenericValidationErrorType_GeneratesDispatcher()
+    {
+        const string source = """
+            using MiniBus;
+            namespace TestApp;
+
+            public record DomainValidationError(string Message);
+
+            [Handler]
+            public class ConsistentGenericValidationErrorTypeHandler
+            {
+                public record Request(int Id);
+                public record Entity(int Id);
+                public record Response(string Value);
+
+                public ValidationResult<DomainValidationError> Validate(Request request)
+                    => new ValidationResult<DomainValidationError>();
+
+                public Entity Load(Request request)
+                    => new Entity(request.Id);
+
+                public Response Handle(Entity entity)
+                    => new Response(entity.Id.ToString());
+            }
+            """;
+
+        var result = GeneratorTestHelper.Run(source);
+
+        Assert.That(result.GeneratedSources.Any(s => s.Contains("ConsistentGenericValidationErrorTypeHandlerDispatcher", StringComparison.Ordinal)), Is.True);
+    }
+
+    [Test]
     public void PostMethods_AreGeneratedAfterHandle_AndBeforeSuccessReturn()
     {
         const string source = """
@@ -423,11 +578,11 @@ public class IntegrationTests
             """;
 
         var result = GeneratorTestHelper.Run(source);
-        var dispatcher = result.GeneratedSources.First(s => s.Contains("public class PostPipelineHandlerDispatcher", StringComparison.Ordinal));
+        var dispatcher = result.GeneratedSources.First(s => s.Contains("public sealed class PostPipelineHandlerDispatcher", StringComparison.Ordinal));
 
         var handleCallIndex = dispatcher.IndexOf(".Handle(", StringComparison.Ordinal);
         var postCallIndex = dispatcher.IndexOf(".AfterAudit(", StringComparison.Ordinal);
-        var successCallIndex = dispatcher.IndexOf(".Success(", StringComparison.Ordinal);
+        var successCallIndex = dispatcher.IndexOf("new Result(", StringComparison.Ordinal);
 
         Assert.That(handleCallIndex, Is.GreaterThanOrEqualTo(0));
         Assert.That(postCallIndex, Is.GreaterThan(handleCallIndex));

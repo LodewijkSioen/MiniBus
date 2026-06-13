@@ -4,11 +4,50 @@
 
 namespace TestApp
 {
-    public class NullableHandleReturnHandlerDispatcher
+    public sealed class NullableHandleReturnHandlerDispatcher
         : global::MiniBus.IDispatcher<
             global::TestApp.NullableHandleReturnHandler.Request,
-            global::TestApp.NullableHandleReturnHandler.Response>
+            NullableHandleReturnHandlerDispatcher.Result>
     {
+        public sealed class Result : global::MiniBus.IDispatchResult
+        {
+            private Result() { }
+
+            public Result(global::TestApp.NullableHandleReturnHandler.Response value)
+            {
+                if (value is null)
+                {
+                    throw new global::System.ArgumentNullException(nameof(value));
+                }
+
+                Value = value;
+            }
+
+            public Result(global::MiniBus.NotFoundResult value)
+            {
+                if (value is null)
+                {
+                    throw new global::System.ArgumentNullException(nameof(value));
+                }
+
+                Value = value;
+            }
+
+            public object? Value { get; }
+
+            public T Match<T>(
+                global::System.Func<global::TestApp.NullableHandleReturnHandler.Response, T> onSuccess,
+                global::System.Func<global::MiniBus.NotFoundResult, T> onNotFound
+            )
+            {
+                return Value switch
+                {
+                    global::TestApp.NullableHandleReturnHandler.Response value => onSuccess(value),
+                    global::MiniBus.NotFoundResult value => onNotFound(value),
+                    _ => throw new global::System.InvalidOperationException("Unknown result value type.")
+                };
+            }
+        }
         private readonly global::TestApp.NullableHandleReturnHandler _handler;
 
         public NullableHandleReturnHandlerDispatcher(global::TestApp.NullableHandleReturnHandler handler)
@@ -18,16 +57,15 @@ namespace TestApp
 
         public string HandlerName => nameof(global::TestApp.NullableHandleReturnHandler);
 
-        public global::System.Threading.Tasks.Task<
-            global::MiniBus.Result<global::TestApp.NullableHandleReturnHandler.Response>>
+        public global::System.Threading.Tasks.Task<Result>
             Handle(global::TestApp.NullableHandleReturnHandler.Request request)
         {
             var fromHandle = _handler.Handle(request);
             if (fromHandle is not { } fromHandleValue)
-                return global::System.Threading.Tasks.Task.FromResult(global::MiniBus.Result<global::TestApp.NullableHandleReturnHandler.Response>.NotFound("response cannot be null"));
+                return global::System.Threading.Tasks.Task.FromResult(new Result(new global::MiniBus.NotFoundResult("response cannot be null")));
             var fromAfterAudit = _handler.AfterAudit(fromHandleValue);
 
-            return global::System.Threading.Tasks.Task.FromResult(global::MiniBus.Result<global::TestApp.NullableHandleReturnHandler.Response>.Success(fromHandleValue));
+            return global::System.Threading.Tasks.Task.FromResult(new Result(fromHandleValue));
         }
     }
 }

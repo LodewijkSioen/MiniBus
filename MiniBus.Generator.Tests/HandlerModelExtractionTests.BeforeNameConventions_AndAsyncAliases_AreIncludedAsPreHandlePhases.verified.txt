@@ -5,6 +5,10 @@
     FullClassName: global::TestApp.BeforeConventionHandler,
     FullRequestType: global::TestApp.BeforeConventionHandler.Request,
     FullResponseType: global::TestApp.BeforeConventionHandler.Response,
+    ResultValueTypes: [
+      global::TestApp.BeforeConventionHandler.Response,
+      global::MiniBus.ValidationResult
+    ],
     Phases: [
       {
         MethodName: LoadAsync,
@@ -24,6 +28,7 @@
             LocalName: fromLoadAsync,
             FullType: global::TestApp.BeforeConventionHandler.Entity,
             IsNullable: false,
+            IsResultType: false,
             NonNullLocalName: fromLoadAsync,
             IsValidationResult: false
           }
@@ -47,6 +52,7 @@
             LocalName: fromBeforeNormalize,
             FullType: global::TestApp.BeforeConventionHandler.Prepared,
             IsNullable: false,
+            IsResultType: false,
             NonNullLocalName: fromBeforeNormalize,
             IsValidationResult: false
           }
@@ -70,6 +76,7 @@
             LocalName: fromNormalizeBeforeAsync,
             FullType: global::TestApp.BeforeConventionHandler.Enriched,
             IsNullable: false,
+            IsResultType: false,
             NonNullLocalName: fromNormalizeBeforeAsync,
             IsValidationResult: false
           }
@@ -93,6 +100,7 @@
             LocalName: fromValidateAsync,
             FullType: global::MiniBus.ValidationResult,
             IsNullable: false,
+            IsResultType: true,
             NonNullLocalName: fromValidateAsync,
             IsValidationResult: true
           }
@@ -117,6 +125,7 @@
             LocalName: fromHandle,
             FullType: global::TestApp.BeforeConventionHandler.Response,
             IsNullable: false,
+            IsResultType: false,
             NonNullLocalName: fromHandle,
             IsValidationResult: false
           }
