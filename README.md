@@ -123,6 +123,14 @@ The `Value` property remains available for compatibility and future migration.
 `NotFoundResult` also implements `IValidationResult` and always returns
 `false` from `IsValid()`.
 
+## Troubleshooting
+
+- Avoid mixing abstract/base validation response types (for example
+  `IValidationResult` or broad base classes) with their concrete implementations
+  in the same handler pipeline.
+- Prefer returning concrete validation result types consistently from a given
+  dispatcher pipeline to keep generated `Match(...)` branches predictable.
+
 ## Not supported
 The following handler patterns are not supported by source generation:
 
