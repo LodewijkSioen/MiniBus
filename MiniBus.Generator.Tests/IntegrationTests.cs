@@ -101,6 +101,27 @@ public class IntegrationTests
     }
 
     [Test]
+    public Task NonNullableValueTypeHandle_DoesNotEmitNullCheck()
+    {
+        const string source = """
+            using MiniBus;
+            namespace TestApp;
+
+            [Handler]
+            public class NonNullableValueTypeHandler
+            {
+                public record Request(int Value);
+
+                public int Handle(Request request)
+                    => request.Value * 2;
+            }
+            """;
+
+        var driver = GeneratorTestHelper.RunDriver(source);
+        return Verify(driver);
+    }
+
+    [Test]
     public Task MultipleHandlers_GenerateSeparateDispatchersAndSharedRegistrations()
     {
         const string source = """

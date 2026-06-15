@@ -6,8 +6,14 @@
     FullRequestType: global::TestApp.ValidateRequestTypeHandler.Command,
     FullResponseType: global::TestApp.ValidateRequestTypeHandler.Response,
     ResultValueTypes: [
-      global::TestApp.ValidateRequestTypeHandler.Response,
-      global::MiniBus.ValidationResult
+      {
+        FullType: global::TestApp.ValidateRequestTypeHandler.Response,
+        RequiresNullCheck: true
+      },
+      {
+        FullType: global::MiniBus.ValidationResult,
+        RequiresNullCheck: true
+      }
     ],
     Phases: [
       {
@@ -29,6 +35,7 @@
             FullType: global::MiniBus.ValidationResult,
             IsNullable: false,
             IsResultType: true,
+            RequiresNullCheck: true,
             NonNullLocalName: fromValidate,
             IsValidationResult: true
           }
@@ -61,6 +68,7 @@
             FullType: global::TestApp.ValidateRequestTypeHandler.Response,
             IsNullable: false,
             IsResultType: false,
+            RequiresNullCheck: true,
             NonNullLocalName: fromHandle,
             IsValidationResult: false
           }

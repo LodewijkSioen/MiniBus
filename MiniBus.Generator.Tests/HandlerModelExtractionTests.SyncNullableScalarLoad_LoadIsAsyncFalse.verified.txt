@@ -6,8 +6,14 @@
     FullRequestType: global::TestApp.SyncLoadHandler.Request,
     FullResponseType: global::TestApp.SyncLoadHandler.Response,
     ResultValueTypes: [
-      global::TestApp.SyncLoadHandler.Response,
-      global::MiniBus.NotFoundResult
+      {
+        FullType: global::TestApp.SyncLoadHandler.Response,
+        RequiresNullCheck: true
+      },
+      {
+        FullType: global::MiniBus.NotFoundResult,
+        RequiresNullCheck: true
+      }
     ],
     Phases: [
       {
@@ -29,6 +35,7 @@
             FullType: global::TestApp.SyncLoadHandler.Entity,
             IsNullable: true,
             IsResultType: false,
+            RequiresNullCheck: true,
             NonNullLocalName: fromLoadValue,
             IsValidationResult: false
           }
@@ -54,6 +61,7 @@
             FullType: global::TestApp.SyncLoadHandler.Response,
             IsNullable: false,
             IsResultType: false,
+            RequiresNullCheck: true,
             NonNullLocalName: fromHandle,
             IsValidationResult: false
           }

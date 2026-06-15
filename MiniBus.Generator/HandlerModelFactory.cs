@@ -10,13 +10,15 @@ public sealed record Result(HandlerModel? Model, EquatableArray<DiagnosticInfo> 
 
 public sealed record LocalVariable(string LocalName, string FullType, bool CheckNullability, string? IfNullErrorMessage);
 
+public sealed record ResultValueType(string FullType, bool RequiresNullCheck);
+
 public sealed record HandlerModel(
     string? Namespace,
     string ClassName,
     string FullClassName,
     string FullRequestType,
     string FullResponseType,
-    EquatableArray<string> ResultValueTypes,
+    EquatableArray<ResultValueType> ResultValueTypes,
     EquatableArray<MethodPhase> Phases,
     EquatableArray<LocalVariable> LocalVariables,
     MethodPhase? FinallyPhase = null)
@@ -203,7 +205,7 @@ public static class HandlerModelFactory
             return new(null, new(duplicateLocalTypeDiagnostics));
         }
 
-        var resultValueTypes = BuildResultValueTypes(responseType, orderedMethods, localVariables);
+        var resultValueTypes = BuildResultValueTypes(handlePhase, orderedMethods, localVariables);
 
         var knownPipelineTypes = localVariables
             .Select(static local => local.FullType);
@@ -261,28 +263,31 @@ public static class HandlerModelFactory
             EquatableArray<DiagnosticInfo>.Empty);
     }
 
-    private static EquatableArray<string> BuildResultValueTypes(
-        string responseType,
+    private static EquatableArray<ResultValueType> BuildResultValueTypes(
+        MethodPhase handlePhase,
         EquatableArray<MethodPhase> phases,
         EquatableArray<LocalVariable> localVariables)
     {
-        var types = new List<string> { responseType };
+        var types = new List<ResultValueType>
+        {
+            new(handlePhase.Returns[0].FullType, handlePhase.Returns[0].RequiresNullCheck)
+        };
 
         foreach (var returnType in phases
             .SelectMany(static phase => phase.Returns)
             .Where(static result => result.IsResultType)
-            .Select(static result => result.FullType))
+            .Select(static result => new ResultValueType(result.FullType, result.RequiresNullCheck)))
         {
-            if (!types.Contains(returnType, StringComparer.Ordinal))
+            if (!types.Any(type => type.FullType.Equals(returnType.FullType, StringComparison.Ordinal)))
             {
                 types.Add(returnType);
             }
         }
 
         if (localVariables.Any(static local => local.CheckNullability)
-            && !types.Contains("global::MiniBus.NotFoundResult", StringComparer.Ordinal))
+            && !types.Any(type => type.FullType.Equals("global::MiniBus.NotFoundResult", StringComparison.Ordinal)))
         {
-            types.Add("global::MiniBus.NotFoundResult");
+            types.Add(new("global::MiniBus.NotFoundResult", true));
         }
 
         return new(types);

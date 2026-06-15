@@ -6,9 +6,18 @@
     FullRequestType: global::TestApp.BothValidateArgsHandler.Request,
     FullResponseType: global::TestApp.BothValidateArgsHandler.Response,
     ResultValueTypes: [
-      global::TestApp.BothValidateArgsHandler.Response,
-      global::MiniBus.ValidationResult,
-      global::MiniBus.NotFoundResult
+      {
+        FullType: global::TestApp.BothValidateArgsHandler.Response,
+        RequiresNullCheck: true
+      },
+      {
+        FullType: global::MiniBus.ValidationResult,
+        RequiresNullCheck: true
+      },
+      {
+        FullType: global::MiniBus.NotFoundResult,
+        RequiresNullCheck: true
+      }
     ],
     Phases: [
       {
@@ -30,6 +39,7 @@
             FullType: global::TestApp.BothValidateArgsHandler.Entity,
             IsNullable: true,
             IsResultType: false,
+            RequiresNullCheck: true,
             NonNullLocalName: fromLoadValue,
             IsValidationResult: false
           }
@@ -61,6 +71,7 @@
             FullType: global::MiniBus.ValidationResult,
             IsNullable: false,
             IsResultType: true,
+            RequiresNullCheck: true,
             NonNullLocalName: fromValidate,
             IsValidationResult: true
           }
@@ -86,6 +97,7 @@
             FullType: global::TestApp.BothValidateArgsHandler.Response,
             IsNullable: false,
             IsResultType: false,
+            RequiresNullCheck: true,
             NonNullLocalName: fromHandle,
             IsValidationResult: false
           }

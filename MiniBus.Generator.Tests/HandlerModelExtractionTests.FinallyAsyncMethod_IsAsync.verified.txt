@@ -6,7 +6,10 @@
     FullRequestType: global::TestApp.FinallyAsyncHandler.Request,
     FullResponseType: global::TestApp.FinallyAsyncHandler.Response,
     ResultValueTypes: [
-      global::TestApp.FinallyAsyncHandler.Response
+      {
+        FullType: global::TestApp.FinallyAsyncHandler.Response,
+        RequiresNullCheck: true
+      }
     ],
     Phases: [
       {
@@ -29,6 +32,7 @@
             FullType: global::TestApp.FinallyAsyncHandler.Response,
             IsNullable: false,
             IsResultType: false,
+            RequiresNullCheck: true,
             NonNullLocalName: fromHandle,
             IsValidationResult: false
           }

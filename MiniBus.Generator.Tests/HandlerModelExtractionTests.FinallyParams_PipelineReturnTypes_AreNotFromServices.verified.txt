@@ -6,7 +6,10 @@
     FullRequestType: global::TestApp.FinallyPipelineParamsHandler.Request,
     FullResponseType: global::TestApp.FinallyPipelineParamsHandler.Response,
     ResultValueTypes: [
-      global::TestApp.FinallyPipelineParamsHandler.Response
+      {
+        FullType: global::TestApp.FinallyPipelineParamsHandler.Response,
+        RequiresNullCheck: true
+      }
     ],
     Phases: [
       {
@@ -28,6 +31,7 @@
             FullType: global::TestApp.FinallyPipelineParamsHandler.Entity,
             IsNullable: false,
             IsResultType: false,
+            RequiresNullCheck: true,
             NonNullLocalName: fromLoad,
             IsValidationResult: false
           }
@@ -53,6 +57,7 @@
             FullType: global::TestApp.FinallyPipelineParamsHandler.Response,
             IsNullable: false,
             IsResultType: false,
+            RequiresNullCheck: true,
             NonNullLocalName: fromHandle,
             IsValidationResult: false
           }

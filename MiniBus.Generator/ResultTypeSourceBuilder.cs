@@ -15,13 +15,17 @@ internal static class ResultTypeSourceBuilder
         sb.AppendLine();
         foreach (var resultValueType in model.ResultValueTypes)
         {
-            sb.AppendLine($"{indent}        public Result({resultValueType} value)");
+            sb.AppendLine($"{indent}        public Result({resultValueType.FullType} value)");
             sb.AppendLine($"{indent}        {{");
-            sb.AppendLine($"{indent}            if (value is null)");
-            sb.AppendLine($"{indent}            {{");
-            sb.AppendLine($"{indent}                throw new global::System.ArgumentNullException(nameof(value));");
-            sb.AppendLine($"{indent}            }}");
-            sb.AppendLine();
+            if (resultValueType.RequiresNullCheck)
+            {
+                sb.AppendLine($"{indent}            if (value is null)");
+                sb.AppendLine($"{indent}            {{");
+                sb.AppendLine($"{indent}                throw new global::System.ArgumentNullException(nameof(value));");
+                sb.AppendLine($"{indent}            }}");
+                sb.AppendLine();
+            }
+
             sb.AppendLine($"{indent}            Value = value;");
             sb.AppendLine($"{indent}        }}");
             sb.AppendLine();
@@ -57,8 +61,8 @@ internal static class ResultTypeSourceBuilder
     private static List<MatchBranch> BuildMatchBranches(HandlerModel model)
     {
         var validationBranchTypes = model.ResultValueTypes
-            .Where(typeName => !typeName.Equals(model.FullResponseType, StringComparison.Ordinal)
-                && !IsNotFoundType(typeName))
+            .Where(typeName => !typeName.FullType.Equals(model.FullResponseType, StringComparison.Ordinal)
+                && !IsNotFoundType(typeName.FullType))
             .ToArray();
         var hasSingleValidationBranch = validationBranchTypes.Length == 1;
 
@@ -66,9 +70,9 @@ internal static class ResultTypeSourceBuilder
         var branches = new List<MatchBranch>();
         foreach (var typeName in model.ResultValueTypes)
         {
-            var baseName = BuildMatchParameterBaseName(typeName, model.FullResponseType, hasSingleValidationBranch);
+            var baseName = BuildMatchParameterBaseName(typeName.FullType, model.FullResponseType, hasSingleValidationBranch);
             var parameterName = MakeUniqueName(baseName, branchNames);
-            branches.Add(new MatchBranch(typeName, parameterName));
+            branches.Add(new MatchBranch(typeName.FullType, parameterName));
         }
 
         return branches;

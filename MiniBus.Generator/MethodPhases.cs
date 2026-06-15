@@ -9,7 +9,8 @@ public sealed record ReturnElement(
     string LocalName,
     string FullType,
     bool IsNullable,
-    bool IsResultType)
+    bool IsResultType,
+    bool RequiresNullCheck)
 {
     public string NonNullLocalName => IsNullable ? LocalName + "Value" : LocalName;
 
@@ -105,11 +106,12 @@ public sealed record MethodPhase
                     : elemType;
                 var fullType = nonNullType.ToDisplayString(format);
                 var isResultType = ImplementsResultInterface(nonNullType);
+                var requiresNullCheck = isNullable || !nonNullType.IsValueType;
                 var rawName = elem.Name;
                 var localName = rawName.Length > 0 && char.IsUpper(rawName[0])
                     ? char.ToLower(rawName[0]) + rawName.Substring(1)
                     : rawName;
-                elements.Add(new(string.Concat(localName, MethodName), fullType, isNullable, isResultType));
+                elements.Add(new(string.Concat(localName, MethodName), fullType, isNullable, isResultType, requiresNullCheck));
             }
 
             Returns = new(elements);
@@ -122,8 +124,9 @@ public sealed record MethodPhase
                 : innerType;
             var fullType = nonNullable.ToDisplayString(format);
             var isResultType = ImplementsResultInterface(nonNullable);
+            var requiresNullCheck = isNullable || !nonNullable.IsValueType;
             Returns = new([
-                new(string.Concat("from", MethodName), fullType, isNullable, isResultType)
+                new(string.Concat("from", MethodName), fullType, isNullable, isResultType, requiresNullCheck)
             ]);
         }
     }

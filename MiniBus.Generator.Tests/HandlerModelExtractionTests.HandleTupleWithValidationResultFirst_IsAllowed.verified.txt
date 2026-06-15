@@ -6,7 +6,10 @@
     FullRequestType: global::TestApp.InvalidHandleTupleHandler.Request,
     FullResponseType: global::MiniBus.ValidationResult,
     ResultValueTypes: [
-      global::MiniBus.ValidationResult
+      {
+        FullType: global::MiniBus.ValidationResult,
+        RequiresNullCheck: true
+      }
     ],
     Phases: [
       {
@@ -29,6 +32,7 @@
             FullType: global::MiniBus.ValidationResult,
             IsNullable: false,
             IsResultType: true,
+            RequiresNullCheck: true,
             NonNullLocalName: validationHandle,
             IsValidationResult: true
           },
@@ -37,6 +41,7 @@
             FullType: global::TestApp.InvalidHandleTupleHandler.Response,
             IsNullable: false,
             IsResultType: false,
+            RequiresNullCheck: true,
             NonNullLocalName: responseHandle,
             IsValidationResult: false
           }

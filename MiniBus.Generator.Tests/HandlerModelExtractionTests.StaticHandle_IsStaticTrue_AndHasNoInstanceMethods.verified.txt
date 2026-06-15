@@ -6,7 +6,10 @@
     FullRequestType: global::TestApp.StaticOnlyHandler.Request,
     FullResponseType: global::TestApp.StaticOnlyHandler.Response,
     ResultValueTypes: [
-      global::TestApp.StaticOnlyHandler.Response
+      {
+        FullType: global::TestApp.StaticOnlyHandler.Response,
+        RequiresNullCheck: true
+      }
     ],
     Phases: [
       {
@@ -29,6 +32,7 @@
             FullType: global::TestApp.StaticOnlyHandler.Response,
             IsNullable: false,
             IsResultType: false,
+            RequiresNullCheck: true,
             NonNullLocalName: fromHandle,
             IsValidationResult: false
           }

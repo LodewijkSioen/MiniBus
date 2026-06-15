@@ -6,8 +6,14 @@
     FullRequestType: global::TestApp.ConventionDiHandler.Request,
     FullResponseType: global::TestApp.ConventionDiHandler.Response,
     ResultValueTypes: [
-      global::TestApp.ConventionDiHandler.Response,
-      global::MiniBus.ValidationResult
+      {
+        FullType: global::TestApp.ConventionDiHandler.Response,
+        RequiresNullCheck: true
+      },
+      {
+        FullType: global::MiniBus.ValidationResult,
+        RequiresNullCheck: true
+      }
     ],
     Phases: [
       {
@@ -36,6 +42,7 @@
             FullType: global::MiniBus.ValidationResult,
             IsNullable: false,
             IsResultType: true,
+            RequiresNullCheck: true,
             NonNullLocalName: fromValidate,
             IsValidationResult: true
           }
@@ -68,6 +75,7 @@
             FullType: global::TestApp.ConventionDiHandler.Response,
             IsNullable: false,
             IsResultType: false,
+            RequiresNullCheck: true,
             NonNullLocalName: fromHandle,
             IsValidationResult: false
           }
