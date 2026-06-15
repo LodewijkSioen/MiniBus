@@ -5,6 +5,16 @@
     FullClassName: global::TestApp.LoadRequestHandler,
     FullRequestType: global::TestApp.LoadRequestHandler.Query,
     FullResponseType: global::TestApp.LoadRequestHandler.Response,
+    ResultValueTypes: [
+      {
+        FullType: global::TestApp.LoadRequestHandler.Response,
+        RequiresNullCheck: true
+      },
+      {
+        FullType: global::MiniBus.NotFoundResult,
+        RequiresNullCheck: true
+      }
+    ],
     Phases: [
       {
         MethodName: Load,
@@ -24,6 +34,8 @@
             LocalName: fromLoad,
             FullType: global::TestApp.LoadRequestHandler.Entity,
             IsNullable: true,
+            IsResultType: false,
+            RequiresNullCheck: true,
             NonNullLocalName: fromLoadValue,
             IsValidationResult: false
           }
@@ -48,6 +60,8 @@
             LocalName: fromHandle,
             FullType: global::TestApp.LoadRequestHandler.Response,
             IsNullable: false,
+            IsResultType: false,
+            RequiresNullCheck: true,
             NonNullLocalName: fromHandle,
             IsValidationResult: false
           }

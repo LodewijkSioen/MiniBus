@@ -5,6 +5,16 @@
     FullClassName: global::TestApp.UnnamedTupleHandler,
     FullRequestType: global::TestApp.UnnamedTupleHandler.Request,
     FullResponseType: global::TestApp.UnnamedTupleHandler.Response,
+    ResultValueTypes: [
+      {
+        FullType: global::TestApp.UnnamedTupleHandler.Response,
+        RequiresNullCheck: true
+      },
+      {
+        FullType: global::MiniBus.NotFoundResult,
+        RequiresNullCheck: true
+      }
+    ],
     Phases: [
       {
         MethodName: Load,
@@ -24,6 +34,8 @@
             LocalName: item1Load,
             FullType: global::TestApp.UnnamedTupleHandler.Entity,
             IsNullable: true,
+            IsResultType: false,
+            RequiresNullCheck: true,
             NonNullLocalName: item1LoadValue,
             IsValidationResult: false
           },
@@ -31,6 +43,8 @@
             LocalName: item2Load,
             FullType: global::TestApp.UnnamedTupleHandler.Config,
             IsNullable: true,
+            IsResultType: false,
+            RequiresNullCheck: true,
             NonNullLocalName: item2LoadValue,
             IsValidationResult: false
           }
@@ -62,6 +76,8 @@
             LocalName: fromHandle,
             FullType: global::TestApp.UnnamedTupleHandler.Response,
             IsNullable: false,
+            IsResultType: false,
+            RequiresNullCheck: true,
             NonNullLocalName: fromHandle,
             IsValidationResult: false
           }

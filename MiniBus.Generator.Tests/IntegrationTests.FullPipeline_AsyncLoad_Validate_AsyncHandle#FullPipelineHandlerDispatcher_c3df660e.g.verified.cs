@@ -4,11 +4,62 @@
 
 namespace TestApp
 {
-    public class FullPipelineHandlerDispatcher
+    public sealed class FullPipelineHandlerDispatcher
         : global::MiniBus.IDispatcher<
             global::TestApp.FullPipelineHandler.Request,
-            global::TestApp.FullPipelineHandler.Response>
+            FullPipelineHandlerDispatcher.Result>
     {
+        public sealed class Result : global::MiniBus.IDispatchResult
+        {
+            private Result() { }
+
+            public Result(global::TestApp.FullPipelineHandler.Response value)
+            {
+                if (value is null)
+                {
+                    throw new global::System.ArgumentNullException(nameof(value));
+                }
+
+                Value = value;
+            }
+
+            public Result(global::MiniBus.ValidationResult value)
+            {
+                if (value is null)
+                {
+                    throw new global::System.ArgumentNullException(nameof(value));
+                }
+
+                Value = value;
+            }
+
+            public Result(global::MiniBus.NotFoundResult value)
+            {
+                if (value is null)
+                {
+                    throw new global::System.ArgumentNullException(nameof(value));
+                }
+
+                Value = value;
+            }
+
+            public object? Value { get; }
+
+            public T Match<T>(
+                global::System.Func<global::TestApp.FullPipelineHandler.Response, T> onSuccess,
+                global::System.Func<global::MiniBus.ValidationResult, T> onInvalid,
+                global::System.Func<global::MiniBus.NotFoundResult, T> onNotFound
+            )
+            {
+                return Value switch
+                {
+                    global::TestApp.FullPipelineHandler.Response value => onSuccess(value),
+                    global::MiniBus.ValidationResult value => onInvalid(value),
+                    global::MiniBus.NotFoundResult value => onNotFound(value),
+                    _ => throw new global::System.InvalidOperationException("Unknown result value type.")
+                };
+            }
+        }
         private readonly global::TestApp.FullPipelineHandler _handler;
 
         public FullPipelineHandlerDispatcher(global::TestApp.FullPipelineHandler handler)
@@ -18,20 +69,19 @@ namespace TestApp
 
         public string HandlerName => nameof(global::TestApp.FullPipelineHandler);
 
-        public async global::System.Threading.Tasks.Task<
-            global::MiniBus.Result<global::TestApp.FullPipelineHandler.Response>>
+        public async global::System.Threading.Tasks.Task<Result>
             Handle(global::TestApp.FullPipelineHandler.Request request)
         {
             var fromLoad = await _handler.Load(request);
             if (fromLoad is not { } fromLoadValue)
-                return global::MiniBus.Result<global::TestApp.FullPipelineHandler.Response>.NotFound("entity cannot be null");
+                return new Result(new global::MiniBus.NotFoundResult("entity cannot be null"));
 
             var fromValidate = _handler.Validate(fromLoadValue);
-            if (!fromValidate.IsValid())
-                return global::MiniBus.Result<global::TestApp.FullPipelineHandler.Response>.Invalid(fromValidate);
+            if (fromValidate is global::MiniBus.IValidationResult fromValidateValidationResult && !fromValidateValidationResult.IsValid())
+                return new Result(fromValidate);
 
             var fromHandle = await _handler.Handle(fromLoadValue);
-            return global::MiniBus.Result<global::TestApp.FullPipelineHandler.Response>.Success(fromHandle);
+            return new Result(fromHandle);
         }
     }
 }

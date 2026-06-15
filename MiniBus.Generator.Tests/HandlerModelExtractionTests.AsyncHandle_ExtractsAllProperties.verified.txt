@@ -5,6 +5,12 @@
     FullClassName: global::TestApp.OrderHandler,
     FullRequestType: global::TestApp.OrderHandler.Request,
     FullResponseType: global::TestApp.OrderHandler.Response,
+    ResultValueTypes: [
+      {
+        FullType: global::TestApp.OrderHandler.Response,
+        RequiresNullCheck: true
+      }
+    ],
     Phases: [
       {
         Type: Handle,
@@ -25,6 +31,8 @@
             LocalName: fromHandle,
             FullType: global::TestApp.OrderHandler.Response,
             IsNullable: false,
+            IsResultType: false,
+            RequiresNullCheck: true,
             NonNullLocalName: fromHandle,
             IsValidationResult: false
           }

@@ -15,13 +15,13 @@ namespace MiniBus
             services.AddTransient<
                 global::MiniBus.IDispatcher<
                     global::TestApp.SharedRequest,
-                    global::TestApp.HandlerOne.Response>,
+                    global::TestApp.HandlerOneDispatcher.Result>,
                 global::TestApp.HandlerOneDispatcher>();
             services.AddTransient<global::TestApp.HandlerTwo>();
             services.AddTransient<
                 global::MiniBus.IDispatcher<
                     global::TestApp.SharedRequest,
-                    global::TestApp.HandlerTwo.Response>,
+                    global::TestApp.HandlerTwoDispatcher.Result>,
                 global::TestApp.HandlerTwoDispatcher>();
             return services;
         }

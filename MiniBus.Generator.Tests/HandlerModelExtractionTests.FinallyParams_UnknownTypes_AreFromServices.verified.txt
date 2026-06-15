@@ -5,6 +5,12 @@
     FullClassName: global::TestApp.FinallyDiParamsHandler,
     FullRequestType: global::TestApp.FinallyDiParamsHandler.Request,
     FullResponseType: global::TestApp.FinallyDiParamsHandler.Response,
+    ResultValueTypes: [
+      {
+        FullType: global::TestApp.FinallyDiParamsHandler.Response,
+        RequiresNullCheck: true
+      }
+    ],
     Phases: [
       {
         Type: Handle,
@@ -25,6 +31,8 @@
             LocalName: fromHandle,
             FullType: global::TestApp.FinallyDiParamsHandler.Response,
             IsNullable: false,
+            IsResultType: false,
+            RequiresNullCheck: true,
             NonNullLocalName: fromHandle,
             IsValidationResult: false
           }

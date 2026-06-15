@@ -16,6 +16,12 @@ public class RegistrationsSourceBuilderTests
             FullClassName: $"global::TestApp.{className}",
             FullRequestType: requestType,
             FullResponseType: responseType,
+            ResultValueTypes: new EquatableArray<ResultValueType>(new[]
+            {
+                new ResultValueType(responseType, true),
+                new ResultValueType("global::MiniBus.ValidationResult<global::MiniBus.ValidationError>", true),
+                new ResultValueType("global::MiniBus.NotFoundResult", true)
+            }),
             Phases: new EquatableArray<MethodPhase>(new[]
             {
                 new MethodPhase(

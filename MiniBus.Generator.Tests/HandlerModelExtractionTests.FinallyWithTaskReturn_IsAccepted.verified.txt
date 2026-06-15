@@ -5,6 +5,12 @@
     FullClassName: global::TestApp.FinallyTaskHandler,
     FullRequestType: global::TestApp.FinallyTaskHandler.Request,
     FullResponseType: global::TestApp.FinallyTaskHandler.Response,
+    ResultValueTypes: [
+      {
+        FullType: global::TestApp.FinallyTaskHandler.Response,
+        RequiresNullCheck: true
+      }
+    ],
     Phases: [
       {
         Type: Handle,
@@ -25,6 +31,8 @@
             LocalName: fromHandle,
             FullType: global::TestApp.FinallyTaskHandler.Response,
             IsNullable: false,
+            IsResultType: false,
+            RequiresNullCheck: true,
             NonNullLocalName: fromHandle,
             IsValidationResult: false
           }

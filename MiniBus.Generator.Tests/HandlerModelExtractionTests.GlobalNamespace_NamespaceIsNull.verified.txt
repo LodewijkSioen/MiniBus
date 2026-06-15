@@ -4,6 +4,12 @@
     FullClassName: global::GlobalHandler,
     FullRequestType: global::GlobalHandler.Request,
     FullResponseType: global::GlobalHandler.Response,
+    ResultValueTypes: [
+      {
+        FullType: global::GlobalHandler.Response,
+        RequiresNullCheck: true
+      }
+    ],
     Phases: [
       {
         Type: Handle,
@@ -24,6 +30,8 @@
             LocalName: fromHandle,
             FullType: global::GlobalHandler.Response,
             IsNullable: false,
+            IsResultType: false,
+            RequiresNullCheck: true,
             NonNullLocalName: fromHandle,
             IsValidationResult: false
           }

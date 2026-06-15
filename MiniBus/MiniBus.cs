@@ -5,19 +5,22 @@ namespace MiniBus;
 
 public class MiniBus(IServiceProvider services)
 {
-    private static readonly ActivitySource _activitySource = new ActivitySource("MiniBus");
+    private static readonly ActivitySource ActivitySource = new ActivitySource("MiniBus");
 
-    public async Task<Result<TResponse>> Handle<TRequest, TResponse>(TRequest request) 
-        where TResponse : notnull
+    public async Task<TResult> Handle<TRequest, TResult>(TRequest request)
     {
-        var handler = services.GetRequiredService<IDispatcher<TRequest, TResponse>>();
-        using var activity = _activitySource.StartActivity($"minibus.dispatch {handler.HandlerName}");
+        var handler = services.GetRequiredService<IDispatcher<TRequest, TResult>>();
+        using var activity = ActivitySource.StartActivity($"minibus.dispatch {handler.HandlerName}");
         activity?.SetTag("minibus.request.type", typeof(TRequest).FullName);
-        activity?.SetTag("minibus.response.type", typeof(TResponse).FullName);
         try
         {
             var result = await handler.Handle(request);
-            activity?.SetTag("minibus.result.status", result.Status.ToString());
+
+            var resultType = result is IDispatchResult dispatchResult
+                ? dispatchResult.Value?.GetType().FullName
+                : typeof(TResult).FullName;
+            activity?.SetTag("minibus.result.type", resultType);
+
             return result;
         }
         catch (OperationCanceledException)

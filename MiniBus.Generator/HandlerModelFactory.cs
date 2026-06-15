@@ -10,12 +10,15 @@ public sealed record Result(HandlerModel? Model, EquatableArray<DiagnosticInfo> 
 
 public sealed record LocalVariable(string LocalName, string FullType, bool CheckNullability, string? IfNullErrorMessage);
 
+public sealed record ResultValueType(string FullType, bool RequiresNullCheck);
+
 public sealed record HandlerModel(
     string? Namespace,
     string ClassName,
     string FullClassName,
     string FullRequestType,
     string FullResponseType,
+    EquatableArray<ResultValueType> ResultValueTypes,
     EquatableArray<MethodPhase> Phases,
     EquatableArray<LocalVariable> LocalVariables,
     MethodPhase? FinallyPhase = null)
@@ -50,7 +53,6 @@ public static class HandlerModelFactory
 
         if (isGenericHandler)
         {
-
             return new(null, new(
             [
                 Diagnostics.GenericHandlerNotSupported(
@@ -110,17 +112,6 @@ public static class HandlerModelFactory
         {
             return new(null, new([
                 Diagnostics.UnsupportedMethodReturnType(
-                    location: location,
-                    handlerName: classSymbol.ToDisplayString(fmt),
-                    returnType: handleMethod.ReturnType.ToDisplayString(fmt),
-                    methodName: handleMethod.Name)
-            ]));
-        }
-
-        if (HasInvalidHandleTupleResponse(handleMethod, fmt))
-        {
-            return new(null, new([
-                Diagnostics.InvalidHandleTupleResponse(
                     location: location,
                     handlerName: classSymbol.ToDisplayString(fmt),
                     returnType: handleMethod.ReturnType.ToDisplayString(fmt),
@@ -206,7 +197,6 @@ public static class HandlerModelFactory
         }
 
         var responseType = handlePhase.Returns[0].FullType;
-
         var returnVariables = BuildReturnVariables(orderedMethods);
         var localVariables = new EquatableArray<LocalVariable>(returnVariables
             .Append(new("request", requestType!, false, null)));
@@ -214,6 +204,8 @@ public static class HandlerModelFactory
         {
             return new(null, new(duplicateLocalTypeDiagnostics));
         }
+
+        var resultValueTypes = BuildResultValueTypes(handlePhase, orderedMethods, localVariables);
 
         var knownPipelineTypes = localVariables
             .Select(static local => local.FullType);
@@ -264,10 +256,41 @@ public static class HandlerModelFactory
                 FullClassName: classSymbol.ToDisplayString(fmt),
                 FullRequestType: requestType!,
                 FullResponseType: responseType,
+                ResultValueTypes: resultValueTypes,
                 Phases: orderedMethods,
                 LocalVariables: localVariables,
                 FinallyPhase: finallyPhase),
             EquatableArray<DiagnosticInfo>.Empty);
+    }
+
+    private static EquatableArray<ResultValueType> BuildResultValueTypes(
+        MethodPhase handlePhase,
+        EquatableArray<MethodPhase> phases,
+        EquatableArray<LocalVariable> localVariables)
+    {
+        var types = new List<ResultValueType>
+        {
+            new(handlePhase.Returns[0].FullType, handlePhase.Returns[0].RequiresNullCheck)
+        };
+
+        foreach (var returnType in phases
+            .SelectMany(static phase => phase.Returns)
+            .Where(static result => result.IsResultType)
+            .Select(static result => new ResultValueType(result.FullType, result.RequiresNullCheck)))
+        {
+            if (!types.Any(type => type.FullType.Equals(returnType.FullType, StringComparison.Ordinal)))
+            {
+                types.Add(returnType);
+            }
+        }
+
+        if (localVariables.Any(static local => local.CheckNullability)
+            && !types.Any(type => type.FullType.Equals("global::MiniBus.NotFoundResult", StringComparison.Ordinal)))
+        {
+            types.Add(new("global::MiniBus.NotFoundResult", true));
+        }
+
+        return new(types);
     }
 
     private static bool ValidateUniqueLocalVariableTypes(
@@ -480,38 +503,5 @@ public static class HandlerModelFactory
 
         return false;
     }
-
-    private static bool HasInvalidHandleTupleResponse(IMethodSymbol method, SymbolDisplayFormat format)
-    {
-        var returnType = UnwrapTask(method.ReturnType);
-        if (returnType is not INamedTypeSymbol { IsTupleType: true } tupleType)
-        {
-            return false;
-        }
-
-        if (tupleType.TupleElements.Length == 0)
-        {
-            return false;
-        }
-
-        return IsValidationResultType(tupleType.TupleElements[0].Type, format);
-    }
-
-    private static ITypeSymbol UnwrapTask(ITypeSymbol returnType)
-    {
-        if (returnType is INamedTypeSymbol { Name: "Task", TypeArguments.Length: 1 } taskType)
-        {
-            return taskType.TypeArguments[0];
-        }
-
-        return returnType;
-    }
-
-    private static bool IsValidationResultType(ITypeSymbol type, SymbolDisplayFormat format)
-    {
-        var nonNullableType = type.NullableAnnotation == NullableAnnotation.Annotated
-            ? type.WithNullableAnnotation(NullableAnnotation.NotAnnotated)
-            : type;
-        return nonNullableType.ToDisplayString(format) == "global::MiniBus.ValidationResult";
-    }
+    
 }

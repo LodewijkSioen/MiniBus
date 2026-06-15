@@ -4,11 +4,38 @@
 
 namespace TestApp
 {
-    public class HandlerTwoDispatcher
+    public sealed class HandlerTwoDispatcher
         : global::MiniBus.IDispatcher<
             global::TestApp.SharedRequest,
-            global::TestApp.HandlerTwo.Response>
+            HandlerTwoDispatcher.Result>
     {
+        public sealed class Result : global::MiniBus.IDispatchResult
+        {
+            private Result() { }
+
+            public Result(global::TestApp.HandlerTwo.Response value)
+            {
+                if (value is null)
+                {
+                    throw new global::System.ArgumentNullException(nameof(value));
+                }
+
+                Value = value;
+            }
+
+            public object? Value { get; }
+
+            public T Match<T>(
+                global::System.Func<global::TestApp.HandlerTwo.Response, T> onSuccess
+            )
+            {
+                return Value switch
+                {
+                    global::TestApp.HandlerTwo.Response value => onSuccess(value),
+                    _ => throw new global::System.InvalidOperationException("Unknown result value type.")
+                };
+            }
+        }
         private readonly global::TestApp.HandlerTwo _handler;
 
         public HandlerTwoDispatcher(global::TestApp.HandlerTwo handler)
@@ -18,12 +45,11 @@ namespace TestApp
 
         public string HandlerName => nameof(global::TestApp.HandlerTwo);
 
-        public async global::System.Threading.Tasks.Task<
-            global::MiniBus.Result<global::TestApp.HandlerTwo.Response>>
+        public async global::System.Threading.Tasks.Task<Result>
             Handle(global::TestApp.SharedRequest request)
         {
             var fromHandle = await _handler.Handle(request);
-            return global::MiniBus.Result<global::TestApp.HandlerTwo.Response>.Success(fromHandle);
+            return new Result(fromHandle);
         }
     }
 }

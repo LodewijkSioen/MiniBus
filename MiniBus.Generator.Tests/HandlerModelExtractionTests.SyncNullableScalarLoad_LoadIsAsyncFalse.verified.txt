@@ -5,6 +5,16 @@
     FullClassName: global::TestApp.SyncLoadHandler,
     FullRequestType: global::TestApp.SyncLoadHandler.Request,
     FullResponseType: global::TestApp.SyncLoadHandler.Response,
+    ResultValueTypes: [
+      {
+        FullType: global::TestApp.SyncLoadHandler.Response,
+        RequiresNullCheck: true
+      },
+      {
+        FullType: global::MiniBus.NotFoundResult,
+        RequiresNullCheck: true
+      }
+    ],
     Phases: [
       {
         MethodName: Load,
@@ -24,6 +34,8 @@
             LocalName: fromLoad,
             FullType: global::TestApp.SyncLoadHandler.Entity,
             IsNullable: true,
+            IsResultType: false,
+            RequiresNullCheck: true,
             NonNullLocalName: fromLoadValue,
             IsValidationResult: false
           }
@@ -48,6 +60,8 @@
             LocalName: fromHandle,
             FullType: global::TestApp.SyncLoadHandler.Response,
             IsNullable: false,
+            IsResultType: false,
+            RequiresNullCheck: true,
             NonNullLocalName: fromHandle,
             IsValidationResult: false
           }

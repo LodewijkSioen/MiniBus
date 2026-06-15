@@ -51,21 +51,24 @@ public class FunctionInjectionIntegrationTests
             var bus = firstScope.ServiceProvider.GetRequiredService<MiniBus>();
             var firstResult = await bus.Handle(new StaticDiHandler.Request());
             var secondResult = await bus.Handle(new StaticDiHandler.Request());
+            var firstResponse = firstResult.Match(r => r);
+            var secondResponse = secondResult.Match(r => r);
 
-            Assert.That(firstResult.IsSuccess, Is.True);
-            Assert.That(secondResult.IsSuccess, Is.True);
-            Assert.That(firstResult.Response!.ScopeId, Is.EqualTo(secondResult.Response!.ScopeId));
+            Assert.That(firstResponse, Is.Not.Null);
+            Assert.That(secondResponse, Is.Not.Null);
+            Assert.That(firstResponse.ScopeId, Is.EqualTo(secondResponse!.ScopeId));
 
-            firstScopeId = firstResult.Response.ScopeId;
+            firstScopeId = firstResponse.ScopeId;
         }
 
         using (var secondScope = AppUnderTest.Services.CreateScope())
         {
             var bus = secondScope.ServiceProvider.GetRequiredService<MiniBus>();
             var result = await bus.Handle(new StaticDiHandler.Request());
+            var response = result.Match(response => response);
 
-            Assert.That(result.IsSuccess, Is.True);
-            secondScopeId = result.Response!.ScopeId;
+            Assert.That(response, Is.Not.Null);
+            secondScopeId = response!.ScopeId;
         }
 
         Assert.That(secondScopeId, Is.Not.EqualTo(firstScopeId));
@@ -79,8 +82,9 @@ public class FunctionInjectionIntegrationTests
         var expectedScopeId = scope.ServiceProvider.GetRequiredService<IScopeProbe>().ScopeId;
 
         var result = await bus.Handle(new MixedStaticInstanceDiHandler.Request(expectedScopeId));
+        var response = result.Match(r => r, _ => null!);
 
-        Assert.That(result.IsSuccess, Is.True);
-        Assert.That(result.Response!.ScopeId, Is.EqualTo(expectedScopeId));
+        Assert.That(response, Is.Not.Null);
+        Assert.That(response.ScopeId, Is.EqualTo(expectedScopeId));
     }
 }

@@ -5,6 +5,16 @@
     FullClassName: global::TestApp.BeforeConventionHandler,
     FullRequestType: global::TestApp.BeforeConventionHandler.Request,
     FullResponseType: global::TestApp.BeforeConventionHandler.Response,
+    ResultValueTypes: [
+      {
+        FullType: global::TestApp.BeforeConventionHandler.Response,
+        RequiresNullCheck: true
+      },
+      {
+        FullType: global::MiniBus.ValidationResult,
+        RequiresNullCheck: true
+      }
+    ],
     Phases: [
       {
         MethodName: LoadAsync,
@@ -24,6 +34,8 @@
             LocalName: fromLoadAsync,
             FullType: global::TestApp.BeforeConventionHandler.Entity,
             IsNullable: false,
+            IsResultType: false,
+            RequiresNullCheck: true,
             NonNullLocalName: fromLoadAsync,
             IsValidationResult: false
           }
@@ -47,6 +59,8 @@
             LocalName: fromBeforeNormalize,
             FullType: global::TestApp.BeforeConventionHandler.Prepared,
             IsNullable: false,
+            IsResultType: false,
+            RequiresNullCheck: true,
             NonNullLocalName: fromBeforeNormalize,
             IsValidationResult: false
           }
@@ -70,6 +84,8 @@
             LocalName: fromNormalizeBeforeAsync,
             FullType: global::TestApp.BeforeConventionHandler.Enriched,
             IsNullable: false,
+            IsResultType: false,
+            RequiresNullCheck: true,
             NonNullLocalName: fromNormalizeBeforeAsync,
             IsValidationResult: false
           }
@@ -93,6 +109,8 @@
             LocalName: fromValidateAsync,
             FullType: global::MiniBus.ValidationResult,
             IsNullable: false,
+            IsResultType: true,
+            RequiresNullCheck: true,
             NonNullLocalName: fromValidateAsync,
             IsValidationResult: true
           }
@@ -117,6 +135,8 @@
             LocalName: fromHandle,
             FullType: global::TestApp.BeforeConventionHandler.Response,
             IsNullable: false,
+            IsResultType: false,
+            RequiresNullCheck: true,
             NonNullLocalName: fromHandle,
             IsValidationResult: false
           }

@@ -4,11 +4,62 @@
 
 namespace TestApp
 {
-    public class FullPipelineWithFinallyHandlerDispatcher
+    public sealed class FullPipelineWithFinallyHandlerDispatcher
         : global::MiniBus.IDispatcher<
             global::TestApp.FullPipelineWithFinallyHandler.Request,
-            global::TestApp.FullPipelineWithFinallyHandler.Response>
+            FullPipelineWithFinallyHandlerDispatcher.Result>
     {
+        public sealed class Result : global::MiniBus.IDispatchResult
+        {
+            private Result() { }
+
+            public Result(global::TestApp.FullPipelineWithFinallyHandler.Response value)
+            {
+                if (value is null)
+                {
+                    throw new global::System.ArgumentNullException(nameof(value));
+                }
+
+                Value = value;
+            }
+
+            public Result(global::MiniBus.ValidationResult value)
+            {
+                if (value is null)
+                {
+                    throw new global::System.ArgumentNullException(nameof(value));
+                }
+
+                Value = value;
+            }
+
+            public Result(global::MiniBus.NotFoundResult value)
+            {
+                if (value is null)
+                {
+                    throw new global::System.ArgumentNullException(nameof(value));
+                }
+
+                Value = value;
+            }
+
+            public object? Value { get; }
+
+            public T Match<T>(
+                global::System.Func<global::TestApp.FullPipelineWithFinallyHandler.Response, T> onSuccess,
+                global::System.Func<global::MiniBus.ValidationResult, T> onInvalid,
+                global::System.Func<global::MiniBus.NotFoundResult, T> onNotFound
+            )
+            {
+                return Value switch
+                {
+                    global::TestApp.FullPipelineWithFinallyHandler.Response value => onSuccess(value),
+                    global::MiniBus.ValidationResult value => onInvalid(value),
+                    global::MiniBus.NotFoundResult value => onNotFound(value),
+                    _ => throw new global::System.InvalidOperationException("Unknown result value type.")
+                };
+            }
+        }
         private readonly global::TestApp.FullPipelineWithFinallyHandler _handler;
 
         public FullPipelineWithFinallyHandlerDispatcher(global::TestApp.FullPipelineWithFinallyHandler handler)
@@ -18,8 +69,7 @@ namespace TestApp
 
         public string HandlerName => nameof(global::TestApp.FullPipelineWithFinallyHandler);
 
-        public async global::System.Threading.Tasks.Task<
-            global::MiniBus.Result<global::TestApp.FullPipelineWithFinallyHandler.Response>>
+        public async global::System.Threading.Tasks.Task<Result>
             Handle(global::TestApp.FullPipelineWithFinallyHandler.Request request)
         {
             global::TestApp.FullPipelineWithFinallyHandler.Entity? fromLoad = null;
@@ -28,14 +78,14 @@ namespace TestApp
             {
                 fromLoad = await _handler.Load(request);
                 if (fromLoad is not { } fromLoadValue)
-                    return global::MiniBus.Result<global::TestApp.FullPipelineWithFinallyHandler.Response>.NotFound("entity cannot be null");
+                    return new Result(new global::MiniBus.NotFoundResult("entity cannot be null"));
 
                 var fromValidate = _handler.Validate(fromLoadValue);
-                if (!fromValidate.IsValid())
-                    return global::MiniBus.Result<global::TestApp.FullPipelineWithFinallyHandler.Response>.Invalid(fromValidate);
+                if (fromValidate is global::MiniBus.IValidationResult fromValidateValidationResult && !fromValidateValidationResult.IsValid())
+                    return new Result(fromValidate);
 
                 var fromHandle = await _handler.Handle(fromLoadValue);
-                return global::MiniBus.Result<global::TestApp.FullPipelineWithFinallyHandler.Response>.Success(fromHandle);
+                return new Result(fromHandle);
             }
             finally
             {

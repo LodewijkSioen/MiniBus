@@ -132,9 +132,10 @@ public class ValidateMethodIntegrationTests
         var bus = scope.ServiceProvider.GetRequiredService<MiniBus>();
 
         var result = await bus.Handle(new SyncValidatingHandler.Request("hello"));
+        var response = result.Match(r => r, _ => null!);
 
-        Assert.That(result.IsSuccess, Is.True);
-        Assert.That(result.Response!.Out, Is.EqualTo("HELLO"));
+        Assert.That(response, Is.Not.Null);
+        Assert.That(response.Out, Is.EqualTo("HELLO"));
     }
 
     [Test]
@@ -144,11 +145,25 @@ public class ValidateMethodIntegrationTests
         var bus = scope.ServiceProvider.GetRequiredService<MiniBus>();
 
         var result = await bus.Handle(new SyncValidatingHandler.Request(""));
+        var errors = result.Match(_ => null!, r => r);
 
-        Assert.That(result.IsSuccess, Is.False);
-        Assert.That(result.Status, Is.EqualTo(global::MiniBus.ResultStatus.Invalid));
-        Assert.That(result.ValidationErrors, Has.Count.EqualTo(1));
-        Assert.That(result.ValidationErrors[0].Code, Is.EqualTo("REQUIRED"));
+        Assert.That(errors, Is.Not.Null);
+        Assert.That(errors, Has.Count.EqualTo(1));
+        Assert.That(errors[0].Code, Is.EqualTo("REQUIRED"));
+    }
+
+    [Test]
+    public async Task SyncValidate_InvalidRequest_Match_UsesInvalidBranch()
+    {
+        using var scope = AppUnderTest.Services.CreateScope();
+        var bus = scope.ServiceProvider.GetRequiredService<MiniBus>();
+
+        var result = await bus.Handle(new SyncValidatingHandler.Request(""));
+        var errorCode = result.Match(
+            onSuccess: _ => "OK",
+            onInvalid: errors => errors[0].Code);
+
+        Assert.That(errorCode, Is.EqualTo("REQUIRED"));
     }
 
     [Test]
@@ -158,9 +173,10 @@ public class ValidateMethodIntegrationTests
         var bus = scope.ServiceProvider.GetRequiredService<MiniBus>();
 
         var result = await bus.Handle(new AsyncValidatingHandler.Request(5));
+        var response = result.Match(r => r, _ => null!);
 
-        Assert.That(result.IsSuccess, Is.True);
-        Assert.That(result.Response!.Value, Is.EqualTo(10));
+        Assert.That(response, Is.Not.Null);
+        Assert.That(response.Value, Is.EqualTo(10));
     }
 
     [Test]
@@ -170,10 +186,10 @@ public class ValidateMethodIntegrationTests
         var bus = scope.ServiceProvider.GetRequiredService<MiniBus>();
 
         var result = await bus.Handle(new AsyncValidatingHandler.Request(-1));
+        var errors = result.Match(_ => null!, r => r);
 
-        Assert.That(result.IsSuccess, Is.False);
-        Assert.That(result.Status, Is.EqualTo(global::MiniBus.ResultStatus.Invalid));
-        Assert.That(result.ValidationErrors[0].Code, Is.EqualTo("POSITIVE"));
+        Assert.That(errors, Is.Not.Null);
+        Assert.That(errors[0].Code, Is.EqualTo("POSITIVE"));
     }
 
     [Test]
@@ -185,7 +201,22 @@ public class ValidateMethodIntegrationTests
         // Id = 0 → Load returns null → NotFound, Validate never called
         var result = await bus.Handle(new LoadValidateHandler.Request(0));
 
-        Assert.That(result.Status, Is.EqualTo(global::MiniBus.ResultStatus.NotFound));
+        Assert.That(result.Value, Is.TypeOf<global::MiniBus.NotFoundResult>());
+    }
+
+    [Test]
+    public async Task LoadValidate_NullLoad_Match_UsesNotFoundBranch()
+    {
+        using var scope = AppUnderTest.Services.CreateScope();
+        var bus = scope.ServiceProvider.GetRequiredService<MiniBus>();
+
+        var result = await bus.Handle(new LoadValidateHandler.Request(0));
+        var marker = result.Match(
+            onSuccess: _ => "success",
+            onInvalid: _ => "invalid",
+            onNotFound: _ => "notfound");
+
+        Assert.That(marker, Is.EqualTo("notfound"));
     }
 
     [Test]
@@ -196,9 +227,10 @@ public class ValidateMethodIntegrationTests
 
         // Id = 999 → Load returns entity, but Validate rejects it
         var result = await bus.Handle(new LoadValidateHandler.Request(999));
+        var errors = result.Match(_ => null!, r => r, _ => null!);
 
-        Assert.That(result.Status, Is.EqualTo(global::MiniBus.ResultStatus.Invalid));
-        Assert.That(result.ValidationErrors[0].Code, Is.EqualTo("OUT_OF_RANGE"));
+        Assert.That(errors, Is.Not.Null);
+        Assert.That(errors[0].Code, Is.EqualTo("OUT_OF_RANGE"));
     }
 
     [Test]
@@ -208,9 +240,10 @@ public class ValidateMethodIntegrationTests
         var bus = scope.ServiceProvider.GetRequiredService<MiniBus>();
 
         var result = await bus.Handle(new LoadValidateHandler.Request(42));
+        var response = result.Match(r => r, _ => null!, _ => null!);
 
-        Assert.That(result.IsSuccess, Is.True);
-        Assert.That(result.Response!.Name, Is.EqualTo("item-42"));
+        Assert.That(response, Is.Not.Null);
+        Assert.That(response.Name, Is.EqualTo("item-42"));
     }
 
     [Test]
@@ -220,9 +253,10 @@ public class ValidateMethodIntegrationTests
         var bus = scope.ServiceProvider.GetRequiredService<MiniBus>();
 
         var result = await bus.Handle(new ValidateTupleResultHandler.Request(""));
+        var errors = result.Match(_ => null!, r => r);
 
-        Assert.That(result.Status, Is.EqualTo(global::MiniBus.ResultStatus.Invalid));
-        Assert.That(result.ValidationErrors[0].Code, Is.EqualTo("REQUIRED"));
+        Assert.That(errors, Is.Not.Null);
+        Assert.That(errors[0].Code, Is.EqualTo("REQUIRED"));
     }
 
     [Test]
@@ -232,9 +266,10 @@ public class ValidateMethodIntegrationTests
         var bus = scope.ServiceProvider.GetRequiredService<MiniBus>();
 
         var result = await bus.Handle(new ValidateTupleResultHandler.Request("hello"));
+        var response = result.Match(r => r, _ => null!);
 
-        Assert.That(result.IsSuccess, Is.True);
-        Assert.That(result.Response!.Value, Is.EqualTo("HELLO"));
+        Assert.That(response, Is.Not.Null);
+        Assert.That(response.Value, Is.EqualTo("HELLO"));
     }
 
     [Test]
@@ -244,9 +279,10 @@ public class ValidateMethodIntegrationTests
         var bus = scope.ServiceProvider.GetRequiredService<MiniBus>();
 
         var result = await bus.Handle(new HandleTupleValidationHandler.Request(0));
+        var errors = result.Match(_ => null!, r => r);
 
-        Assert.That(result.Status, Is.EqualTo(global::MiniBus.ResultStatus.Invalid));
-        Assert.That(result.ValidationErrors[0].Code, Is.EqualTo("POSITIVE"));
+        Assert.That(errors, Is.Not.Null);
+        Assert.That(errors[0].Code, Is.EqualTo("POSITIVE"));
     }
 
     [Test]
@@ -256,9 +292,10 @@ public class ValidateMethodIntegrationTests
         var bus = scope.ServiceProvider.GetRequiredService<MiniBus>();
 
         var result = await bus.Handle(new HandleTupleValidationHandler.Request(5));
+        var response = result.Match(r => r, _ => null!);
 
-        Assert.That(result.IsSuccess, Is.True);
-        Assert.That(result.Response!.Value, Is.EqualTo(15));
+        Assert.That(response, Is.Not.Null);
+        Assert.That(response.Value, Is.EqualTo(15));
     }
 
     [Test]
@@ -268,9 +305,10 @@ public class ValidateMethodIntegrationTests
         var bus = scope.ServiceProvider.GetRequiredService<MiniBus>();
 
         var result = await bus.Handle(new PostValidationHandler.Request("ok"));
+        var response = result.Match(r => r, _ => null!, _ => null!);
 
-        Assert.That(result.IsSuccess, Is.True);
-        Assert.That(result.Response!.Value, Is.EqualTo("OK"));
+        Assert.That(response, Is.Not.Null);
+        Assert.That(response!.Value, Is.EqualTo("OK"));
     }
 
     [Test]
@@ -280,10 +318,10 @@ public class ValidateMethodIntegrationTests
         var bus = scope.ServiceProvider.GetRequiredService<MiniBus>();
 
         var result = await bus.Handle(new PostValidationHandler.Request("invalid"));
+        var errors = result.Match(_ => null!, r => r, _ => null!);
 
-        Assert.That(result.IsSuccess, Is.False);
-        Assert.That(result.Status, Is.EqualTo(global::MiniBus.ResultStatus.Invalid));
-        Assert.That(result.ValidationErrors[0].Code, Is.EqualTo("POST_INVALID"));
+        Assert.That(errors, Is.Not.Null);
+        Assert.That(errors[0].Code, Is.EqualTo("POST_INVALID"));
     }
 
     [Test]
@@ -294,7 +332,6 @@ public class ValidateMethodIntegrationTests
 
         var result = await bus.Handle(new PostValidationHandler.Request("missing"));
 
-        Assert.That(result.IsSuccess, Is.False);
-        Assert.That(result.Status, Is.EqualTo(global::MiniBus.ResultStatus.NotFound));
+        Assert.That(result.Value, Is.TypeOf<global::MiniBus.NotFoundResult>());
     }
 }

@@ -5,11 +5,50 @@ using Microsoft.Extensions.DependencyInjection;
 
 namespace TestApp
 {
-    public class StaticConventionHandlerDispatcher
+    public sealed class StaticConventionHandlerDispatcher
         : global::MiniBus.IDispatcher<
             global::TestApp.StaticConventionHandler.Request,
-            global::TestApp.StaticConventionHandler.Response>
+            StaticConventionHandlerDispatcher.Result>
     {
+        public sealed class Result : global::MiniBus.IDispatchResult
+        {
+            private Result() { }
+
+            public Result(global::TestApp.StaticConventionHandler.Response value)
+            {
+                if (value is null)
+                {
+                    throw new global::System.ArgumentNullException(nameof(value));
+                }
+
+                Value = value;
+            }
+
+            public Result(global::MiniBus.ValidationResult value)
+            {
+                if (value is null)
+                {
+                    throw new global::System.ArgumentNullException(nameof(value));
+                }
+
+                Value = value;
+            }
+
+            public object? Value { get; }
+
+            public T Match<T>(
+                global::System.Func<global::TestApp.StaticConventionHandler.Response, T> onSuccess,
+                global::System.Func<global::MiniBus.ValidationResult, T> onInvalid
+            )
+            {
+                return Value switch
+                {
+                    global::TestApp.StaticConventionHandler.Response value => onSuccess(value),
+                    global::MiniBus.ValidationResult value => onInvalid(value),
+                    _ => throw new global::System.InvalidOperationException("Unknown result value type.")
+                };
+            }
+        }
         private readonly global::System.IServiceProvider _serviceProvider;
 
         public StaticConventionHandlerDispatcher(global::System.IServiceProvider serviceProvider)
@@ -19,16 +58,15 @@ namespace TestApp
 
         public string HandlerName => nameof(global::TestApp.StaticConventionHandler);
 
-        public global::System.Threading.Tasks.Task<
-            global::MiniBus.Result<global::TestApp.StaticConventionHandler.Response>>
+        public global::System.Threading.Tasks.Task<Result>
             Handle(global::TestApp.StaticConventionHandler.Request request)
         {
             var fromValidate = global::TestApp.StaticConventionHandler.Validate(request, _serviceProvider.GetService<global::TestApp.IClock>());
-            if (!fromValidate.IsValid())
-                return global::System.Threading.Tasks.Task.FromResult(global::MiniBus.Result<global::TestApp.StaticConventionHandler.Response>.Invalid(fromValidate));
+            if (fromValidate is global::MiniBus.IValidationResult fromValidateValidationResult && !fromValidateValidationResult.IsValid())
+                return global::System.Threading.Tasks.Task.FromResult(new Result(fromValidate));
 
             var fromHandle = global::TestApp.StaticConventionHandler.Handle(request, _serviceProvider.GetRequiredService<global::TestApp.IClock>());
-            return global::System.Threading.Tasks.Task.FromResult(global::MiniBus.Result<global::TestApp.StaticConventionHandler.Response>.Success(fromHandle));
+            return global::System.Threading.Tasks.Task.FromResult(new Result(fromHandle));
         }
     }
 }

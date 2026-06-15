@@ -1,13 +1,13 @@
 # MiniBus
 
 MiniBus is a source-generator-driven in-memory request-response bus
-heavely inspired by Wolverine's "Compound Handler" pattern.
+heavily inspired by Wolverine's "Compound Handler" pattern.
 
 ## Why
-Because I wanted to learn a few things about Source Generators and because I felt
-the need for a minimal friction in-memory request-response bus.  
-I also needed a project to experiment with AI assisted coding. So this project
-was built using Pair Programming with Copilot.
+Because I wanted to learn a few things about source generators and I wanted
+minimal-friction in-memory request-response bus.  
+I also needed a project to experiment with AI-assisted coding, so this project
+was built using pair programming with Copilot.
 
 ## Setup
 
@@ -51,16 +51,18 @@ var bus = provider.GetRequiredService<MiniBus.MiniBus>();
 var result = await bus.Handle(new GetItemHandler.Request(42));
 ```
 
-The result will be of the type `Result<TResponse>`. Check the `Status` or 
- `IsSuccess` property and read the response from `Response`.
+The result is a generated dispatcher-specific `Result` type with a single `Value`
+property. On success, `Value` contains your response. On short-circuit paths,
+`Value` contains either an `IValidationResult` implementation (for invalid) or a
+`NotFoundResult`.
 
-Behind the scenes, the MiniBus source generator will create:
-- an `IDispatcher<TRequest, TResponse>` implementation that orchestrates the 
-    handler pipeline.
-- a `services.AddGeneratedHandlers()` function that registers all handlers and 
-    dispatchers.
+Behind the scenes, the MiniBus source generator creates:
+- an `IDispatcher<TRequest, TResult>` implementation that orchestrates the
+  handler pipeline
+- an `AddGeneratedHandlers()` extension method that registers handlers and
+  dispatchers
 - a typed `bus.Handle(request)` extension method to call the handler without
-    a bunch of generics.
+  extra generic arguments
 
 ## Pipeline behavior
 
@@ -70,41 +72,64 @@ MiniBus enables pipeline behavior by looking for pre-handle and post-handle meth
 - Post-handle name patterns: any method name that starts with `After` or `Post`
 
 Generated dispatchers execute pipeline methods in the order required by
- their dependencies:
+their dependencies:
 - The return values of one method in the chain can be used as parameters for
-   the next method
+  the next method
 - If a return value is a tuple, the deconstructed items are available to the
-   dependant methods
+  dependent methods
 - The first unmatched parameter of the handle entry method is considered the request type
 - All other unmatched parameters will be resolved from the registered services
 - Pre-handle methods run before `Handle`, post-handle methods run after `Handle`
 - Post-handle methods use the same dependency-based ordering mechanism as pre-handle methods
-- The dispatcher only returns the final `Result.Success(...)` after all post-handle methods have completed
+- The dispatcher returns success only after all post-handle methods complete
 
 Each pre-handle and post-handle method is optional and may be sync or async.
 
 Special cases:
-- If the return value is nullable and the dependant method defines that type
-   as non-nullable, a result with `ResultStatus.NotFound` will be returned.
-- Any pipeline method may return `ValidationResult`, either as the full return
-  value or as one tuple element.
-- If any returned `ValidationResult` is not empty, dispatch stops and returns
-  `ResultStatus.Invalid`.
+- If the return value is nullable and the dependent method defines that type
+  as non-nullable, dispatch short-circuits with a `NotFoundResult` payload.
+- Any pipeline method may return an `IValidationResult` implementation, either as
+  the full return value or as one tuple element. The built-in
+  `ValidationResult<TError>` is one implementation, and the non-generic
+  `ValidationResult` alias maps to `ValidationResult<ValidationError>`.
+- If any returned `IValidationResult` reports `IsValid() == false`, dispatch
+  stops and returns that result payload.
 - If `Handle` returns a tuple, the first tuple element is used as the response
   value and the remaining elements can still participate in validation checks.
 - Post-handle methods do not replace the response payload. The successful response value still comes from `Handle`.
 
 ## Result model
 
-`Result<TResponse>` contains:
-- `Status` (`Ok`, `NotFound`, `Invalid`)
-- `Response` (when `Status == Ok`)
-- `ValidationErrors` (validation errors or optional not-found message)
+Generated dispatchers expose a nested `Result` class that wraps a single
+`Value` object. Typical values are:
+- response payload from `Handle` on success
+- an `IValidationResult` payload when validation short-circuits
+- a `NotFoundResult` payload when nullable dependencies resolve to null
 
-`IsSuccess` is `true` when `Status == ResultStatus.Ok`.
+Generated result types also provide a `Match` method for branch-safe handling
+without manual casting. Example:
 
-For a `NotFound` result you can set the not-found message in the 
- `ValidationErrors` by decorating a parameter with `[Required]`
+```csharp
+var result = await bus.Handle(new GetItemHandler.Request(42));
+
+var message = result.Match(
+  onSuccess: response => $"OK: {response.Name}",
+  onInvalid: invalid => $"Invalid ({invalid.Count} error(s))",
+  onNotFound: notFound => $"Not found: {notFound.Message}");
+```
+
+The `Value` property remains available for compatibility and future migration.
+
+`NotFoundResult` also implements `IValidationResult` and always returns
+`false` from `IsValid()`.
+
+## Troubleshooting
+
+- Avoid mixing abstract/base validation response types (for example
+  `IValidationResult` or broad base classes) with their concrete implementations
+  in the same handler pipeline.
+- Prefer returning concrete validation result types consistently from a given
+  dispatcher pipeline to keep generated `Match(...)` branches predictable.
 
 ## Not supported
 The following handler patterns are not supported by source generation:
@@ -121,19 +146,21 @@ The following handler patterns are not supported by source generation:
   Example: `void BeforeLoad(...)`, `void AfterAudit(...)`, or non-generic `Task ExecuteAsync(...)` (MBG007).
 - Cyclic dependencies between pipeline methods.  
   Example: `Load` depends on a type from `Validate` while `Validate` also depends on a type from `Load` (MBG008).
-- `Handle` tuple responses where the first tuple element is `ValidationResult`.
-  The first tuple element is reserved as the successful response payload (MBG009).
+
+Validation phases may return different `IValidationResult` implementations;
+each distinct concrete return type becomes an additional union possibility in
+the generated dispatcher result type.
 
 Additional runtime limitation:
 
 - Handle returning null is not supported.
-  The generated dispatcher wraps the value in Result.Success(...), and that throws ArgumentNullException when the response is null.
+  The generated dispatcher throws `ArgumentNullException` when the success response is null.
 
 ## Tracing
 
 `MiniBus` emits `Activity` traces via source name `"MiniBus"`:
 - activity name: `minibus.dispatch {HandlerName}`
-- tags: request type, response type, result status
+- tags: request type and result type
 - canceled dispatches set result status to `Canceled`
 - unhandled exceptions are recorded as an `"exception"` event and set activity status to error
 

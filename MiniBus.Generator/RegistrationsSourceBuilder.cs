@@ -34,7 +34,7 @@ public static class RegistrationsSourceBuilder
             sb.AppendLine($"            services.AddTransient<");
             sb.AppendLine($"                global::MiniBus.IDispatcher<");
             sb.AppendLine($"                    {model.FullRequestType},");
-            sb.AppendLine($"                    {model.FullResponseType}>,");
+            sb.AppendLine($"                    {model.DispatcherFullName}.Result>,");
             sb.AppendLine($"                {model.DispatcherFullName}>();");
         }
 
@@ -53,9 +53,9 @@ public static class RegistrationsSourceBuilder
                 continue;
             }
             if (conflicting.Contains(model.FullRequestType)) continue;
-            sb.AppendLine($"        public static global::System.Threading.Tasks.Task<global::MiniBus.Result<{model.FullResponseType}>>");
+            sb.AppendLine($"        public static global::System.Threading.Tasks.Task<{model.DispatcherFullName}.Result>");
             sb.AppendLine($"            Handle(this global::MiniBus.MiniBus bus, {model.FullRequestType} request)");
-            sb.AppendLine($"            => bus.Handle<{model.FullRequestType}, {model.FullResponseType}>(request);");
+            sb.AppendLine($"            => bus.Handle<{model.FullRequestType}, {model.DispatcherFullName}.Result>(request);");
         }
 
         sb.AppendLine("    }");

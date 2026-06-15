@@ -4,11 +4,38 @@
 
 namespace TestApp
 {
-    public class HandlerOneDispatcher
+    public sealed class HandlerOneDispatcher
         : global::MiniBus.IDispatcher<
             global::TestApp.SharedRequest,
-            global::TestApp.HandlerOne.Response>
+            HandlerOneDispatcher.Result>
     {
+        public sealed class Result : global::MiniBus.IDispatchResult
+        {
+            private Result() { }
+
+            public Result(global::TestApp.HandlerOne.Response value)
+            {
+                if (value is null)
+                {
+                    throw new global::System.ArgumentNullException(nameof(value));
+                }
+
+                Value = value;
+            }
+
+            public object? Value { get; }
+
+            public T Match<T>(
+                global::System.Func<global::TestApp.HandlerOne.Response, T> onSuccess
+            )
+            {
+                return Value switch
+                {
+                    global::TestApp.HandlerOne.Response value => onSuccess(value),
+                    _ => throw new global::System.InvalidOperationException("Unknown result value type.")
+                };
+            }
+        }
         private readonly global::TestApp.HandlerOne _handler;
 
         public HandlerOneDispatcher(global::TestApp.HandlerOne handler)
@@ -18,12 +45,11 @@ namespace TestApp
 
         public string HandlerName => nameof(global::TestApp.HandlerOne);
 
-        public async global::System.Threading.Tasks.Task<
-            global::MiniBus.Result<global::TestApp.HandlerOne.Response>>
+        public async global::System.Threading.Tasks.Task<Result>
             Handle(global::TestApp.SharedRequest request)
         {
             var fromHandle = await _handler.Handle(request);
-            return global::MiniBus.Result<global::TestApp.HandlerOne.Response>.Success(fromHandle);
+            return new Result(fromHandle);
         }
     }
 }
