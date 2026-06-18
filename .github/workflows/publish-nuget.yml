@@ -47,7 +47,6 @@ jobs:
         id: nuget-login
         with:
           user: ${{secrets.NUGET_USER}} 
-          token-service-url: https://www.nuget.org/api/v3/token
             
       # Push the package
       - name: NuGet push
