@@ -3,8 +3,6 @@ name: Publish NuGet
 on:
   workflow_dispatch:
   push:
-    branches:
-      - "nuget-packaging"
     tags:
       - v*
 
@@ -38,7 +36,7 @@ jobs:
         run: dotnet test --no-build -c Release --verbosity normal
 
       - name: Test NuGet Package
-        run: pwsh ./Test-NugetPackage.ps1 -
+        run: pwsh ./Test-NugetPackage.ps1
 
       - name: Pack
         run: dotnet pack MiniBus/MiniBus.csproj --no-build -c Release -o ./artifacts/nuget
