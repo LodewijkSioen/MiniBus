@@ -1,0 +1,53 @@
+name: Publish NuGet
+
+on:
+  push:
+    tags:
+      - v*
+
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.ref }}
+          fetch-depth: 0
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.x
+
+      - name: Restore
+        run: dotnet restore
+
+      - name: Build
+        run: dotnet build --no-restore -c Release
+
+      - name: Test
+        run: dotnet test --no-build -c Release --verbosity normal
+
+      - name: Test NuGet Package
+        run: pwsh ./Test-NugetPackage.ps1 -
+
+      - name: Pack
+        run: dotnet pack MiniBus/MiniBus.csproj --no-build -c Release -o ./artifacts/nuget
+
+      - name: Publish to NuGet.org
+        run: dotnet nuget push ./artifacts/nuget/*.nupkg --source https://api.nuget.org/v3/index.json --skip-duplicate
+
+      - name: Create GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "${GITHUB_REF_NAME}" artifacts/*.nupkg artifacts/*.snupkg \
+            --verify-tag \
+            --generate-notes \
+            --title "${GITHUB_REF_NAME}"
