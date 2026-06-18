@@ -41,9 +41,16 @@ jobs:
       - name: Pack
         run: dotnet pack MiniBus/MiniBus.csproj --no-build -c Release -o ./artifacts/nuget
 
+       # Get a short-lived NuGet API key
+      - name: NuGet login
+        uses: NuGet/login@v1.2.0
+        id: nuget-login
+        with:
+          user: ${{secrets.NUGET_USER}} 
+            
       # Push the package
       - name: NuGet push
-        run: dotnet nuget push ./artifacts/nuget/*.nupkg --source https://api.nuget.org/v3/index.json --skip-duplicate
+        run: dotnet nuget push ./artifacts/nuget/*.nupkg --api-key ${{steps.nuget-login.outputs.NUGET_API_KEY}} --source https://api.nuget.org/v2/index.json --skip-duplicate
 
       - name: Create GitHub Release
         env:
