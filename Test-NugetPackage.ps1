@@ -8,7 +8,7 @@ Set-StrictMode -Version Latest
 $PSNativeCommandUseErrorActionPreference = $true
 
 $repoRoot = Split-Path -Parent $PSCommandPath
-$projectPath = Join-Path $repoRoot "MiniBus.NugetIntegrationTests"
+$projectPath = Join-Path $repoRoot "Caravelle.NugetIntegrationTests"
 $configPath = Join-Path $projectPath "nuget.integration-tests.config"
 $artifactsDir = Join-Path $projectPath "test/artifacts"
 $packagesDir = Join-Path $projectPath "test/packages"
@@ -25,8 +25,8 @@ if (Test-Path -LiteralPath $packagesDir) {
     Remove-Item -LiteralPath $packagesDir -Recurse -Force
 }
 
-Write-Host "==> Packing MiniBus version $Version"
-dotnet pack (Join-Path $repoRoot "MiniBus") -c Release -o $artifactsDir -p:MinVerVersionOverride=$Version
+Write-Host "==> Packing Caravelle version $Version"
+dotnet pack (Join-Path $repoRoot "Caravelle") -c Release -o $artifactsDir -p:MinVerVersionOverride=$Version
 
 Write-Host "==> Restoring NuGet integration tests"
 dotnet restore $projectPath --packages $packagesDir --configfile $configPath

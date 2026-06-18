@@ -1,7 +1,7 @@
 # AGENTS
 
 ## Purpose
-This repository contains MiniBus runtime code plus a Roslyn source generator and tests.
+This repository contains Caravelle runtime code plus a Roslyn source generator and tests.
 Use these instructions to make safe changes quickly.
 
 ## Build And Test
@@ -16,20 +16,20 @@ dotnet test --no-build --verbosity normal
 Useful targeted runs:
 
 ```powershell
-dotnet test MiniBus.Tests --verbosity normal
-dotnet test MiniBus.Generator.Tests --verbosity normal
+dotnet test Caravelle.Tests --verbosity normal
+dotnet test Caravelle.Generator.Tests --verbosity normal
 ```
 
 Reference CI workflow: [.github/workflows/build.yml](.github/workflows/build.yml).
 
 ## Project Boundaries
-- Runtime library: [MiniBus/MiniBus.csproj](MiniBus/MiniBus.csproj)
-- Source generator: [MiniBus.Generator/MiniBus.Generator.csproj](MiniBus.Generator/MiniBus.Generator.csproj)
-- Integration tests: [MiniBus.Tests/MiniBus.Tests.csproj](MiniBus.Tests/MiniBus.Tests.csproj)
-- Generator tests: [MiniBus.Generator.Tests/MiniBus.Generator.Tests.csproj](MiniBus.Generator.Tests/MiniBus.Generator.Tests.csproj)
+- Runtime library: [Caravelle/Caravelle.csproj](Caravelle/Caravelle.csproj)
+- Source generator: [Caravelle.Generator/Caravelle.Generator.csproj](Caravelle.Generator/Caravelle.Generator.csproj)
+- Integration tests: [Caravelle.Tests/Caravelle.Tests.csproj](Caravelle.Tests/Caravelle.Tests.csproj)
+- Generator tests: [Caravelle.Generator.Tests/Caravelle.Generator.Tests.csproj](Caravelle.Generator.Tests/Caravelle.Generator.Tests.csproj)
 
-Keep runtime behavior changes in `MiniBus/` and generator logic changes in `MiniBus.Generator/`.
-When changing generation behavior, update or add tests in `MiniBus.Generator.Tests/` and integration coverage in `MiniBus.Tests/` when relevant.
+Keep runtime behavior changes in `Caravelle/` and generator logic changes in `Caravelle.Generator/`.
+When changing generation behavior, update or add tests in `Caravelle.Generator.Tests/` and integration coverage in `Caravelle.Tests/` when relevant.
 
 ## Handler Model And Pipeline
 Canonical behavior is described in [README.md](README.md).
@@ -37,15 +37,15 @@ Canonical behavior is described in [README.md](README.md).
 ## Generator Conventions
 - Generator target framework is `netstandard2.0`; keep it analyzer-compatible.
 - Runtime and tests target `net10.0`; do not move generator to `net10.0`.
-- Diagnostic IDs and semantics live in [MiniBus.Generator/Diagnostics.cs](MiniBus.Generator/Diagnostics.cs). Reuse existing IDs when extending diagnostics.
+- Diagnostic IDs and semantics live in [Caravelle.Generator/Diagnostics.cs](Caravelle.Generator/Diagnostics.cs). Reuse existing IDs when extending diagnostics.
 - If you change generated output shape, verify both source output and diagnostics in tests.
 - Any output of the `HandlerModelFactory` must be fully equatable.
 
 ## Testing Conventions
 - Test framework: NUnit.
-- Generator tests use Verify snapshots (see files ending in `.verified.txt` under `MiniBus.Generator.Tests/`).
-- Generator helper entry points are in [MiniBus.Generator.Tests/GeneratorTestHelper.cs](MiniBus.Generator.Tests/GeneratorTestHelper.cs).
-- Integration test service setup is in [MiniBus.Tests/AppUnderTest.cs](MiniBus.Tests/AppUnderTest.cs).
+- Generator tests use Verify snapshots (see files ending in `.verified.txt` under `Caravelle.Generator.Tests/`).
+- Generator helper entry points are in [Caravelle.Generator.Tests/GeneratorTestHelper.cs](Caravelle.Generator.Tests/GeneratorTestHelper.cs).
+- Integration test service setup is in [Caravelle.Tests/AppUnderTest.cs](Caravelle.Tests/AppUnderTest.cs).
 
 When snapshots intentionally change, review `.received.` output and promote to `.verified.`.
 

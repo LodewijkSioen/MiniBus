@@ -39,7 +39,7 @@ jobs:
         run: pwsh ./Test-NugetPackage.ps1
 
       - name: Pack
-        run: dotnet pack MiniBus/MiniBus.csproj --no-build -c Release -o ./artifacts/nuget
+        run: dotnet pack Caravelle/Caravelle.csproj --no-build -c Release -o ./artifacts/nuget
 
        # Get a short-lived NuGet API key
       - name: NuGet login

@@ -1,0 +1,6 @@
+<Solution>
+  <Project Path="Caravelle/Caravelle.csproj" />
+  <Project Path="Caravelle.Generator/Caravelle.Generator.csproj" />
+  <Project Path="Caravelle.Tests/Caravelle.Tests.csproj" />
+  <Project Path="Caravelle.Generator.Tests/Caravelle.Generator.Tests.csproj" />
+</Solution>
