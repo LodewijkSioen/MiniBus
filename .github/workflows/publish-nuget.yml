@@ -47,10 +47,11 @@ jobs:
         id: nuget-login
         with:
           user: ${{secrets.NUGET_USER}} 
+          token-service-url: https://www.nuget.org/api/v3/token
             
       # Push the package
       - name: NuGet push
-        run: dotnet nuget push ./artifacts/nuget/*.nupkg --api-key ${{steps.nuget-login.outputs.NUGET_API_KEY}} --source https://api.nuget.org/v2/index.json --skip-duplicate
+        run: dotnet nuget push ./artifacts/nuget/*.nupkg --api-key ${{steps.nuget-login.outputs.NUGET_API_KEY}} --source https://api.nuget.org/v3/index.json --skip-duplicate
 
       - name: Create GitHub Release
         env:
