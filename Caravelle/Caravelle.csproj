@@ -7,6 +7,7 @@
     <PackageId>Caravelle</PackageId>
     <Authors>Lodewijk Sioen</Authors>
     <Description>Caravelle is a source-generator-driven in-memory request-response bus. Like Mediatr, but without the generics.</Description>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <PackageProjectUrl>https://github.com/LodewijkSioen/Caravelle</PackageProjectUrl>
     <RepositoryUrl>https://github.com/LodewijkSioen/Caravelle</RepositoryUrl>

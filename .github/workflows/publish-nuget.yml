@@ -56,7 +56,7 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          gh release create "${GITHUB_REF_NAME}" artifacts/*.nupkg artifacts/*.snupkg \
+          gh release create "${GITHUB_REF_NAME}" ./artifacts/nuget/*.nupkg ./artifacts/nuget/*.snupkg \
             --verify-tag \
             --generate-notes \
             --title "${GITHUB_REF_NAME}"
