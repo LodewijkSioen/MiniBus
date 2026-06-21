@@ -32,6 +32,10 @@
     <ProjectReference Include="..\Caravelle.Generator\Caravelle.Generator.csproj" ReferenceOutputAssembly="false" PrivateAssets="all" />
   </ItemGroup>
 
+  <ItemGroup>
+      <None Include="..\README.md" Pack="true" PackagePath="\"/>
+  </ItemGroup>
+
   <Target Name="PackSourceGeneratorAnalyzer">
     <MSBuild Projects="..\Caravelle.Generator\Caravelle.Generator.csproj" Targets="GetTargetPath" Properties="Configuration=$(Configuration);TargetFramework=netstandard2.0">
       <Output TaskParameter="TargetOutputs" ItemName="_CaravelleGeneratorTargetPath" />
