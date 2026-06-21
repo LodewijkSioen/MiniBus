@@ -39,15 +39,15 @@ jobs:
         run: pwsh ./Test-NugetPackage.ps1
 
       - name: Pack
-        run: dotnet pack MiniBus/MiniBus.csproj --no-build -c Release -o ./artifacts/nuget
+        run: dotnet pack Caravelle/Caravelle.csproj --no-build -c Release -o ./artifacts/nuget
 
        # Get a short-lived NuGet API key
       - name: NuGet login
-        uses: NuGet/login@v1
+        uses: NuGet/login@v1.2.0
         id: nuget-login
         with:
           user: ${{secrets.NUGET_USER}} 
-
+            
       # Push the package
       - name: NuGet push
         run: dotnet nuget push ./artifacts/nuget/*.nupkg --api-key ${{steps.nuget-login.outputs.NUGET_API_KEY}} --source https://api.nuget.org/v3/index.json --skip-duplicate
@@ -56,7 +56,7 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          gh release create "${GITHUB_REF_NAME}" artifacts/*.nupkg artifacts/*.snupkg \
+          gh release create "${GITHUB_REF_NAME}" ./artifacts/nuget/*.nupkg ./artifacts/nuget/*.snupkg \
             --verify-tag \
             --generate-notes \
             --title "${GITHUB_REF_NAME}"

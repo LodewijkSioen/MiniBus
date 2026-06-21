@@ -1,0 +1,95 @@
+﻿{
+  Model: {
+    Namespace: TestApp,
+    ClassName: AsyncValidateHandler,
+    FullClassName: global::TestApp.AsyncValidateHandler,
+    FullRequestType: global::TestApp.AsyncValidateHandler.Request,
+    FullResponseType: global::TestApp.AsyncValidateHandler.Response,
+    ResultValueTypes: [
+      {
+        FullType: global::TestApp.AsyncValidateHandler.Response,
+        RequiresNullCheck: true
+      },
+      {
+        FullType: global::Caravelle.ValidationResult,
+        RequiresNullCheck: true
+      }
+    ],
+    Phases: [
+      {
+        MethodName: Validate,
+        IsAsync: true,
+        IsStatic: false,
+        Parameters: [
+          {
+            LocalName: request,
+            FullType: global::TestApp.AsyncValidateHandler.Request,
+            IsNullable: false,
+            NotNullMessage: request cannot be null,
+            IsFromServices: false
+          }
+        ],
+        Returns: [
+          {
+            LocalName: fromValidate,
+            FullType: global::Caravelle.ValidationResult,
+            IsNullable: false,
+            IsResultType: true,
+            RequiresNullCheck: true,
+            NonNullLocalName: fromValidate,
+            IsValidationResult: true
+          }
+        ]
+      },
+      {
+        Type: Handle,
+        MethodName: Handle,
+        IsAsync: true,
+        IsStatic: false,
+        Parameters: [
+          {
+            LocalName: request,
+            FullType: global::TestApp.AsyncValidateHandler.Request,
+            IsNullable: false,
+            NotNullMessage: request cannot be null,
+            IsFromServices: false
+          }
+        ],
+        Returns: [
+          {
+            LocalName: fromHandle,
+            FullType: global::TestApp.AsyncValidateHandler.Response,
+            IsNullable: false,
+            IsResultType: false,
+            RequiresNullCheck: true,
+            NonNullLocalName: fromHandle,
+            IsValidationResult: false
+          }
+        ]
+      }
+    ],
+    LocalVariables: [
+      {
+        LocalName: fromValidate,
+        FullType: global::Caravelle.ValidationResult,
+        CheckNullability: false
+      },
+      {
+        LocalName: fromHandle,
+        FullType: global::TestApp.AsyncValidateHandler.Response,
+        CheckNullability: false
+      },
+      {
+        LocalName: request,
+        FullType: global::TestApp.AsyncValidateHandler.Request,
+        CheckNullability: false
+      }
+    ],
+    DispatcherFullName: global::TestApp.AsyncValidateHandlerDispatcher,
+    DispatcherKey: global::TestApp.AsyncValidateHandler.Request|global::TestApp.AsyncValidateHandler.Response,
+    IsAnyAsync: true,
+    HasInstanceMethods: true,
+    HasFromServicesParameters: false
+  },
+  Diagnostics: null
+}

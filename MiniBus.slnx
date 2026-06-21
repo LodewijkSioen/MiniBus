@@ -1,6 +1,0 @@
-<Solution>
-  <Project Path="MiniBus/MiniBus.csproj" />
-  <Project Path="MiniBus.Generator/MiniBus.Generator.csproj" />
-  <Project Path="MiniBus.Tests/MiniBus.Tests.csproj" />
-  <Project Path="MiniBus.Generator.Tests/MiniBus.Generator.Tests.csproj" />
-</Solution>
