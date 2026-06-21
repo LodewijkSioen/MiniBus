@@ -1,3 +1,5 @@
+![Caravelle](/assets/logo.png)
+
 # Caravelle
 
 Caravelle is a source-generator-driven in-memory request-response bus
