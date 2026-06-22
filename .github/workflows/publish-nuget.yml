@@ -11,41 +11,53 @@ permissions:
   id-token: write
 
 jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+        with:
+          ref: ${{ github.event.ref }}
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: 10.0.x
+
+      - name: Restore
+        run: dotnet restore
+      
+      - name: Build
+        run: dotnet build --no-restore -c Release
+
+      - name: Test
+        run: dotnet test --no-build -c Release
+
+      - name: Integration Tests
+        run: pwsh ./Test-NugetPackage.ps1      
+
   publish:
     runs-on: ubuntu-latest
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         with:
           ref: ${{ github.event.ref }}
           fetch-depth: 0
           filter: tree:0
 
       - name: Setup .NET
-        uses: actions/setup-dotnet@v4
+        uses: actions/setup-dotnet@v5
         with:
           dotnet-version: 10.0.x
-
-      - name: debug minver
-        run: |
-          dotnet tool install --global minver-cli
-          minver -t v -v t
 
       - name: Restore
         run: dotnet restore
 
-      - name: Build
-        run: dotnet build --no-restore -c Release
-
-      - name: Test
-        run: dotnet test --no-build -c Release --verbosity normal
-
-      - name: Test NuGet Package
-        run: pwsh ./Test-NugetPackage.ps1
-
       - name: Pack
-        run: dotnet pack Caravelle/Caravelle.csproj --no-build -c Release -o ./artifacts/nuget
+        run: dotnet pack Caravelle/Caravelle.csproj -c Release -o ./artifacts/nuget
 
       # # Get a short-lived NuGet API key
       # - name: NuGet login
