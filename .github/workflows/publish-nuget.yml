@@ -39,6 +39,7 @@ jobs:
 
   publish:
     runs-on: ubuntu-latest
+    needs: test
 
     steps:
       - name: Checkout
@@ -57,7 +58,7 @@ jobs:
         run: dotnet restore
 
       - name: Pack
-        run: dotnet pack Caravelle/Caravelle.csproj -c Release -o ./artifacts/nuget
+        run: dotnet pack Caravelle/Caravelle.csproj -c Release -o ./artifacts/nuget -v diag
 
       # # Get a short-lived NuGet API key
       # - name: NuGet login
