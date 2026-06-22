@@ -1,5 +1,6 @@
 <Project>
   <PropertyGroup>
     <MinVerTagPrefix>v</MinVerTagPrefix>
-  </PropertyGroup>
+    <MinVerVerbosity>diagnostic</MinVerVerbosity>
+    </PropertyGroup>
 </Project>
