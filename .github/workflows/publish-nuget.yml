@@ -29,7 +29,7 @@ jobs:
 
       - name: debug minver
         run: |
-          dotnet tool install minver-cli
+          dotnet tool install --global minver-cli
           minver -t v -v t
 
       - name: Restore
