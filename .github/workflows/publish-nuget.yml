@@ -28,7 +28,9 @@ jobs:
           dotnet-version: 10.0.x
 
       - name: debug minver
-        run: minver -t v -v t
+        run: |
+          dotnet tool install minver-cli
+          minver -t v -v t
 
       - name: Restore
         run: dotnet restore
