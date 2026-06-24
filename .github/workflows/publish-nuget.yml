@@ -29,7 +29,7 @@ jobs:
         run: dotnet restore
       
       - name: Build
-        run: dotnet build --no-restore -c Release -v detailed
+        run: dotnet build --no-restore -c Release
 
       - name: Test
         run: dotnet test --no-build -c Release
@@ -58,24 +58,24 @@ jobs:
         run: dotnet restore
 
       - name: Pack
-        run: dotnet pack Caravelle/Caravelle.csproj -c Release -o ./artifacts/nuget -v detailed
+        run: dotnet pack Caravelle/Caravelle.csproj -c Release -o ./artifacts/nuget
 
-      # # Get a short-lived NuGet API key
-      # - name: NuGet login
-      #   uses: NuGet/login@v1.2.0
-      #   id: nuget-login
-      #   with:
-      #     user: ${{secrets.NUGET_USER}} 
+      # Get a short-lived NuGet API key
+      - name: NuGet login
+        uses: NuGet/login@v1.2.0
+        id: nuget-login
+        with:
+          user: ${{secrets.NUGET_USER}} 
             
-      # # Push the package
-      # - name: NuGet push
-      #   run: dotnet nuget push ./artifacts/nuget/*.nupkg --api-key ${{steps.nuget-login.outputs.NUGET_API_KEY}} --source https://api.nuget.org/v3/index.json --skip-duplicate
+      # Push the package
+      - name: NuGet push
+        run: dotnet nuget push ./artifacts/nuget/*.nupkg --api-key ${{steps.nuget-login.outputs.NUGET_API_KEY}} --source https://api.nuget.org/v3/index.json --skip-duplicate
 
-      # - name: Create GitHub Release
-      #   env:
-      #     GH_TOKEN: ${{ github.token }}
-      #   run: |
-      #     gh release create "${GITHUB_REF_NAME}" ./artifacts/nuget/*.nupkg ./artifacts/nuget/*.snupkg \
-      #       --verify-tag \
-      #       --generate-notes \
-      #       --title "${GITHUB_REF_NAME}"
+      - name: Create GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "${GITHUB_REF_NAME}" ./artifacts/nuget/*.nupkg ./artifacts/nuget/*.snupkg \
+            --verify-tag \
+            --generate-notes \
+            --title "${GITHUB_REF_NAME}"
