@@ -4,9 +4,14 @@
     <TargetFramework>net10.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
+  </PropertyGroup>
+
+  <!--  Nuget Stuff -->
+  <PropertyGroup>
     <PackageId>Caravelle</PackageId>
     <Authors>Lodewijk Sioen</Authors>
     <Description>Caravelle is a source-generator-driven in-memory request-response bus. Like Mediatr, but without the generics.</Description>
+    <PackageIcon>icon.png</PackageIcon>
     <PackageReadmeFile>README.md</PackageReadmeFile>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <PackageProjectUrl>https://github.com/LodewijkSioen/Caravelle</PackageProjectUrl>
@@ -14,7 +19,8 @@
     <RepositoryType>git</RepositoryType>
     <PackageTags>source-generator;mediator;message-bus;dotnet</PackageTags>
     <PublishRepositoryUrl>true</PublishRepositoryUrl>
-    <EmbedUntrackedSources>true</EmbedUntrackedSources><IncludeSymbols>true</IncludeSymbols>
+    <EmbedUntrackedSources>true</EmbedUntrackedSources>
+    <IncludeSymbols>true</IncludeSymbols>
     <SymbolPackageFormat>snupkg</SymbolPackageFormat>
     <ContinuousIntegrationBuild Condition="'$(GITHUB_ACTIONS)' == 'true'">true</ContinuousIntegrationBuild>
     <TargetsForTfmSpecificContentInPackage>$(TargetsForTfmSpecificContentInPackage);PackSourceGeneratorAnalyzer</TargetsForTfmSpecificContentInPackage>
@@ -35,6 +41,7 @@
 
   <ItemGroup>
       <None Include="..\README.md" Pack="true" PackagePath="\"/>
+      <None Include="..\assets\icon.png" Pack="true" PackagePath="\"/>
   </ItemGroup>
 
   <Target Name="PackSourceGeneratorAnalyzer">
