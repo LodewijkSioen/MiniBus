@@ -69,7 +69,9 @@
     DispatcherKey: global::TestApp.InvalidHandleTupleHandler.Request|global::Caravelle.ValidationResult,
     IsAnyAsync: false,
     HasInstanceMethods: true,
-    HasFromServicesParameters: false
+    HasFromServicesParameters: false,
+    HasSingleResultType: true,
+    ResultTypeName: global::Caravelle.ValidationResult
   },
   Diagnostics: null
 }

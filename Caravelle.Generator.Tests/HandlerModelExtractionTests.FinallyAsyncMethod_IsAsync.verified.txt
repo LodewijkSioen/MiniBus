@@ -71,7 +71,9 @@
     DispatcherKey: global::TestApp.FinallyAsyncHandler.Request|global::TestApp.FinallyAsyncHandler.Response,
     IsAnyAsync: true,
     HasInstanceMethods: true,
-    HasFromServicesParameters: false
+    HasFromServicesParameters: false,
+    HasSingleResultType: true,
+    ResultTypeName: global::TestApp.FinallyAsyncHandler.Response
   },
   Diagnostics: null
 }

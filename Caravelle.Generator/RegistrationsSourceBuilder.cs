@@ -34,7 +34,7 @@ public static class RegistrationsSourceBuilder
             sb.AppendLine($"            services.AddTransient<");
             sb.AppendLine($"                global::Caravelle.IDispatcher<");
             sb.AppendLine($"                    {model.FullRequestType},");
-            sb.AppendLine($"                    {model.DispatcherFullName}.Result>,");
+            sb.AppendLine($"                    {model.ResultTypeName}>,");
             sb.AppendLine($"                {model.DispatcherFullName}>();");
         }
 
@@ -53,9 +53,9 @@ public static class RegistrationsSourceBuilder
                 continue;
             }
             if (conflicting.Contains(model.FullRequestType)) continue;
-            sb.AppendLine($"        public static global::System.Threading.Tasks.Task<{model.DispatcherFullName}.Result>");
+            sb.AppendLine($"        public static global::System.Threading.Tasks.Task<{model.ResultTypeName}>");
             sb.AppendLine($"            Handle(this global::Caravelle.Bus bus, {model.FullRequestType} request)");
-            sb.AppendLine($"            => bus.Handle<{model.FullRequestType}, {model.DispatcherFullName}.Result>(request);");
+            sb.AppendLine($"            => bus.Handle<{model.FullRequestType}, {model.ResultTypeName}>(request);");
         }
 
         sb.AppendLine("    }");

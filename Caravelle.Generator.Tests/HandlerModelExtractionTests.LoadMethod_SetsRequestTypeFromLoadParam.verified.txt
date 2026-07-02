@@ -90,7 +90,9 @@
     DispatcherKey: global::TestApp.LoadRequestHandler.Query|global::TestApp.LoadRequestHandler.Response,
     IsAnyAsync: true,
     HasInstanceMethods: true,
-    HasFromServicesParameters: false
+    HasFromServicesParameters: false,
+    HasSingleResultType: false,
+    ResultTypeName: global::TestApp.LoadRequestHandlerDispatcher.Result
   },
   Diagnostics: null
 }

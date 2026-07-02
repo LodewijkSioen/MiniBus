@@ -97,7 +97,9 @@
     DispatcherKey: global::TestApp.BothArgsHandler.Request|global::TestApp.BothArgsHandler.Response,
     IsAnyAsync: true,
     HasInstanceMethods: true,
-    HasFromServicesParameters: false
+    HasFromServicesParameters: false,
+    HasSingleResultType: false,
+    ResultTypeName: global::TestApp.BothArgsHandlerDispatcher.Result
   },
   Diagnostics: null
 }

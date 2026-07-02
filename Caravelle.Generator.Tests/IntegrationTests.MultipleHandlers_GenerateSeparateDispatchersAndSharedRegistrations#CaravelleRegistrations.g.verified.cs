@@ -15,13 +15,13 @@ namespace Caravelle
             services.AddTransient<
                 global::Caravelle.IDispatcher<
                     global::TestApp.HandlerA.Request,
-                    global::TestApp.HandlerADispatcher.Result>,
+                    global::TestApp.HandlerA.Response>,
                 global::TestApp.HandlerADispatcher>();
             services.AddTransient<global::TestApp.HandlerB>();
             services.AddTransient<
                 global::Caravelle.IDispatcher<
                     global::TestApp.HandlerB.Request,
-                    global::TestApp.HandlerBDispatcher.Result>,
+                    global::TestApp.HandlerB.Response>,
                 global::TestApp.HandlerBDispatcher>();
             return services;
         }
@@ -30,11 +30,11 @@ namespace Caravelle
     // ── Typed Caravelle extension methods ──────────────────────────────
     public static class CaravelleExtensions
     {
-        public static global::System.Threading.Tasks.Task<global::TestApp.HandlerADispatcher.Result>
+        public static global::System.Threading.Tasks.Task<global::TestApp.HandlerA.Response>
             Handle(this global::Caravelle.Bus bus, global::TestApp.HandlerA.Request request)
-            => bus.Handle<global::TestApp.HandlerA.Request, global::TestApp.HandlerADispatcher.Result>(request);
-        public static global::System.Threading.Tasks.Task<global::TestApp.HandlerBDispatcher.Result>
+            => bus.Handle<global::TestApp.HandlerA.Request, global::TestApp.HandlerA.Response>(request);
+        public static global::System.Threading.Tasks.Task<global::TestApp.HandlerB.Response>
             Handle(this global::Caravelle.Bus bus, global::TestApp.HandlerB.Request request)
-            => bus.Handle<global::TestApp.HandlerB.Request, global::TestApp.HandlerBDispatcher.Result>(request);
+            => bus.Handle<global::TestApp.HandlerB.Request, global::TestApp.HandlerB.Response>(request);
     }
 }

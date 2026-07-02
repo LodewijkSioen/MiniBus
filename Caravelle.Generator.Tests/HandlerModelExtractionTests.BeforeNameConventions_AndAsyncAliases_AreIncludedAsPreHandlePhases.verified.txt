@@ -182,7 +182,9 @@
     DispatcherKey: global::TestApp.BeforeConventionHandler.Request|global::TestApp.BeforeConventionHandler.Response,
     IsAnyAsync: false,
     HasInstanceMethods: true,
-    HasFromServicesParameters: false
+    HasFromServicesParameters: false,
+    HasSingleResultType: false,
+    ResultTypeName: global::TestApp.BeforeConventionHandlerDispatcher.Result
   },
   Diagnostics: null
 }

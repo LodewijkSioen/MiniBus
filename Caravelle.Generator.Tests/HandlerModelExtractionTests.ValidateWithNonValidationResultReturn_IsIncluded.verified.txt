@@ -86,7 +86,9 @@
     DispatcherKey: global::TestApp.NonValidationValidateHandler.Request|global::TestApp.NonValidationValidateHandler.Response,
     IsAnyAsync: true,
     HasInstanceMethods: true,
-    HasFromServicesParameters: false
+    HasFromServicesParameters: false,
+    HasSingleResultType: true,
+    ResultTypeName: global::TestApp.NonValidationValidateHandler.Response
   },
   Diagnostics: null
 }

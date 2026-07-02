@@ -104,7 +104,9 @@
     DispatcherKey: global::TestApp.ValidateTupleHandler.Request|global::TestApp.ValidateTupleHandler.Response,
     IsAnyAsync: true,
     HasInstanceMethods: true,
-    HasFromServicesParameters: false
+    HasFromServicesParameters: false,
+    HasSingleResultType: false,
+    ResultTypeName: global::TestApp.ValidateTupleHandlerDispatcher.Result
   },
   Diagnostics: null
 }

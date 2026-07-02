@@ -86,7 +86,9 @@
     DispatcherKey: global::TestApp.NonNullLoadHandler.Request|global::TestApp.NonNullLoadHandler.Response,
     IsAnyAsync: true,
     HasInstanceMethods: true,
-    HasFromServicesParameters: false
+    HasFromServicesParameters: false,
+    HasSingleResultType: true,
+    ResultTypeName: global::TestApp.NonNullLoadHandler.Response
   },
   Diagnostics: null
 }

@@ -103,7 +103,9 @@
     DispatcherKey: global::TestApp.ConventionDiHandler.Request|global::TestApp.ConventionDiHandler.Response,
     IsAnyAsync: false,
     HasInstanceMethods: false,
-    HasFromServicesParameters: true
+    HasFromServicesParameters: true,
+    HasSingleResultType: false,
+    ResultTypeName: global::TestApp.ConventionDiHandlerDispatcher.Result
   },
   Diagnostics: null
 }

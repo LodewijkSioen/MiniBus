@@ -123,7 +123,9 @@
     DispatcherKey: global::TestApp.PostConventionHandler.Request|global::TestApp.PostConventionHandler.Response,
     IsAnyAsync: false,
     HasInstanceMethods: true,
-    HasFromServicesParameters: false
+    HasFromServicesParameters: false,
+    HasSingleResultType: false,
+    ResultTypeName: global::TestApp.PostConventionHandlerDispatcher.Result
   },
   Diagnostics: null
 }

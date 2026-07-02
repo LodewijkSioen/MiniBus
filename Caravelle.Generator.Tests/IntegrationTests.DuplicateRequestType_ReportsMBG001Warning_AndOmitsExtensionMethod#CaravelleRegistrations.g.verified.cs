@@ -15,13 +15,13 @@ namespace Caravelle
             services.AddTransient<
                 global::Caravelle.IDispatcher<
                     global::TestApp.SharedRequest,
-                    global::TestApp.HandlerOneDispatcher.Result>,
+                    global::TestApp.HandlerOne.Response>,
                 global::TestApp.HandlerOneDispatcher>();
             services.AddTransient<global::TestApp.HandlerTwo>();
             services.AddTransient<
                 global::Caravelle.IDispatcher<
                     global::TestApp.SharedRequest,
-                    global::TestApp.HandlerTwoDispatcher.Result>,
+                    global::TestApp.HandlerTwo.Response>,
                 global::TestApp.HandlerTwoDispatcher>();
             return services;
         }

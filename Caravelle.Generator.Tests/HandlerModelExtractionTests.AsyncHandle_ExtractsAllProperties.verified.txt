@@ -55,7 +55,9 @@
     DispatcherKey: global::TestApp.OrderHandler.Request|global::TestApp.OrderHandler.Response,
     IsAnyAsync: true,
     HasInstanceMethods: true,
-    HasFromServicesParameters: false
+    HasFromServicesParameters: false,
+    HasSingleResultType: true,
+    ResultTypeName: global::TestApp.OrderHandler.Response
   },
   Diagnostics: null
 }

@@ -55,7 +55,9 @@
     DispatcherKey: global::TestApp.StaticOnlyHandler.Request|global::TestApp.StaticOnlyHandler.Response,
     IsAnyAsync: false,
     HasInstanceMethods: false,
-    HasFromServicesParameters: false
+    HasFromServicesParameters: false,
+    HasSingleResultType: true,
+    ResultTypeName: global::TestApp.StaticOnlyHandler.Response
   },
   Diagnostics: null
 }

@@ -28,10 +28,12 @@ public static class DispatcherSourceBuilder
         sb.AppendLine($"{i}public sealed class {model.ClassName}Dispatcher");
         sb.AppendLine($"{i}    : global::Caravelle.IDispatcher<");
         sb.AppendLine($"{i}        {model.FullRequestType},");
-        sb.AppendLine($"{i}        {model.ClassName}Dispatcher.Result>");
+        var implementsResultType = model.HasSingleResultType ? model.ResultTypeName : model.ClassName + "Dispatcher.Result";
+        sb.AppendLine($"{i}        {implementsResultType}>");
         sb.AppendLine($"{i}{{");
 
-        ResultTypeSourceBuilder.Build(sb, model, i);
+        if (!model.HasSingleResultType)
+            ResultTypeSourceBuilder.Build(sb, model, i);
 
         if (model.HasInstanceMethods)
             sb.AppendLine($"{i}    private readonly {model.FullClassName} _handler;");
@@ -60,7 +62,8 @@ public static class DispatcherSourceBuilder
         sb.AppendLine();
         sb.AppendLine($"{i}    public string HandlerName => nameof({model.FullClassName});");
         sb.AppendLine();
-        sb.AppendLine($"{i}    public {asyncKeyword}global::System.Threading.Tasks.Task<Result>");
+        var handleReturnType = model.HasSingleResultType ? model.ResultTypeName : "Result";
+        sb.AppendLine($"{i}    public {asyncKeyword}global::System.Threading.Tasks.Task<{handleReturnType}>");
         sb.AppendLine($"{i}        Handle({model.FullRequestType} request)");
         sb.AppendLine($"{i}    {{");
 
@@ -114,7 +117,10 @@ public static class DispatcherSourceBuilder
         }
 
         var returnIndent = model.FinallyPhase is not null ? i + "            " : i + "        ";
-        sb.AppendLine($"{returnIndent}return {taskWrap}new Result({responseLocalName ?? "default!"}){taskClose};");
+        if (model.HasSingleResultType)
+            sb.AppendLine($"{returnIndent}return {taskWrap}{responseLocalName ?? "default!"}{taskClose};");
+        else
+            sb.AppendLine($"{returnIndent}return {taskWrap}new Result({responseLocalName ?? "default!"}){taskClose};");
 
         // Close try and add finally
         if (model.FinallyPhase is not null)

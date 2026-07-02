@@ -55,7 +55,9 @@
     DispatcherKey: global::TestApp.SyncHandler.Request|global::TestApp.SyncHandler.Response,
     IsAnyAsync: false,
     HasInstanceMethods: true,
-    HasFromServicesParameters: false
+    HasFromServicesParameters: false,
+    HasSingleResultType: true,
+    ResultTypeName: global::TestApp.SyncHandler.Response
   },
   Diagnostics: null
 }

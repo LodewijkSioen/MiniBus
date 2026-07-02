@@ -7,30 +7,8 @@ namespace TestApp
     public sealed class NonNullableValueTypeHandlerDispatcher
         : global::Caravelle.IDispatcher<
             global::TestApp.NonNullableValueTypeHandler.Request,
-            NonNullableValueTypeHandlerDispatcher.Result>
+            int>
     {
-        public sealed class Result : global::Caravelle.IDispatchResult
-        {
-            private Result() { }
-
-            public Result(int value)
-            {
-                Value = value;
-            }
-
-            public object? Value { get; }
-
-            public T Match<T>(
-                global::System.Func<int, T> onSuccess
-            )
-            {
-                return Value switch
-                {
-                    int value => onSuccess(value),
-                    _ => throw new global::System.InvalidOperationException("Unknown result value type.")
-                };
-            }
-        }
         private readonly global::TestApp.NonNullableValueTypeHandler _handler;
 
         public NonNullableValueTypeHandlerDispatcher(global::TestApp.NonNullableValueTypeHandler handler)
@@ -40,11 +18,11 @@ namespace TestApp
 
         public string HandlerName => nameof(global::TestApp.NonNullableValueTypeHandler);
 
-        public global::System.Threading.Tasks.Task<Result>
+        public global::System.Threading.Tasks.Task<int>
             Handle(global::TestApp.NonNullableValueTypeHandler.Request request)
         {
             var fromHandle = _handler.Handle(request);
-            return global::System.Threading.Tasks.Task.FromResult(new Result(fromHandle));
+            return global::System.Threading.Tasks.Task.FromResult(fromHandle);
         }
     }
 }
