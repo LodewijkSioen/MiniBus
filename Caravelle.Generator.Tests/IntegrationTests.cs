@@ -603,7 +603,7 @@ public class IntegrationTests
 
         var handleCallIndex = dispatcher.IndexOf(".Handle(", StringComparison.Ordinal);
         var postCallIndex = dispatcher.IndexOf(".AfterAudit(", StringComparison.Ordinal);
-        var successCallIndex = dispatcher.IndexOf("new Result(", StringComparison.Ordinal);
+        var successCallIndex = dispatcher.IndexOf("Task.FromResult(fromHandle)", StringComparison.Ordinal);
 
         Assert.That(handleCallIndex, Is.GreaterThanOrEqualTo(0));
         Assert.That(postCallIndex, Is.GreaterThan(handleCallIndex));

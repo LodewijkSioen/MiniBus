@@ -51,8 +51,8 @@ public class FunctionInjectionIntegrationTests
             var bus = firstScope.ServiceProvider.GetRequiredService<Bus>();
             var firstResult = await bus.Handle(new StaticDiHandler.Request());
             var secondResult = await bus.Handle(new StaticDiHandler.Request());
-            var firstResponse = firstResult.Match(r => r);
-            var secondResponse = secondResult.Match(r => r);
+            var firstResponse = firstResult;
+            var secondResponse = secondResult;
 
             Assert.That(firstResponse, Is.Not.Null);
             Assert.That(secondResponse, Is.Not.Null);
@@ -65,7 +65,7 @@ public class FunctionInjectionIntegrationTests
         {
             var bus = secondScope.ServiceProvider.GetRequiredService<Bus>();
             var result = await bus.Handle(new StaticDiHandler.Request());
-            var response = result.Match(response => response);
+            var response = result;
 
             Assert.That(response, Is.Not.Null);
             secondScopeId = response!.ScopeId;

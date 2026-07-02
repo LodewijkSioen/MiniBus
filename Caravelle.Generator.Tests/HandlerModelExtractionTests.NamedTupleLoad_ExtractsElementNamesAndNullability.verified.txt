@@ -112,7 +112,9 @@
     DispatcherKey: global::TestApp.TupleHandler.Request|global::TestApp.TupleHandler.Response,
     IsAnyAsync: true,
     HasInstanceMethods: true,
-    HasFromServicesParameters: false
+    HasFromServicesParameters: false,
+    HasSingleResultType: false,
+    ResultTypeName: global::TestApp.TupleHandlerDispatcher.Result
   },
   Diagnostics: null
 }

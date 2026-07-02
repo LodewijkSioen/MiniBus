@@ -109,7 +109,9 @@
     DispatcherKey: global::TestApp.FinallyPipelineParamsHandler.Request|global::TestApp.FinallyPipelineParamsHandler.Response,
     IsAnyAsync: false,
     HasInstanceMethods: true,
-    HasFromServicesParameters: false
+    HasFromServicesParameters: false,
+    HasSingleResultType: true,
+    ResultTypeName: global::TestApp.FinallyPipelineParamsHandler.Response
   },
   Diagnostics: null
 }

@@ -15,7 +15,7 @@ namespace Caravelle
             services.AddTransient<
                 global::Caravelle.IDispatcher<
                     global::TestApp.NonNullableValueTypeHandler.Request,
-                    global::TestApp.NonNullableValueTypeHandlerDispatcher.Result>,
+                    int>,
                 global::TestApp.NonNullableValueTypeHandlerDispatcher>();
             return services;
         }
@@ -24,8 +24,8 @@ namespace Caravelle
     // ── Typed Caravelle extension methods ──────────────────────────────
     public static class CaravelleExtensions
     {
-        public static global::System.Threading.Tasks.Task<global::TestApp.NonNullableValueTypeHandlerDispatcher.Result>
+        public static global::System.Threading.Tasks.Task<int>
             Handle(this global::Caravelle.Bus bus, global::TestApp.NonNullableValueTypeHandler.Request request)
-            => bus.Handle<global::TestApp.NonNullableValueTypeHandler.Request, global::TestApp.NonNullableValueTypeHandlerDispatcher.Result>(request);
+            => bus.Handle<global::TestApp.NonNullableValueTypeHandler.Request, int>(request);
     }
 }

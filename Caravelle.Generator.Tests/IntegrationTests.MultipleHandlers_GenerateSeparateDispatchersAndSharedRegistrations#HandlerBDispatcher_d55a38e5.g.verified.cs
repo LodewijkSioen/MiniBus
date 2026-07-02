@@ -7,35 +7,8 @@ namespace TestApp
     public sealed class HandlerBDispatcher
         : global::Caravelle.IDispatcher<
             global::TestApp.HandlerB.Request,
-            HandlerBDispatcher.Result>
+            global::TestApp.HandlerB.Response>
     {
-        public sealed class Result : global::Caravelle.IDispatchResult
-        {
-            private Result() { }
-
-            public Result(global::TestApp.HandlerB.Response value)
-            {
-                if (value is null)
-                {
-                    throw new global::System.ArgumentNullException(nameof(value));
-                }
-
-                Value = value;
-            }
-
-            public object? Value { get; }
-
-            public T Match<T>(
-                global::System.Func<global::TestApp.HandlerB.Response, T> onSuccess
-            )
-            {
-                return Value switch
-                {
-                    global::TestApp.HandlerB.Response value => onSuccess(value),
-                    _ => throw new global::System.InvalidOperationException("Unknown result value type.")
-                };
-            }
-        }
         private readonly global::TestApp.HandlerB _handler;
 
         public HandlerBDispatcher(global::TestApp.HandlerB handler)
@@ -45,11 +18,11 @@ namespace TestApp
 
         public string HandlerName => nameof(global::TestApp.HandlerB);
 
-        public async global::System.Threading.Tasks.Task<Result>
+        public async global::System.Threading.Tasks.Task<global::TestApp.HandlerB.Response>
             Handle(global::TestApp.HandlerB.Request request)
         {
             var fromHandle = await _handler.Handle(request);
-            return new Result(fromHandle);
+            return fromHandle;
         }
     }
 }

@@ -54,7 +54,9 @@
     DispatcherKey: global::GlobalHandler.Request|global::GlobalHandler.Response,
     IsAnyAsync: true,
     HasInstanceMethods: true,
-    HasFromServicesParameters: false
+    HasFromServicesParameters: false,
+    HasSingleResultType: true,
+    ResultTypeName: global::GlobalHandler.Response
   },
   Diagnostics: null
 }

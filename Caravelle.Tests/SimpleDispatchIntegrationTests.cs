@@ -35,8 +35,7 @@ public class SimpleDispatchIntegrationTests
         using var scope = AppUnderTest.Services.CreateScope();
         var bus = scope.ServiceProvider.GetRequiredService<Bus>();
 
-        var result = await bus.Handle(new SimpleHandler.Request(21));
-        var response = result.Match(response => response);
+        var response = await bus.Handle(new SimpleHandler.Request(21));
 
         Assert.That(response, Is.Not.Null);
         Assert.That(response.DoubledValue, Is.EqualTo(42));
@@ -50,8 +49,7 @@ public class SimpleDispatchIntegrationTests
         using var scope = AppUnderTest.Services.CreateScope();
         var bus = scope.ServiceProvider.GetRequiredService<Bus>();
 
-        var result = await bus.Handle(new SimpleHandler.Request(5));
-        var response = result.Match(response => response);
+        var response = await bus.Handle(new SimpleHandler.Request(5));
 
         Assert.That(response, Is.Not.Null);
         Assert.That(response.DoubledValue, Is.EqualTo(10));
@@ -64,7 +62,7 @@ public class SimpleDispatchIntegrationTests
         var bus = scope.ServiceProvider.GetRequiredService<Bus>();
 
         var result = await bus.Handle(new SimpleHandler.Request(8));
-        var value = result.Match(onSuccess: response => response.DoubledValue);
+        var value = result.DoubledValue;
 
         Assert.That(value, Is.EqualTo(16));
     }
@@ -78,8 +76,8 @@ public class SimpleDispatchIntegrationTests
 
         var h1 = sp.GetRequiredService<SyncSimpleHandler>();
         var h2 = sp.GetRequiredService<SyncSimpleHandler>();
-        var d1 = sp.GetRequiredService<global::Caravelle.IDispatcher<SyncSimpleHandler.Request, SyncSimpleHandlerDispatcher.Result>>();
-        var d2 = sp.GetRequiredService<global::Caravelle.IDispatcher<SyncSimpleHandler.Request, SyncSimpleHandlerDispatcher.Result>>();
+        var d1 = sp.GetRequiredService<global::Caravelle.IDispatcher<SyncSimpleHandler.Request, SyncSimpleHandler.Response>>();
+        var d2 = sp.GetRequiredService<global::Caravelle.IDispatcher<SyncSimpleHandler.Request, SyncSimpleHandler.Response>>();
 
         Assert.That(ReferenceEquals(h1, h2), Is.False, "Handler should be transient");
         Assert.That(ReferenceEquals(d1, d2), Is.False, "Dispatcher should be transient");
@@ -91,8 +89,7 @@ public class SimpleDispatchIntegrationTests
         using var scope = AppUnderTest.Services.CreateScope();
         var bus = scope.ServiceProvider.GetRequiredService<Bus>();
 
-        var result = await bus.Handle(new SyncSimpleHandler.Request(7));
-        var response = result.Match(response => response);
+        var response = await bus.Handle(new SyncSimpleHandler.Request(7));
 
         Assert.That(response, Is.Not.Null);
         Assert.That(response.Result, Is.EqualTo(21));
@@ -105,7 +102,7 @@ public class SimpleDispatchIntegrationTests
         var bus = scope.ServiceProvider.GetRequiredService<Bus>();
 
         var result = await bus.Handle(new SyncSimpleHandler.Request(7));
-        var value = result.Match(onSuccess: response => response.Result);
+        var value = result.Result;
 
         Assert.That(value, Is.EqualTo(21));
     }

@@ -29,6 +29,8 @@ public sealed record HandlerModel(
     public bool IsAnyAsync => Phases.Any(p => p.IsAsync) || (FinallyPhase?.IsAsync ?? false);
     public bool HasInstanceMethods => Phases.Any(p => !p.IsStatic) || (FinallyPhase is { IsStatic: false });
     public bool HasFromServicesParameters => Phases.Any(p => p.Parameters.Any(ip => ip.IsFromServices)) || (FinallyPhase?.Parameters.Any(ip => ip.IsFromServices) ?? false);
+    public bool HasSingleResultType => ResultValueTypes.Count == 1;
+    public string ResultTypeName => HasSingleResultType ? ResultValueTypes[0].FullType : DispatcherFullName + ".Result";
 }
 
 public static class HandlerModelFactory

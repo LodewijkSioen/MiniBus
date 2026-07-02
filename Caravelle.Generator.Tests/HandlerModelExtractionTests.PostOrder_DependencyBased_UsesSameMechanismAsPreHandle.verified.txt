@@ -119,7 +119,9 @@
     DispatcherKey: global::TestApp.PostOrderingHandler.Request|global::TestApp.PostOrderingHandler.Response,
     IsAnyAsync: false,
     HasInstanceMethods: true,
-    HasFromServicesParameters: false
+    HasFromServicesParameters: false,
+    HasSingleResultType: true,
+    ResultTypeName: global::TestApp.PostOrderingHandler.Response
   },
   Diagnostics: null
 }

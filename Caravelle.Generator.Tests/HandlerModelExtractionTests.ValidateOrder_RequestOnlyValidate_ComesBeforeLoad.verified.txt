@@ -124,7 +124,9 @@
     DispatcherKey: global::TestApp.RequestOnlyValidateHandler.Request|global::TestApp.RequestOnlyValidateHandler.Response,
     IsAnyAsync: true,
     HasInstanceMethods: true,
-    HasFromServicesParameters: false
+    HasFromServicesParameters: false,
+    HasSingleResultType: false,
+    ResultTypeName: global::TestApp.RequestOnlyValidateHandlerDispatcher.Result
   },
   Diagnostics: null
 }
