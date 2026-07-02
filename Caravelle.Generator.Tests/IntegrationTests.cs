@@ -939,6 +939,46 @@ public class IntegrationTests
     }
 
     [Test]
+    public Task FullPipeline_InheritedBeforeAfterAndFinally_GeneratesDispatcherCallingBaseMethods()
+    {
+        const string source = """
+            using Caravelle;
+            namespace TestApp;
+
+            public abstract class AuditMiddlewareBase
+            {
+                public record Audited(int Id);
+
+                public Audited BeforeAudit(Request request)
+                    => new Audited(request.Id);
+
+                public void Finally(Request request)
+                {
+                }
+            }
+
+            public record Request(int Id);
+            public record Response(string Name);
+
+            [Handler]
+            public class InheritedMiddlewareHandler : AuditMiddlewareBase
+            {
+                public System.Threading.Tasks.Task<Response> Handle(Request request, Audited audited)
+                    => System.Threading.Tasks.Task.FromResult(new Response(audited.Id.ToString()));
+
+                public string AfterLog(Response response)
+                    => response.Name;
+
+                public System.Threading.Tasks.Task FinallyAsync(Request request)
+                    => System.Threading.Tasks.Task.CompletedTask;
+            }
+            """;
+
+        var driver = GeneratorTestHelper.RunDriver(source);
+        return Verify(driver);
+    }
+
+    [Test]
     public Task NullableHandleReturn_WithPostHandle_EmitsNotFoundCheck()
     {
         const string source = """

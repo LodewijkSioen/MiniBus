@@ -85,6 +85,7 @@
         CheckNullability: false
       }
     ],
+    FinallyPhases: null,
     DispatcherFullName: global::TestApp.AsyncValidateHandlerDispatcher,
     DispatcherKey: global::TestApp.AsyncValidateHandler.Request|global::TestApp.AsyncValidateHandler.Response,
     IsAnyAsync: true,

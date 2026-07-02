@@ -14,6 +14,7 @@ public class AppUnderTest
         serviceCollection.AddCaravelleCore();
         serviceCollection.AddScoped<IScopeProbe, ScopeProbe>();
         serviceCollection.AddScoped<IFinallyExecutionProbe, FinallyExecutionProbe>();
+        serviceCollection.AddScoped<IMiddlewareOrderProbe, MiddlewareOrderProbe>();
         serviceCollection.AddGeneratedHandlers();
         Services = serviceCollection.BuildServiceProvider();
     }

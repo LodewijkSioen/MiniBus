@@ -51,6 +51,7 @@
         CheckNullability: false
       }
     ],
+    FinallyPhases: null,
     DispatcherFullName: global::TestApp.SyncHandlerDispatcher,
     DispatcherKey: global::TestApp.SyncHandler.Request|global::TestApp.SyncHandler.Response,
     IsAnyAsync: false,

@@ -65,6 +65,7 @@
         CheckNullability: false
       }
     ],
+    FinallyPhases: null,
     DispatcherFullName: global::TestApp.InvalidHandleTupleHandlerDispatcher,
     DispatcherKey: global::TestApp.InvalidHandleTupleHandler.Request|global::Caravelle.ValidationResult,
     IsAnyAsync: false,

@@ -93,6 +93,7 @@
         CheckNullability: false
       }
     ],
+    FinallyPhases: null,
     DispatcherFullName: global::TestApp.BothArgsHandlerDispatcher,
     DispatcherKey: global::TestApp.BothArgsHandler.Request|global::TestApp.BothArgsHandler.Response,
     IsAnyAsync: true,

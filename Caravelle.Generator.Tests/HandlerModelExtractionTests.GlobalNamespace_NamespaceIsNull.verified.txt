@@ -50,6 +50,7 @@
         CheckNullability: false
       }
     ],
+    FinallyPhases: null,
     DispatcherFullName: global::GlobalHandlerDispatcher,
     DispatcherKey: global::GlobalHandler.Request|global::GlobalHandler.Response,
     IsAnyAsync: true,

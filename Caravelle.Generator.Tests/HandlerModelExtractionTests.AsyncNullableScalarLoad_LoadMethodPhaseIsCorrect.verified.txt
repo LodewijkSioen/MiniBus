@@ -86,6 +86,7 @@
         CheckNullability: false
       }
     ],
+    FinallyPhases: null,
     DispatcherFullName: global::TestApp.EntityHandlerDispatcher,
     DispatcherKey: global::TestApp.EntityHandler.Request|global::TestApp.EntityHandler.Response,
     IsAnyAsync: true,

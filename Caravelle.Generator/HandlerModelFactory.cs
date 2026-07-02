@@ -21,14 +21,14 @@ public sealed record HandlerModel(
     EquatableArray<ResultValueType> ResultValueTypes,
     EquatableArray<MethodPhase> Phases,
     EquatableArray<LocalVariable> LocalVariables,
-    MethodPhase? FinallyPhase = null)
+    EquatableArray<MethodPhase> FinallyPhases)
 {
     // "global::TestApp.DummyHandler" + "Dispatcher" = "global::TestApp.DummyHandlerDispatcher"
     public string DispatcherFullName => FullClassName + "Dispatcher";
     public string DispatcherKey => $"{FullRequestType}|{FullResponseType}";
-    public bool IsAnyAsync => Phases.Any(p => p.IsAsync) || (FinallyPhase?.IsAsync ?? false);
-    public bool HasInstanceMethods => Phases.Any(p => !p.IsStatic) || (FinallyPhase is { IsStatic: false });
-    public bool HasFromServicesParameters => Phases.Any(p => p.Parameters.Any(ip => ip.IsFromServices)) || (FinallyPhase?.Parameters.Any(ip => ip.IsFromServices) ?? false);
+    public bool IsAnyAsync => Phases.Any(p => p.IsAsync) || FinallyPhases.Any(p => p.IsAsync);
+    public bool HasInstanceMethods => Phases.Any(p => !p.IsStatic) || FinallyPhases.Any(p => !p.IsStatic);
+    public bool HasFromServicesParameters => Phases.Any(p => p.Parameters.Any(ip => ip.IsFromServices)) || FinallyPhases.Any(p => p.Parameters.Any(ip => ip.IsFromServices));
     public bool HasSingleResultType => ResultValueTypes.Count == 1;
     public string ResultTypeName => HasSingleResultType ? ResultValueTypes[0].FullType : DispatcherFullName + ".Result";
 }
@@ -86,29 +86,42 @@ public static class HandlerModelFactory
             return new(null, EquatableArray<DiagnosticInfo>.Empty);
         }
 
-        var preHandleMethods = classSymbol.GetMembers()
-            .OfType<IMethodSymbol>()
-            .Where(static m => m.MethodKind == MethodKind.Ordinary)
-            .Where(static m => IsPreHandleMethodName(m.Name))
-            .OrderBy(static m => m.Locations.FirstOrDefault(static l => l.IsInSource)?.SourceSpan.Start ?? int.MaxValue)
-            .ThenBy(static m => m.Name, StringComparer.Ordinal)
+        // Pre-handle/post-handle/finally methods are discovered across the base-type chain
+        // (own class first, up to but excluding System.Object) so shared middleware logic
+        // can live on a common base class and be reused across multiple [Handler] classes.
+        var inheritanceChain = GetInheritanceChain(classSymbol);
+
+        // Onion ordering: inherited Before-phase methods run before own-class ones when
+        // there is no type dependency between them, so candidates are farthest-ancestor-first.
+        var preHandleCandidates = CollectPhaseMethods(inheritanceChain, IsPreHandleMethodName)
+            .OrderByDescending(static c => c.Depth)
             .ToArray();
 
-        var postHandleMethods = classSymbol.GetMembers()
-            .OfType<IMethodSymbol>()
-            .Where(static m => m.MethodKind == MethodKind.Ordinary)
-            .Where(static m => IsPostHandleMethodName(m.Name))
-            .OrderBy(static m => m.Locations.FirstOrDefault(static l => l.IsInSource)?.SourceSpan.Start ?? int.MaxValue)
-            .ThenBy(static m => m.Name, StringComparer.Ordinal)
+        // Onion ordering: inherited After-phase methods run after own-class ones, so
+        // candidates stay in the natural own-class-first order produced by CollectPhaseMethods.
+        var postHandleCandidates = CollectPhaseMethods(inheritanceChain, IsPostHandleMethodName)
             .ToArray();
 
-        var finallyMethod = classSymbol.GetMembers()
-            .OfType<IMethodSymbol>()
-            .Where(static m => m.MethodKind == MethodKind.Ordinary)
-            .Where(static m => IsFinallyMethodName(m.Name))
-            .OrderBy(static m => m.Locations.FirstOrDefault(static l => l.IsInSource)?.SourceSpan.Start ?? int.MaxValue)
-            .ThenBy(static m => m.Name, StringComparer.Ordinal)
-            .FirstOrDefault();
+        // Finally: each class in the chain may contribute at most one Finally method (a
+        // class can only declare one of "Finally"/"FinallyAsync"). All discovered Finally
+        // methods run in the generated finally block, own class first and ancestors last —
+        // mirroring try/finally stack-unwind order, consistent with the After onion ordering.
+        var finallyCandidates = CollectFinallyMethods(inheritanceChain);
+
+        var inaccessibleInheritedMethodDiagnostics = preHandleCandidates
+            .Concat(postHandleCandidates)
+            .Concat(finallyCandidates)
+            .Where(static c => c.Depth > 0 && IsInaccessibleFromDispatcher(c.Method.DeclaredAccessibility))
+            .Select(c => Diagnostics.InheritedMethodNotAccessible(
+                location: location,
+                handlerName: classSymbol.ToDisplayString(fmt),
+                methodName: c.Method.Name,
+                declaringTypeName: c.Method.ContainingType.ToDisplayString(fmt)))
+            .ToArray();
+        if (inaccessibleInheritedMethodDiagnostics.Length > 0)
+        {
+            return new(null, new(inaccessibleInheritedMethodDiagnostics));
+        }
 
         if (!IsSupportedHandlerMethodReturnType(handleMethod))
         {
@@ -121,7 +134,8 @@ public static class HandlerModelFactory
             ]));
         }
 
-        var unsupportedPreHandleMethodDiagnostics = preHandleMethods
+        var unsupportedPreHandleMethodDiagnostics = preHandleCandidates
+            .Select(static c => c.Method)
             .Where(static m => !IsSupportedHandlerMethodReturnType(m))
             .Select(m => Diagnostics.UnsupportedMethodReturnType(
                 location: location,
@@ -129,7 +143,8 @@ public static class HandlerModelFactory
                 returnType: m.ReturnType.ToDisplayString(fmt),
                 methodName: m.Name))
             .ToArray();
-        var unsupportedPostHandleMethodDiagnostics = postHandleMethods
+        var unsupportedPostHandleMethodDiagnostics = postHandleCandidates
+            .Select(static c => c.Method)
             .Where(static m => !IsSupportedHandlerMethodReturnType(m))
             .Select(m => Diagnostics.UnsupportedMethodReturnType(
                 location: location,
@@ -137,32 +152,32 @@ public static class HandlerModelFactory
                 returnType: m.ReturnType.ToDisplayString(fmt),
                 methodName: m.Name))
             .ToArray();
-        if (unsupportedPreHandleMethodDiagnostics.Length > 0 || unsupportedPostHandleMethodDiagnostics.Length > 0)
+        var unsupportedFinallyMethodDiagnostics = finallyCandidates
+            .Select(static c => c.Method)
+            .Where(static m => !IsSupportedFinallyReturnType(m))
+            .Select(m => Diagnostics.UnsupportedMethodReturnType(
+                location: location,
+                handlerName: classSymbol.ToDisplayString(fmt),
+                returnType: m.ReturnType.ToDisplayString(fmt),
+                methodName: m.Name))
+            .ToArray();
+        if (unsupportedPreHandleMethodDiagnostics.Length > 0 || unsupportedPostHandleMethodDiagnostics.Length > 0 || unsupportedFinallyMethodDiagnostics.Length > 0)
         {
-            return new(null, new(unsupportedPreHandleMethodDiagnostics.Concat(unsupportedPostHandleMethodDiagnostics).ToArray()));
-        }
-
-        // Validate Finally method return type if present
-        if (finallyMethod is not null && !IsSupportedFinallyReturnType(finallyMethod))
-        {
-            return new(null, new([
-                Diagnostics.UnsupportedMethodReturnType(
-                    location: location,
-                    handlerName: classSymbol.ToDisplayString(fmt),
-                    returnType: finallyMethod.ReturnType.ToDisplayString(fmt),
-                    methodName: finallyMethod.Name)
-            ]));
+            return new(null, new(unsupportedPreHandleMethodDiagnostics
+                .Concat(unsupportedPostHandleMethodDiagnostics)
+                .Concat(unsupportedFinallyMethodDiagnostics)
+                .ToArray()));
         }
 
         var handlePhase = new MethodPhase(PhaseType.Handle, handleMethod, fmt);
-        var preHandleCandidates = preHandleMethods
-            .Select(m => new MethodPhase(PhaseType.Before, m, fmt))
+        var preHandlePhaseCandidates = preHandleCandidates
+            .Select(c => (Phase: new MethodPhase(PhaseType.Before, c.Method, fmt), c.Depth))
             .ToList();
-        var postHandleCandidates = postHandleMethods
-            .Select(m => new MethodPhase(PhaseType.After, m, fmt))
+        var postHandlePhaseCandidates = postHandleCandidates
+            .Select(c => (Phase: new MethodPhase(PhaseType.After, c.Method, fmt), c.Depth))
             .ToList();
 
-        if (!TryOrderPhases(preHandleCandidates, out var orderedPrePhases, out var cycleMethods))
+        if (!TryOrderPhases(preHandlePhaseCandidates.Select(static c => c.Phase), out var orderedPrePhases, out var cycleMethods))
         {
             return new(null, new([
                 Diagnostics.CyclicPhaseDependency(
@@ -172,7 +187,7 @@ public static class HandlerModelFactory
             ]));
         }
 
-        if (!TryOrderPhases(postHandleCandidates, out var orderedPostPhases, out cycleMethods))
+        if (!TryOrderPhases(postHandlePhaseCandidates.Select(static c => c.Phase), out var orderedPostPhases, out cycleMethods))
         {
             return new(null, new([
                 Diagnostics.CyclicPhaseDependency(
@@ -189,7 +204,19 @@ public static class HandlerModelFactory
         
 
 
-        if (!InferRequestType(orderedMethods, out var requestType))
+        // Only the concrete handler class's own phases (never inherited ones) may define
+        // the request type: Handle is never inherited, and restricting to depth-0
+        // pre/post-handle phases here avoids an inherited, DI-only middleware method being
+        // mistaken for the request-defining parameter.
+        var ownClassPhases = new HashSet<MethodPhase>(preHandlePhaseCandidates
+            .Where(static c => c.Depth == 0)
+            .Select(static c => c.Phase)
+            .Concat(postHandlePhaseCandidates
+                .Where(static c => c.Depth == 0)
+                .Select(static c => c.Phase))
+            .Append(handlePhase));
+
+        if (!InferRequestType(orderedMethods, ownClassPhases, out var requestType))
         {
             return new(null, new([
                 Diagnostics.RequestTypeCannotBeInferred(
@@ -215,29 +242,32 @@ public static class HandlerModelFactory
         orderedMethods = new(orderedMethods
             .Select(phase => MarkFromServices(phase, knownPipelineTypes)));
 
-        // Build and validate Finally phase if present
-        MethodPhase? finallyPhase = null;
-        var finallyDiagnostics = new List<DiagnosticInfo>();
-        if (finallyMethod is not null)
-        {
-            finallyPhase = new MethodPhase(PhaseType.Finally, finallyMethod, fmt);
-            finallyPhase = MarkFromServices(finallyPhase, knownPipelineTypes);
+        // Build and validate Finally phases (one per class in the chain that declares one)
+        var finallyPhases = finallyCandidates
+            .Select(c => MarkFromServices(new MethodPhase(PhaseType.Finally, c.Method, fmt), knownPipelineTypes))
+            .ToList();
 
+        if (finallyPhases.Count > 0)
+        {
             var pipelineReturnTypes = new HashSet<string>(orderedMethods
                 .SelectMany(static phase => phase.Returns)
                 .Select(static element => element.FullType),
                 StringComparer.Ordinal);
 
             // Validate that Finally parameters matching pipeline returns are nullable (MBG010)
-            foreach (var parameter in finallyPhase.Parameters)
+            var finallyDiagnostics = new List<DiagnosticInfo>();
+            foreach (var finallyPhase in finallyPhases)
             {
-                if (!parameter.IsFromServices && pipelineReturnTypes.Contains(parameter.FullType) && !parameter.IsNullable)
+                foreach (var parameter in finallyPhase.Parameters)
                 {
-                    finallyDiagnostics.Add(Diagnostics.FinallyParameterMustBeNullable(
-                        location: location,
-                        handlerName: classSymbol.ToDisplayString(fmt),
-                        parameterName: parameter.LocalName,
-                        parameterType: parameter.FullType));
+                    if (!parameter.IsFromServices && pipelineReturnTypes.Contains(parameter.FullType) && !parameter.IsNullable)
+                    {
+                        finallyDiagnostics.Add(Diagnostics.FinallyParameterMustBeNullable(
+                            location: location,
+                            handlerName: classSymbol.ToDisplayString(fmt),
+                            parameterName: parameter.LocalName,
+                            parameterType: parameter.FullType));
+                    }
                 }
             }
 
@@ -261,7 +291,7 @@ public static class HandlerModelFactory
                 ResultValueTypes: resultValueTypes,
                 Phases: orderedMethods,
                 LocalVariables: localVariables,
-                FinallyPhase: finallyPhase),
+                FinallyPhases: new(finallyPhases)),
             EquatableArray<DiagnosticInfo>.Empty);
     }
 
@@ -386,6 +416,79 @@ public static class HandlerModelFactory
         return false;
     }
 
+    private static List<INamedTypeSymbol> GetInheritanceChain(INamedTypeSymbol classSymbol)
+    {
+        var chain = new List<INamedTypeSymbol> { classSymbol };
+        var current = classSymbol.BaseType;
+        while (current is not null && current.SpecialType != SpecialType.System_Object)
+        {
+            chain.Add(current);
+            current = current.BaseType;
+        }
+
+        return chain;
+    }
+
+    private static List<(IMethodSymbol Method, int Depth)> CollectPhaseMethods(
+        IReadOnlyList<INamedTypeSymbol> inheritanceChain,
+        Func<string, bool> nameMatches)
+    {
+        var seenNames = new HashSet<string>(StringComparer.Ordinal);
+        var result = new List<(IMethodSymbol Method, int Depth)>();
+
+        for (var depth = 0; depth < inheritanceChain.Count; depth++)
+        {
+            var methods = inheritanceChain[depth].GetMembers()
+                .OfType<IMethodSymbol>()
+                .Where(m => m.MethodKind == MethodKind.Ordinary)
+                .Where(m => nameMatches(m.Name))
+                .OrderBy(m => m.Locations.FirstOrDefault(l => l.IsInSource)?.SourceSpan.Start ?? int.MaxValue)
+                .ThenBy(m => m.Name, StringComparer.Ordinal);
+
+            // Dedupe across the chain by method name: the shallowest (most-derived)
+            // declaration wins, matching real C# override/hiding semantics since
+            // `_handler.MethodName(...)` can only ever bind to one implementation.
+            foreach (var method in methods)
+            {
+                if (seenNames.Add(method.Name))
+                {
+                    result.Add((method, depth));
+                }
+            }
+        }
+
+        return result;
+    }
+
+    private static bool IsInaccessibleFromDispatcher(Accessibility accessibility) =>
+        accessibility is Accessibility.Private or Accessibility.Protected or Accessibility.ProtectedAndInternal;
+
+    private static List<(IMethodSymbol Method, int Depth)> CollectFinallyMethods(
+        IReadOnlyList<INamedTypeSymbol> inheritanceChain)
+    {
+        var result = new List<(IMethodSymbol Method, int Depth)>();
+
+        for (var depth = 0; depth < inheritanceChain.Count; depth++)
+        {
+            // A single class can only contribute one Finally method (it matches either
+            // "Finally" or "FinallyAsync", not both), so pick at most one per depth.
+            var method = inheritanceChain[depth].GetMembers()
+                .OfType<IMethodSymbol>()
+                .Where(m => m.MethodKind == MethodKind.Ordinary)
+                .Where(m => IsFinallyMethodName(m.Name))
+                .OrderBy(m => m.Locations.FirstOrDefault(l => l.IsInSource)?.SourceSpan.Start ?? int.MaxValue)
+                .ThenBy(m => m.Name, StringComparer.Ordinal)
+                .FirstOrDefault();
+
+            if (method is not null)
+            {
+                result.Add((method, depth));
+            }
+        }
+
+        return result;
+    }
+
     private static IEnumerable<LocalVariable> BuildReturnVariables(EquatableArray<MethodPhase> phases)
     {
         var allReturns = phases.SelectMany(p => p.Returns);
@@ -471,18 +574,25 @@ public static class HandlerModelFactory
 
     private static bool InferRequestType(
         IEnumerable<MethodPhase> orderedMethods,
+        ISet<MethodPhase> ownClassPhases,
         out string? requestType)
     {
         var availableOutputs = new HashSet<string>(StringComparer.Ordinal);
 
         foreach (var phase in orderedMethods)
         {
-            foreach (var inputType in phase.Parameters)
+            // Only the concrete handler class's own phases may introduce the request type;
+            // inherited phases still contribute their outputs to the availability set below,
+            // but their parameters are never treated as the request-defining parameter.
+            if (ownClassPhases.Contains(phase))
             {
-                if (!availableOutputs.Contains(inputType.FullType))
+                foreach (var inputType in phase.Parameters)
                 {
-                    requestType = inputType.FullType;
-                    return true;
+                    if (!availableOutputs.Contains(inputType.FullType))
+                    {
+                        requestType = inputType.FullType;
+                        return true;
+                    }
                 }
             }
 

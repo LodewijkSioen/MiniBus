@@ -120,6 +120,7 @@
         CheckNullability: false
       }
     ],
+    FinallyPhases: null,
     DispatcherFullName: global::TestApp.RequestOnlyValidateHandlerDispatcher,
     DispatcherKey: global::TestApp.RequestOnlyValidateHandler.Request|global::TestApp.RequestOnlyValidateHandler.Response,
     IsAnyAsync: true,

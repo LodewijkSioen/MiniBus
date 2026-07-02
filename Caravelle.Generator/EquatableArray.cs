@@ -12,7 +12,7 @@ namespace Caravelle.Generator;
 /// </summary>
 /// <typeparam name="T">The type of values in the array.</typeparam>
 public readonly struct EquatableArray<T> : IEquatable<EquatableArray<T>>, IReadOnlyCollection<T>
-    where T : IEquatable<T>
+    where T : IEquatable<T>?
 {
     /// <summary>
     /// The underlying <typeparamref name="T"/> array.

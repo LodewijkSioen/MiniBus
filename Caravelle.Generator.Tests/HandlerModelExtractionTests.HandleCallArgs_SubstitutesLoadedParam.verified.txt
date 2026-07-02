@@ -86,6 +86,7 @@
         CheckNullability: false
       }
     ],
+    FinallyPhases: null,
     DispatcherFullName: global::TestApp.LoadedArgHandlerDispatcher,
     DispatcherKey: global::TestApp.LoadedArgHandler.Request|global::TestApp.LoadedArgHandler.Response,
     IsAnyAsync: true,

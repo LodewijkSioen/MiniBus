@@ -99,6 +99,7 @@
         CheckNullability: false
       }
     ],
+    FinallyPhases: null,
     DispatcherFullName: global::TestApp.ConventionDiHandlerDispatcher,
     DispatcherKey: global::TestApp.ConventionDiHandler.Request|global::TestApp.ConventionDiHandler.Response,
     IsAnyAsync: false,

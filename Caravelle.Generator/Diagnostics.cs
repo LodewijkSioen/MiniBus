@@ -109,6 +109,14 @@ internal static class Diagnostics
         defaultSeverity: DiagnosticSeverity.Error,
         isEnabledByDefault: true);
 
+    private static readonly DiagnosticDescriptor InheritedMethodNotAccessibleDescriptor = new(
+        id: "MBG009",
+        title: "Inherited pipeline method is not accessible",
+        messageFormat: "Handler '{0}' inherits pipeline method '{1}' from '{2}', but it is not accessible from the generated dispatcher. Inherited pipeline methods must be public or internal.",
+        category: "Caravelle.Generator",
+        defaultSeverity: DiagnosticSeverity.Error,
+        isEnabledByDefault: true);
+
     private static readonly DiagnosticDescriptor FinallyParameterMustBeNullableDescriptor = new(
         id: "MBG010",
         title: "Finally parameter must be nullable",
@@ -187,6 +195,16 @@ internal static class Diagnostics
             descriptor: CyclicPhaseDependencyDescriptor,
             location: location,
             messageArgs: [handlerName, methodNames]);
+
+    public static DiagnosticInfo InheritedMethodNotAccessible(
+        Location location,
+        string handlerName,
+        string methodName,
+        string declaringTypeName) =>
+        new (
+            descriptor: InheritedMethodNotAccessibleDescriptor,
+            location: location,
+            messageArgs: [handlerName, methodName, declaringTypeName]);
 
     public static DiagnosticInfo FinallyParameterMustBeNullable(
         Location location,

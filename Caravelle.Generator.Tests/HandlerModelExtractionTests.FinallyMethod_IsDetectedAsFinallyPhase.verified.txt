@@ -51,22 +51,24 @@
         CheckNullability: false
       }
     ],
-    FinallyPhase: {
-      Type: Finally,
-      MethodName: Finally,
-      IsAsync: false,
-      IsStatic: false,
-      Parameters: [
-        {
-          LocalName: request,
-          FullType: global::TestApp.FinallyHandler.Request,
-          IsNullable: false,
-          NotNullMessage: request cannot be null,
-          IsFromServices: false
-        }
-      ],
-      Returns: null
-    },
+    FinallyPhases: [
+      {
+        Type: Finally,
+        MethodName: Finally,
+        IsAsync: false,
+        IsStatic: false,
+        Parameters: [
+          {
+            LocalName: request,
+            FullType: global::TestApp.FinallyHandler.Request,
+            IsNullable: false,
+            NotNullMessage: request cannot be null,
+            IsFromServices: false
+          }
+        ],
+        Returns: null
+      }
+    ],
     DispatcherFullName: global::TestApp.FinallyHandlerDispatcher,
     DispatcherKey: global::TestApp.FinallyHandler.Request|global::TestApp.FinallyHandler.Response,
     IsAnyAsync: false,

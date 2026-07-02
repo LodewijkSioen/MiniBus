@@ -10,4 +10,5 @@ MBG005 | Caravelle.Generator | Error | GeneratorDiagnostics
 MBG006 | Caravelle.Generator | Error | GeneratorDiagnostics
 MBG007 | Caravelle.Generator | Error | GeneratorDiagnostics
 MBG008 | Caravelle.Generator | Error | GeneratorDiagnostics
+MBG009 | Caravelle.Generator | Error | GeneratorDiagnostics
 MBG010 | Caravelle.Generator | Error | GeneratorDiagnostics

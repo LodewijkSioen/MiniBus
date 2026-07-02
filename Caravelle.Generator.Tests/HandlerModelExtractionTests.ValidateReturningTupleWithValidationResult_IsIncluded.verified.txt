@@ -100,6 +100,7 @@
         CheckNullability: false
       }
     ],
+    FinallyPhases: null,
     DispatcherFullName: global::TestApp.ValidateTupleHandlerDispatcher,
     DispatcherKey: global::TestApp.ValidateTupleHandler.Request|global::TestApp.ValidateTupleHandler.Response,
     IsAnyAsync: true,

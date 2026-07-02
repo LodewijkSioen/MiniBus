@@ -1,17 +1,13 @@
 ﻿{
   Model: {
     Namespace: TestApp,
-    ClassName: PostConventionHandler,
-    FullClassName: global::TestApp.PostConventionHandler,
-    FullRequestType: global::TestApp.PostConventionHandler.Request,
-    FullResponseType: global::TestApp.PostConventionHandler.Response,
+    ClassName: OnionAfterHandler,
+    FullClassName: global::TestApp.OnionAfterHandler,
+    FullRequestType: global::TestApp.Request,
+    FullResponseType: global::TestApp.Response,
     ResultValueTypes: [
       {
-        FullType: global::TestApp.PostConventionHandler.Response,
-        RequiresNullCheck: true
-      },
-      {
-        FullType: global::Caravelle.ValidationResult,
+        FullType: global::TestApp.Response,
         RequiresNullCheck: true
       }
     ],
@@ -24,7 +20,7 @@
         Parameters: [
           {
             LocalName: request,
-            FullType: global::TestApp.PostConventionHandler.Request,
+            FullType: global::TestApp.Request,
             IsNullable: false,
             NotNullMessage: request cannot be null,
             IsFromServices: false
@@ -33,7 +29,7 @@
         Returns: [
           {
             LocalName: fromHandle,
-            FullType: global::TestApp.PostConventionHandler.Response,
+            FullType: global::TestApp.Response,
             IsNullable: false,
             IsResultType: false,
             RequiresNullCheck: true,
@@ -50,7 +46,7 @@
         Parameters: [
           {
             LocalName: response,
-            FullType: global::TestApp.PostConventionHandler.Response,
+            FullType: global::TestApp.Response,
             IsNullable: false,
             NotNullMessage: response cannot be null,
             IsFromServices: false
@@ -59,7 +55,7 @@
         Returns: [
           {
             LocalName: fromAfterAudit,
-            FullType: global::TestApp.PostConventionHandler.Audit,
+            FullType: global::TestApp.Audited,
             IsNullable: false,
             IsResultType: false,
             RequiresNullCheck: true,
@@ -70,27 +66,27 @@
       },
       {
         Type: After,
-        MethodName: PostValidate,
+        MethodName: AfterLog,
         IsAsync: false,
         IsStatic: false,
         Parameters: [
           {
-            LocalName: audit,
-            FullType: global::TestApp.PostConventionHandler.Audit,
+            LocalName: response,
+            FullType: global::TestApp.Response,
             IsNullable: false,
-            NotNullMessage: audit cannot be null,
+            NotNullMessage: response cannot be null,
             IsFromServices: false
           }
         ],
         Returns: [
           {
-            LocalName: fromPostValidate,
-            FullType: global::Caravelle.ValidationResult,
+            LocalName: fromAfterLog,
+            FullType: global::TestApp.Logged,
             IsNullable: false,
-            IsResultType: true,
+            IsResultType: false,
             RequiresNullCheck: true,
-            NonNullLocalName: fromPostValidate,
-            IsValidationResult: true
+            NonNullLocalName: fromAfterLog,
+            IsValidationResult: false
           }
         ]
       }
@@ -98,35 +94,34 @@
     LocalVariables: [
       {
         LocalName: fromHandle,
-        FullType: global::TestApp.PostConventionHandler.Response,
+        FullType: global::TestApp.Response,
         CheckNullability: false,
         IfNullErrorMessage: response cannot be null
       },
       {
         LocalName: fromAfterAudit,
-        FullType: global::TestApp.PostConventionHandler.Audit,
-        CheckNullability: false,
-        IfNullErrorMessage: audit cannot be null
+        FullType: global::TestApp.Audited,
+        CheckNullability: false
       },
       {
-        LocalName: fromPostValidate,
-        FullType: global::Caravelle.ValidationResult,
+        LocalName: fromAfterLog,
+        FullType: global::TestApp.Logged,
         CheckNullability: false
       },
       {
         LocalName: request,
-        FullType: global::TestApp.PostConventionHandler.Request,
+        FullType: global::TestApp.Request,
         CheckNullability: false
       }
     ],
     FinallyPhases: null,
-    DispatcherFullName: global::TestApp.PostConventionHandlerDispatcher,
-    DispatcherKey: global::TestApp.PostConventionHandler.Request|global::TestApp.PostConventionHandler.Response,
+    DispatcherFullName: global::TestApp.OnionAfterHandlerDispatcher,
+    DispatcherKey: global::TestApp.Request|global::TestApp.Response,
     IsAnyAsync: false,
     HasInstanceMethods: true,
     HasFromServicesParameters: false,
-    HasSingleResultType: false,
-    ResultTypeName: global::TestApp.PostConventionHandlerDispatcher.Result
+    HasSingleResultType: true,
+    ResultTypeName: global::TestApp.Response
   },
   Diagnostics: null
 }

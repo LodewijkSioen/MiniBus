@@ -1,0 +1,96 @@
+﻿{
+  Model: {
+    Namespace: TestApp,
+    ClassName: InheritedAfterHandler,
+    FullClassName: global::TestApp.InheritedAfterHandler,
+    FullRequestType: global::TestApp.Request,
+    FullResponseType: global::TestApp.Response,
+    ResultValueTypes: [
+      {
+        FullType: global::TestApp.Response,
+        RequiresNullCheck: true
+      }
+    ],
+    Phases: [
+      {
+        Type: Handle,
+        MethodName: Handle,
+        IsAsync: false,
+        IsStatic: false,
+        Parameters: [
+          {
+            LocalName: request,
+            FullType: global::TestApp.Request,
+            IsNullable: false,
+            NotNullMessage: request cannot be null,
+            IsFromServices: false
+          }
+        ],
+        Returns: [
+          {
+            LocalName: fromHandle,
+            FullType: global::TestApp.Response,
+            IsNullable: false,
+            IsResultType: false,
+            RequiresNullCheck: true,
+            NonNullLocalName: fromHandle,
+            IsValidationResult: false
+          }
+        ]
+      },
+      {
+        Type: After,
+        MethodName: AfterAudit,
+        IsAsync: false,
+        IsStatic: false,
+        Parameters: [
+          {
+            LocalName: response,
+            FullType: global::TestApp.Response,
+            IsNullable: false,
+            NotNullMessage: response cannot be null,
+            IsFromServices: false
+          }
+        ],
+        Returns: [
+          {
+            LocalName: fromAfterAudit,
+            FullType: global::TestApp.Audit,
+            IsNullable: false,
+            IsResultType: false,
+            RequiresNullCheck: true,
+            NonNullLocalName: fromAfterAudit,
+            IsValidationResult: false
+          }
+        ]
+      }
+    ],
+    LocalVariables: [
+      {
+        LocalName: fromHandle,
+        FullType: global::TestApp.Response,
+        CheckNullability: false,
+        IfNullErrorMessage: response cannot be null
+      },
+      {
+        LocalName: fromAfterAudit,
+        FullType: global::TestApp.Audit,
+        CheckNullability: false
+      },
+      {
+        LocalName: request,
+        FullType: global::TestApp.Request,
+        CheckNullability: false
+      }
+    ],
+    FinallyPhases: null,
+    DispatcherFullName: global::TestApp.InheritedAfterHandlerDispatcher,
+    DispatcherKey: global::TestApp.Request|global::TestApp.Response,
+    IsAnyAsync: false,
+    HasInstanceMethods: true,
+    HasFromServicesParameters: false,
+    HasSingleResultType: true,
+    ResultTypeName: global::TestApp.Response
+  },
+  Diagnostics: null
+}

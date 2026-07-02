@@ -1,25 +1,25 @@
 ﻿{
   Model: {
     Namespace: TestApp,
-    ClassName: NonValidationValidateHandler,
-    FullClassName: global::TestApp.NonValidationValidateHandler,
-    FullRequestType: global::TestApp.NonValidationValidateHandler.Request,
-    FullResponseType: global::TestApp.NonValidationValidateHandler.Response,
+    ClassName: InheritedBeforeHandler,
+    FullClassName: global::TestApp.InheritedBeforeHandler,
+    FullRequestType: global::TestApp.Request,
+    FullResponseType: global::TestApp.Response,
     ResultValueTypes: [
       {
-        FullType: global::TestApp.NonValidationValidateHandler.Response,
+        FullType: global::TestApp.Response,
         RequiresNullCheck: true
       }
     ],
     Phases: [
       {
-        MethodName: Validate,
+        MethodName: BeforeAudit,
         IsAsync: false,
         IsStatic: false,
         Parameters: [
           {
             LocalName: request,
-            FullType: global::TestApp.NonValidationValidateHandler.Request,
+            FullType: global::TestApp.Request,
             IsNullable: false,
             NotNullMessage: request cannot be null,
             IsFromServices: false
@@ -27,12 +27,12 @@
         ],
         Returns: [
           {
-            LocalName: fromValidate,
-            FullType: string,
+            LocalName: fromBeforeAudit,
+            FullType: global::TestApp.Audited,
             IsNullable: false,
             IsResultType: false,
             RequiresNullCheck: true,
-            NonNullLocalName: fromValidate,
+            NonNullLocalName: fromBeforeAudit,
             IsValidationResult: false
           }
         ]
@@ -40,21 +40,28 @@
       {
         Type: Handle,
         MethodName: Handle,
-        IsAsync: true,
+        IsAsync: false,
         IsStatic: false,
         Parameters: [
           {
-            LocalName: fromValidate,
-            FullType: string,
+            LocalName: request,
+            FullType: global::TestApp.Request,
             IsNullable: false,
-            NotNullMessage: fromValidate cannot be null,
+            NotNullMessage: request cannot be null,
+            IsFromServices: false
+          },
+          {
+            LocalName: audited,
+            FullType: global::TestApp.Audited,
+            IsNullable: false,
+            NotNullMessage: audited cannot be null,
             IsFromServices: false
           }
         ],
         Returns: [
           {
             LocalName: fromHandle,
-            FullType: global::TestApp.NonValidationValidateHandler.Response,
+            FullType: global::TestApp.Response,
             IsNullable: false,
             IsResultType: false,
             RequiresNullCheck: true,
@@ -66,30 +73,30 @@
     ],
     LocalVariables: [
       {
-        LocalName: fromValidate,
-        FullType: string,
+        LocalName: fromBeforeAudit,
+        FullType: global::TestApp.Audited,
         CheckNullability: false,
-        IfNullErrorMessage: fromValidate cannot be null
+        IfNullErrorMessage: audited cannot be null
       },
       {
         LocalName: fromHandle,
-        FullType: global::TestApp.NonValidationValidateHandler.Response,
+        FullType: global::TestApp.Response,
         CheckNullability: false
       },
       {
         LocalName: request,
-        FullType: global::TestApp.NonValidationValidateHandler.Request,
+        FullType: global::TestApp.Request,
         CheckNullability: false
       }
     ],
     FinallyPhases: null,
-    DispatcherFullName: global::TestApp.NonValidationValidateHandlerDispatcher,
-    DispatcherKey: global::TestApp.NonValidationValidateHandler.Request|global::TestApp.NonValidationValidateHandler.Response,
-    IsAnyAsync: true,
+    DispatcherFullName: global::TestApp.InheritedBeforeHandlerDispatcher,
+    DispatcherKey: global::TestApp.Request|global::TestApp.Response,
+    IsAnyAsync: false,
     HasInstanceMethods: true,
     HasFromServicesParameters: false,
     HasSingleResultType: true,
-    ResultTypeName: global::TestApp.NonValidationValidateHandler.Response
+    ResultTypeName: global::TestApp.Response
   },
   Diagnostics: null
 }

@@ -51,6 +51,7 @@
         CheckNullability: false
       }
     ],
+    FinallyPhases: null,
     DispatcherFullName: global::TestApp.StaticOnlyHandlerDispatcher,
     DispatcherKey: global::TestApp.StaticOnlyHandler.Request|global::TestApp.StaticOnlyHandler.Response,
     IsAnyAsync: false,

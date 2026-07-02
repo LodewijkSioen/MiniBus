@@ -87,6 +87,48 @@ their dependencies:
 
 Each pre-handle and post-handle method is optional and may be sync or async.
 
+### Reusable pipeline methods (middleware via inheritance)
+
+Pre-handle, post-handle, and `Finally` methods don't have to live directly on
+the `[Handler]` class. They can be declared on a shared base class instead, so
+common cross-cutting logic (logging, auditing, validation, ...) can be written
+once and reused across multiple handlers:
+
+```csharp
+public abstract class AuditMiddlewareBase
+{
+    public LoggedRequest BeforeAudit(Request request) => ...;
+}
+
+[Handler]
+public class GetItemHandler : AuditMiddlewareBase
+{
+    public Task<Response> Handle(Request request, LoggedRequest loggedRequest) => ...;
+}
+```
+
+- The generator walks the full base-type chain (up to but excluding
+  `object`), so middleware can also live several levels up an inheritance
+  hierarchy.
+- `Handle` itself is never inherited — it must be declared directly on the
+  `[Handler]` class.
+- If a method is overridden (or hidden with `new`) further down the chain,
+  only the most-derived declaration is used.
+- Execution follows an "onion" order: inherited pre-handle methods run
+  *before* the handler's own pre-handle methods, while inherited post-handle
+  and `Finally` methods run *after* the handler's own ones (mirroring
+  try/finally stack-unwind order). Multiple `Finally` methods across the
+  chain are all executed, in that same own-first, ancestor-last order.
+- Inherited pre-handle/post-handle/`Finally` methods must be `public` or
+  `internal` — a `private` or `protected` inherited method is not reachable
+  from the generated dispatcher and reports MBG009.
+- The request type can only be inferred from the `[Handler]` class's own
+  methods (`Handle`, plus any of its own pre-handle/post-handle methods).
+  Inherited methods still fully participate in the pipeline, but an inherited
+  method's parameter is never used to determine the request type — the
+  concrete handler must reference the request type directly somewhere in its
+  own declared methods.
+
 Special cases:
 - If the return value is nullable and the dependent method defines that type
   as non-nullable, dispatch short-circuits with a `NotFoundResult` payload.
@@ -148,6 +190,10 @@ The following handler patterns are not supported by source generation:
   Example: `void BeforeLoad(...)`, `void AfterAudit(...)`, or non-generic `Task ExecuteAsync(...)` (MBG007).
 - Cyclic dependencies between pipeline methods.  
   Example: `Load` depends on a type from `Validate` while `Validate` also depends on a type from `Load` (MBG008).
+- Inherited pre-handle, post-handle, or `Finally` methods that aren't reachable from the
+  generated dispatcher.
+  Example: a `private` or `protected` method on a base class matching a pipeline naming
+  convention (MBG009).
 
 Validation phases may return different `IValidationResult` implementations;
 each distinct concrete return type becomes an additional union possibility in

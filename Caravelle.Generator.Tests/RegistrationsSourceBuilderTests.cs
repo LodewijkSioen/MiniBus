@@ -32,7 +32,8 @@ public class RegistrationsSourceBuilderTests
                     parameters: EquatableArray<InputParameter>.Empty,
                     returns: EquatableArray<ReturnElement>.Empty)
             }),
-            LocalVariables: EquatableArray<LocalVariable>.Empty);
+            LocalVariables: EquatableArray<LocalVariable>.Empty,
+            FinallyPhases: EquatableArray<MethodPhase>.Empty);
 
     // ── Tests ─────────────────────────────────────────────────────────────
 

@@ -67,23 +67,29 @@ public static class DispatcherSourceBuilder
         sb.AppendLine($"{i}        Handle({model.FullRequestType} request)");
         sb.AppendLine($"{i}    {{");
 
+        var finallyPhases = model.FinallyPhases;
+
         // Hoist variables needed by Finally before try block
         var hoistedTypes = new HashSet<string>(StringComparer.Ordinal);
         var hoistedLocalNames = new Dictionary<string, string>(StringComparer.Ordinal);
-        if (model.FinallyPhase is not null)
+        if (finallyPhases.Count > 0)
         {
             var returnLocalsByType = model.Phases
                 .SelectMany(phase => phase.Returns)
                 .GroupBy(element => element.FullType)
                 .ToDictionary(group => group.Key, group => group.First().LocalName, StringComparer.Ordinal);
 
-            foreach (var param in model.FinallyPhase.Parameters)
+            foreach (var finallyPhase in finallyPhases)
             {
-                if (!param.IsFromServices && returnLocalsByType.TryGetValue(param.FullType, out var nullableLocalName))
+                foreach (var param in finallyPhase.Parameters)
                 {
-                    hoistedTypes.Add(param.FullType);
-                    hoistedLocalNames[param.FullType] = nullableLocalName;
-                    sb.AppendLine($"{i}        {param.FullType}? {nullableLocalName} = null;");
+                    if (!param.IsFromServices
+                        && returnLocalsByType.TryGetValue(param.FullType, out var nullableLocalName)
+                        && hoistedTypes.Add(param.FullType))
+                    {
+                        hoistedLocalNames[param.FullType] = nullableLocalName;
+                        sb.AppendLine($"{i}        {param.FullType}? {nullableLocalName} = null;");
+                    }
                 }
             }
             if (hoistedTypes.Count > 0)
@@ -91,14 +97,14 @@ public static class DispatcherSourceBuilder
         }
 
         // Start try block if Finally exists
-        if (model.FinallyPhase is not null)
+        if (finallyPhases.Count > 0)
         {
             sb.AppendLine($"{i}        try");
             sb.AppendLine($"{i}        {{");
         }
 
         string? responseLocalName = null;
-        var phaseIndent = model.FinallyPhase is not null ? i + "    " : i;
+        var phaseIndent = finallyPhases.Count > 0 ? i + "    " : i;
 
         foreach (var phase in model.Phases)
         {
@@ -116,19 +122,22 @@ public static class DispatcherSourceBuilder
             }
         }
 
-        var returnIndent = model.FinallyPhase is not null ? i + "            " : i + "        ";
+        var returnIndent = finallyPhases.Count > 0 ? i + "            " : i + "        ";
         if (model.HasSingleResultType)
             sb.AppendLine($"{returnIndent}return {taskWrap}{responseLocalName ?? "default!"}{taskClose};");
         else
             sb.AppendLine($"{returnIndent}return {taskWrap}new Result({responseLocalName ?? "default!"}){taskClose};");
 
         // Close try and add finally
-        if (model.FinallyPhase is not null)
+        if (finallyPhases.Count > 0)
         {
             sb.AppendLine($"{i}        }}");
             sb.AppendLine($"{i}        finally");
             sb.AppendLine($"{i}        {{");
-            BuildFinallyPhase(sb, model, model.FinallyPhase, i, hoistedLocalNames);
+            foreach (var finallyPhase in finallyPhases)
+            {
+                BuildFinallyPhase(sb, model, finallyPhase, i, hoistedLocalNames);
+            }
             sb.AppendLine($"{i}        }}");
         }
 

@@ -115,6 +115,7 @@
         CheckNullability: false
       }
     ],
+    FinallyPhases: null,
     DispatcherFullName: global::TestApp.PostOrderingHandlerDispatcher,
     DispatcherKey: global::TestApp.PostOrderingHandler.Request|global::TestApp.PostOrderingHandler.Response,
     IsAnyAsync: false,

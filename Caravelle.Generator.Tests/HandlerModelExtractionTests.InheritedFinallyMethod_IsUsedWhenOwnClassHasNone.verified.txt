@@ -1,13 +1,13 @@
 ﻿{
   Model: {
     Namespace: TestApp,
-    ClassName: FinallyVoidHandler,
-    FullClassName: global::TestApp.FinallyVoidHandler,
-    FullRequestType: global::TestApp.FinallyVoidHandler.Request,
-    FullResponseType: global::TestApp.FinallyVoidHandler.Response,
+    ClassName: InheritedFinallyHandler,
+    FullClassName: global::TestApp.InheritedFinallyHandler,
+    FullRequestType: global::TestApp.Request,
+    FullResponseType: global::TestApp.Response,
     ResultValueTypes: [
       {
-        FullType: global::TestApp.FinallyVoidHandler.Response,
+        FullType: global::TestApp.Response,
         RequiresNullCheck: true
       }
     ],
@@ -20,7 +20,7 @@
         Parameters: [
           {
             LocalName: request,
-            FullType: global::TestApp.FinallyVoidHandler.Request,
+            FullType: global::TestApp.Request,
             IsNullable: false,
             NotNullMessage: request cannot be null,
             IsFromServices: false
@@ -29,7 +29,7 @@
         Returns: [
           {
             LocalName: fromHandle,
-            FullType: global::TestApp.FinallyVoidHandler.Response,
+            FullType: global::TestApp.Response,
             IsNullable: false,
             IsResultType: false,
             RequiresNullCheck: true,
@@ -42,12 +42,12 @@
     LocalVariables: [
       {
         LocalName: fromHandle,
-        FullType: global::TestApp.FinallyVoidHandler.Response,
+        FullType: global::TestApp.Response,
         CheckNullability: false
       },
       {
         LocalName: request,
-        FullType: global::TestApp.FinallyVoidHandler.Request,
+        FullType: global::TestApp.Request,
         CheckNullability: false
       }
     ],
@@ -60,7 +60,7 @@
         Parameters: [
           {
             LocalName: request,
-            FullType: global::TestApp.FinallyVoidHandler.Request,
+            FullType: global::TestApp.Request,
             IsNullable: false,
             NotNullMessage: request cannot be null,
             IsFromServices: false
@@ -69,13 +69,13 @@
         Returns: null
       }
     ],
-    DispatcherFullName: global::TestApp.FinallyVoidHandlerDispatcher,
-    DispatcherKey: global::TestApp.FinallyVoidHandler.Request|global::TestApp.FinallyVoidHandler.Response,
+    DispatcherFullName: global::TestApp.InheritedFinallyHandlerDispatcher,
+    DispatcherKey: global::TestApp.Request|global::TestApp.Response,
     IsAnyAsync: false,
     HasInstanceMethods: true,
     HasFromServicesParameters: false,
     HasSingleResultType: true,
-    ResultTypeName: global::TestApp.FinallyVoidHandler.Response
+    ResultTypeName: global::TestApp.Response
   },
   Diagnostics: null
 }

@@ -876,5 +876,361 @@ public class HandlerModelExtractionTests
 
         await Verify(result);
     }
+
+    // ── Inheritance (reusable pipeline methods via base classes) ──────────
+
+    [Test]
+    public async Task InheritedBeforeMethod_IsIncludedAsPreHandlePhase()
+    {
+        const string source = """
+            using Caravelle;
+            namespace TestApp;
+
+            public record Request(string Value);
+            public record Audited(string Value);
+            public record Response(string Value);
+
+            public abstract class AuditMiddlewareBase
+            {
+                public Audited BeforeAudit(Request request) => new Audited(request.Value + "-audited");
+            }
+
+            [Handler]
+            public class InheritedBeforeHandler : AuditMiddlewareBase
+            {
+                public Response Handle(Request request, Audited audited) => new Response(audited.Value);
+            }
+            """;
+
+        var result = HandlerModelFactory.GetHandlerModel(GetSymbol(source, "InheritedBeforeHandler"), Location.None);
+
+        await Verify(result);
+    }
+
+    [Test]
+    public async Task InheritedAfterMethod_IsIncludedAsPostHandlePhase()
+    {
+        const string source = """
+            using Caravelle;
+            namespace TestApp;
+
+            public record Request(string Value);
+            public record Response(string Value);
+            public record Audit(string Value);
+
+            public abstract class AuditMiddlewareBase
+            {
+                public Audit AfterAudit(Response response) => new Audit(response.Value + "-audited");
+            }
+
+            [Handler]
+            public class InheritedAfterHandler : AuditMiddlewareBase
+            {
+                public Response Handle(Request request) => new Response(request.Value);
+            }
+            """;
+
+        var result = HandlerModelFactory.GetHandlerModel(GetSymbol(source, "InheritedAfterHandler"), Location.None);
+
+        await Verify(result);
+    }
+
+    [Test]
+    public async Task InheritedAndOwnBeforeMethods_OnionOrdering_InheritedRunsFirst()
+    {
+        const string source = """
+            using Caravelle;
+            namespace TestApp;
+
+            public record Request(string Value);
+            public record Logged(string Value);
+            public record Checked(string Value);
+            public record Response(string Value);
+
+            public abstract class LoggingMiddlewareBase
+            {
+                public Logged BeforeLog(Request request) => new Logged(request.Value + "-logged");
+            }
+
+            [Handler]
+            public class OnionBeforeHandler : LoggingMiddlewareBase
+            {
+                public Checked BeforeCheck(Request request) => new Checked(request.Value + "-checked");
+
+                public Response Handle(Logged logged, Checked checkedValue) => new Response(logged.Value + checkedValue.Value);
+            }
+            """;
+
+        var result = HandlerModelFactory.GetHandlerModel(GetSymbol(source, "OnionBeforeHandler"), Location.None);
+
+        await Verify(result);
+    }
+
+    [Test]
+    public async Task InheritedAndOwnAfterMethods_OnionOrdering_InheritedRunsLast()
+    {
+        const string source = """
+            using Caravelle;
+            namespace TestApp;
+
+            public record Request(string Value);
+            public record Response(string Value);
+            public record Logged(string Value);
+            public record Audited(string Value);
+
+            public abstract class LoggingMiddlewareBase
+            {
+                public Logged AfterLog(Response response) => new Logged(response.Value + "-logged");
+            }
+
+            [Handler]
+            public class OnionAfterHandler : LoggingMiddlewareBase
+            {
+                public Response Handle(Request request) => new Response(request.Value);
+
+                public Audited AfterAudit(Response response) => new Audited(response.Value + "-audited");
+            }
+            """;
+
+        var result = HandlerModelFactory.GetHandlerModel(GetSymbol(source, "OnionAfterHandler"), Location.None);
+
+        await Verify(result);
+    }
+
+    [Test]
+    public async Task MultiLevelInheritance_GrandparentMethod_IsIncluded()
+    {
+        const string source = """
+            using Caravelle;
+            namespace TestApp;
+
+            public record Request(string Value);
+            public record Traced(string Value);
+            public record Response(string Value);
+
+            public abstract class TracingMiddlewareBase
+            {
+                public Traced BeforeTrace(Request request) => new Traced(request.Value + "-traced");
+            }
+
+            public abstract class AuditMiddlewareBase : TracingMiddlewareBase
+            {
+            }
+
+            [Handler]
+            public class GrandparentHandler : AuditMiddlewareBase
+            {
+                public Response Handle(Request request, Traced traced) => new Response(traced.Value);
+            }
+            """;
+
+        var result = HandlerModelFactory.GetHandlerModel(GetSymbol(source, "GrandparentHandler"), Location.None);
+
+        await Verify(result);
+    }
+
+    [Test]
+    public async Task OverriddenBeforeMethod_OnlyMostDerivedVersionIsUsed()
+    {
+        const string source = """
+            using Caravelle;
+            namespace TestApp;
+
+            public record Request(string Value);
+            public record Prepared(string Value);
+            public record Response(string Value);
+
+            public abstract class MiddlewareBase
+            {
+                public virtual Prepared BeforePrepare(Request request) => new Prepared(request.Value + "-base");
+            }
+
+            [Handler]
+            public class OverrideHandler : MiddlewareBase
+            {
+                public override Prepared BeforePrepare(Request request) => new Prepared(request.Value + "-override");
+
+                public Response Handle(Prepared prepared) => new Response(prepared.Value);
+            }
+            """;
+
+        var result = HandlerModelFactory.GetHandlerModel(GetSymbol(source, "OverrideHandler"), Location.None);
+
+        await Verify(result);
+    }
+
+    [Test]
+    public async Task InheritedFinallyMethod_IsUsedWhenOwnClassHasNone()
+    {
+        const string source = """
+            using Caravelle;
+            namespace TestApp;
+
+            public record Request(string Value);
+            public record Response(string Value);
+
+            public abstract class CleanupMiddlewareBase
+            {
+                public void Finally(Request request) { }
+            }
+
+            [Handler]
+            public class InheritedFinallyHandler : CleanupMiddlewareBase
+            {
+                public Response Handle(Request request) => new Response(request.Value);
+            }
+            """;
+
+        var result = HandlerModelFactory.GetHandlerModel(GetSymbol(source, "InheritedFinallyHandler"), Location.None);
+
+        await Verify(result);
+    }
+
+    [Test]
+    public async Task OwnAndInheritedFinallyMethods_BothIncluded_OwnRunsFirstAncestorLast()
+    {
+        const string source = """
+            using Caravelle;
+            namespace TestApp;
+
+            public record Request(string Value);
+            public record Response(string Value);
+
+            public abstract class CleanupMiddlewareBase
+            {
+                public void Finally(Request request) { }
+            }
+
+            [Handler]
+            public class OwnFinallyHandler : CleanupMiddlewareBase
+            {
+                public Response Handle(Request request) => new Response(request.Value);
+
+                public System.Threading.Tasks.Task FinallyAsync(Request request) => System.Threading.Tasks.Task.CompletedTask;
+            }
+            """;
+
+        var result = HandlerModelFactory.GetHandlerModel(GetSymbol(source, "OwnFinallyHandler"), Location.None);
+
+        await Verify(result);
+    }
+
+    [Test]
+    public async Task MultiLevelFinallyMethods_OwnFirstThenEachAncestorInOrder()
+    {
+        const string source = """
+            using Caravelle;
+            namespace TestApp;
+
+            public record Request(string Value);
+            public record Response(string Value);
+
+            public abstract class TracingMiddlewareBase
+            {
+                public void Finally(Request request) { }
+            }
+
+            public abstract class AuditMiddlewareBase : TracingMiddlewareBase
+            {
+                public System.Threading.Tasks.Task FinallyAsync(Request request) => System.Threading.Tasks.Task.CompletedTask;
+            }
+
+            [Handler]
+            public class MultiLevelFinallyHandler : AuditMiddlewareBase
+            {
+                public Response Handle(Request request) => new Response(request.Value);
+
+                public void Finally(Request request) { }
+            }
+            """;
+
+        var result = HandlerModelFactory.GetHandlerModel(GetSymbol(source, "MultiLevelFinallyHandler"), Location.None);
+
+        await Verify(result);
+    }
+
+    [Test]
+    public async Task PrivateInheritedMethod_ReportsMBG009_AndReturnsNullModel()
+    {
+        const string source = """
+            using Caravelle;
+            namespace TestApp;
+
+            public record Request(string Value);
+            public record Prepared(string Value);
+            public record Response(string Value);
+
+            public abstract class PrivateMiddlewareBase
+            {
+                private Prepared BeforePrepare(Request request) => new Prepared(request.Value);
+            }
+
+            [Handler]
+            public class PrivateInheritedHandler : PrivateMiddlewareBase
+            {
+                public Response Handle(Prepared prepared) => new Response(prepared.Value);
+            }
+            """;
+
+        var result = HandlerModelFactory.GetHandlerModel(GetSymbol(source, "PrivateInheritedHandler"), Location.None);
+
+        await Verify(result);
+    }
+
+    [Test]
+    public async Task ProtectedInheritedMethod_ReportsMBG009_AndReturnsNullModel()
+    {
+        const string source = """
+            using Caravelle;
+            namespace TestApp;
+
+            public record Request(string Value);
+            public record Prepared(string Value);
+            public record Response(string Value);
+
+            public abstract class ProtectedMiddlewareBase
+            {
+                protected Prepared BeforePrepare(Request request) => new Prepared(request.Value);
+            }
+
+            [Handler]
+            public class ProtectedInheritedHandler : ProtectedMiddlewareBase
+            {
+                public Response Handle(Prepared prepared) => new Response(prepared.Value);
+            }
+            """;
+
+        var result = HandlerModelFactory.GetHandlerModel(GetSymbol(source, "ProtectedInheritedHandler"), Location.None);
+
+        await Verify(result);
+    }
+
+    [Test]
+    public async Task InternalInheritedMethod_IsAccepted_NoDiagnostic()
+    {
+        const string source = """
+            using Caravelle;
+            namespace TestApp;
+
+            public record Request(string Value);
+            public record Prepared(string Value);
+            public record Response(string Value);
+
+            public abstract class InternalMiddlewareBase
+            {
+                internal Prepared BeforePrepare(Request request) => new Prepared(request.Value);
+            }
+
+            [Handler]
+            public class InternalInheritedHandler : InternalMiddlewareBase
+            {
+                public Response Handle(Request request, Prepared prepared) => new Response(prepared.Value);
+            }
+            """;
+
+        var result = HandlerModelFactory.GetHandlerModel(GetSymbol(source, "InternalInheritedHandler"), Location.None);
+
+        await Verify(result);
+    }
 }
 

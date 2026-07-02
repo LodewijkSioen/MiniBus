@@ -178,6 +178,7 @@
         CheckNullability: false
       }
     ],
+    FinallyPhases: null,
     DispatcherFullName: global::TestApp.BeforeConventionHandlerDispatcher,
     DispatcherKey: global::TestApp.BeforeConventionHandler.Request|global::TestApp.BeforeConventionHandler.Response,
     IsAnyAsync: false,

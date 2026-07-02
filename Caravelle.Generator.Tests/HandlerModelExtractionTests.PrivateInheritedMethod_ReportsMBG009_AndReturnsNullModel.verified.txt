@@ -1,0 +1,19 @@
+﻿{
+  Diagnostics: [
+    {
+      Descriptor: {
+        Id: MBG009,
+        Title: Inherited pipeline method is not accessible,
+        MessageFormat: Handler '{0}' inherits pipeline method '{1}' from '{2}', but it is not accessible from the generated dispatcher. Inherited pipeline methods must be public or internal.,
+        Category: Caravelle.Generator,
+        DefaultSeverity: Error,
+        IsEnabledByDefault: true
+      },
+      MessageArgs: [
+        global::TestApp.PrivateInheritedHandler,
+        BeforePrepare,
+        global::TestApp.PrivateMiddlewareBase
+      ]
+    }
+  ]
+}

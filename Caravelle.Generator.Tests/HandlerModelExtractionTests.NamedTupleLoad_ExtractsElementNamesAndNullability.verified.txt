@@ -108,6 +108,7 @@
         CheckNullability: false
       }
     ],
+    FinallyPhases: null,
     DispatcherFullName: global::TestApp.TupleHandlerDispatcher,
     DispatcherKey: global::TestApp.TupleHandler.Request|global::TestApp.TupleHandler.Response,
     IsAnyAsync: true,
