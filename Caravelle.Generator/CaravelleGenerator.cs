@@ -1,7 +1,5 @@
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
-using System.Security.Cryptography;
-using System.Text;
 using System.Linq;
 using Caravelle.Generator.Middleware;
 using Caravelle.Generator.SourceBuilders;
@@ -122,20 +120,6 @@ public class CaravelleGenerator : IIncrementalGenerator
 
     private static string CreateDispatcherHintName(HandlerModel model)
     {
-        using var sha = SHA256.Create();
-        var hashBytes = sha.ComputeHash(Encoding.UTF8.GetBytes(model.FullClassName));
-        var chars = new char[8];
-        for (var i = 0; i < 4; i++)
-        {
-            var b = hashBytes[i];
-            chars[i * 2] = ToHexChar((b >> 4) & 0xF);
-            chars[i * 2 + 1] = ToHexChar(b & 0xF);
-        }
-
-        var hash = new string(chars);
-        return $"{model.ClassName}Dispatcher_{hash}.g.cs";
+        return $"{model.ClassName}Dispatcher_{Helpers.GetHashForTypeName(model.FullClassName)}.g.cs";
     }
-
-    private static char ToHexChar(int value) =>
-        (char)(value < 10 ? '0' + value : 'a' + (value - 10));
 }

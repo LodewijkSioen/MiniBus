@@ -2,7 +2,6 @@ using Caravelle.Generator.Handler;
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Security.Cryptography;
 using System.Text;
 
 namespace Caravelle.Generator.SourceBuilders;
@@ -183,17 +182,7 @@ public static class DispatcherSourceBuilder
 
     private static string GetMiddlewareFieldName(string fullTypeName)
     {
-        using var sha = SHA256.Create();
-        var hashBytes = sha.ComputeHash(Encoding.UTF8.GetBytes(fullTypeName));
-        var chars = new char[8];
-        for (var i = 0; i < 4; i++)
-        {
-            var b = hashBytes[i];
-            chars[i * 2] = ToHexChar((b >> 4) & 0xF);
-            chars[i * 2 + 1] = ToHexChar(b & 0xF);
-        }
-
-        return $"_{GetShortTypeName(fullTypeName)}_{new string(chars)}";
+        return $"_{GetShortTypeName(fullTypeName)}_{Helpers.GetHashForTypeName(fullTypeName)}";
     }
 
     /// <summary>
@@ -219,10 +208,6 @@ public static class DispatcherSourceBuilder
 
         return name.Length > 0 ? char.ToLowerInvariant(name[0]) + name.Substring(1) : name;
     }
-
-    private static char ToHexChar(int value) =>
-        (char)(value < 10 ? '0' + value : 'a' + (value - 10));
-
 
     private static void BuildPipelinePhase(StringBuilder sb, HandlerModel model, MethodPhase phase, string taskWrap, string taskClose, string indent, HashSet<string> hoistedTypes, IReadOnlyDictionary<string, string> middlewareFieldNames)
     {

@@ -2,6 +2,8 @@ using Microsoft.CodeAnalysis;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Security.Cryptography;
+using System.Text;
 
 namespace Caravelle.Generator;
 
@@ -132,4 +134,21 @@ internal static class Helpers
 
         return false;
     }
+
+    internal static string GetHashForTypeName(string typeName)
+    {
+        using var sha = SHA256.Create();
+        var hashBytes = sha.ComputeHash(Encoding.UTF8.GetBytes(typeName));
+        var chars = new char[8];
+        for (var i = 0; i < 4; i++)
+        {
+            var b = hashBytes[i];
+            chars[i * 2] = ToHexChar((b >> 4) & 0xF);
+            chars[i * 2 + 1] = ToHexChar(b & 0xF);
+        }
+
+        return new (chars);
+    }
+    private static char ToHexChar(int value) =>
+        (char)(value < 10 ? '0' + value : 'a' + (value - 10));
 }
