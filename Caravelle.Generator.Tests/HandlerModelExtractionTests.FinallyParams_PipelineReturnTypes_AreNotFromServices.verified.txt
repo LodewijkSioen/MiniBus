@@ -32,8 +32,7 @@
             IsNullable: false,
             IsResultType: false,
             RequiresNullCheck: true,
-            NonNullLocalName: fromLoad,
-            IsValidationResult: false
+            NonNullLocalName: fromLoad
           }
         ]
       },
@@ -58,8 +57,7 @@
             IsNullable: false,
             IsResultType: false,
             RequiresNullCheck: true,
-            NonNullLocalName: fromHandle,
-            IsValidationResult: false
+            NonNullLocalName: fromHandle
           }
         ]
       }
@@ -107,6 +105,7 @@
         Returns: null
       }
     ],
+    MatchedMiddlewareClassNames: null,
     DispatcherFullName: global::TestApp.FinallyPipelineParamsHandlerDispatcher,
     DispatcherKey: global::TestApp.FinallyPipelineParamsHandler.Request|global::TestApp.FinallyPipelineParamsHandler.Response,
     IsAnyAsync: false,

@@ -33,8 +33,7 @@
             IsNullable: false,
             IsResultType: false,
             RequiresNullCheck: true,
-            NonNullLocalName: fromExecuteAsync,
-            IsValidationResult: false
+            NonNullLocalName: fromExecuteAsync
           }
         ]
       }
@@ -52,6 +51,7 @@
       }
     ],
     FinallyPhases: null,
+    MatchedMiddlewareClassNames: null,
     DispatcherFullName: global::TestApp.ExecuteAsyncHandlerDispatcher,
     DispatcherKey: global::TestApp.ExecuteAsyncHandler.Request|global::TestApp.ExecuteAsyncHandler.Response,
     IsAnyAsync: true,

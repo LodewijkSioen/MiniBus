@@ -32,8 +32,7 @@
             IsNullable: false,
             IsResultType: false,
             RequiresNullCheck: true,
-            NonNullLocalName: fromBeforeLog,
-            IsValidationResult: false
+            NonNullLocalName: fromBeforeLog
           }
         ]
       },
@@ -57,8 +56,7 @@
             IsNullable: false,
             IsResultType: false,
             RequiresNullCheck: true,
-            NonNullLocalName: fromBeforeCheck,
-            IsValidationResult: false
+            NonNullLocalName: fromBeforeCheck
           }
         ]
       },
@@ -90,8 +88,7 @@
             IsNullable: false,
             IsResultType: false,
             RequiresNullCheck: true,
-            NonNullLocalName: fromHandle,
-            IsValidationResult: false
+            NonNullLocalName: fromHandle
           }
         ]
       }
@@ -121,6 +118,7 @@
       }
     ],
     FinallyPhases: null,
+    MatchedMiddlewareClassNames: null,
     DispatcherFullName: global::TestApp.OnionBeforeHandlerDispatcher,
     DispatcherKey: global::TestApp.Request|global::TestApp.Response,
     IsAnyAsync: false,

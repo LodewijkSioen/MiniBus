@@ -109,7 +109,15 @@ public class MiddlewareInheritanceIntegrationTests
 
         await bus.Handle(new FirstAuditedHandler.Request("hello"));
 
-        Assert.That(probe.Order, Is.EqualTo(new[] { "OwnAfter", "BaseAfter" }));
+        // Assert relative order rather than an exact sequence: other test files register
+        // [Middleware<AllHandlers>] middleware that also legitimately runs against this
+        // handler (as the outermost onion layer), so additional entries may appear.
+        var order = probe.Order.ToList();
+        var ownAfterIndex = order.IndexOf("OwnAfter");
+        var baseAfterIndex = order.IndexOf("BaseAfter");
+        Assert.That(ownAfterIndex, Is.GreaterThanOrEqualTo(0));
+        Assert.That(baseAfterIndex, Is.GreaterThanOrEqualTo(0));
+        Assert.That(ownAfterIndex, Is.LessThan(baseAfterIndex));
     }
 
     [Test]

@@ -7,7 +7,7 @@ internal static class GeneratorTestHelper
 {
     /// <summary>
     /// Compiles <paramref name="source"/> with Caravelle available,
-    /// runs <see cref="HandlerGenerator"/> against it, and returns the generated
+    /// runs <see cref="CaravelleGenerator"/> against it, and returns the generated
     /// source texts and any generator-emitted diagnostics.
     /// </summary>
     internal static (IReadOnlyList<string> GeneratedSources, IReadOnlyList<Diagnostic> Diagnostics) Run(string source)
@@ -34,7 +34,7 @@ internal static class GeneratorTestHelper
             new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary)
         );
 
-        var generator = new HandlerGenerator();
+        var generator = new CaravelleGenerator();
         var driver = CSharpGeneratorDriver.Create(generator);
 
         driver = (CSharpGeneratorDriver)driver.RunGeneratorsAndUpdateCompilation(
@@ -58,7 +58,7 @@ internal static class GeneratorTestHelper
 
     /// <summary>
     /// Compiles <paramref name="source"/> with Caravelle available,
-    /// runs <see cref="HandlerGenerator"/> against it, and returns the
+    /// runs <see cref="CaravelleGenerator"/> against it, and returns the
     /// <see cref="GeneratorDriver"/> for use with Verify snapshot assertions.
     /// </summary>
     internal static GeneratorDriver RunDriver(string source)
@@ -83,7 +83,7 @@ internal static class GeneratorTestHelper
             new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary)
         );
 
-        var generator = new HandlerGenerator();
+        var generator = new CaravelleGenerator();
         GeneratorDriver driver = CSharpGeneratorDriver.Create(generator);
         return driver.RunGeneratorsAndUpdateCompilation(compilation, out _, out _);
     }

@@ -33,8 +33,7 @@
             IsNullable: false,
             IsResultType: false,
             RequiresNullCheck: true,
-            NonNullLocalName: fromHandle,
-            IsValidationResult: false
+            NonNullLocalName: fromHandle
           }
         ]
       }
@@ -69,6 +68,7 @@
         Returns: null
       }
     ],
+    MatchedMiddlewareClassNames: null,
     DispatcherFullName: global::TestApp.FinallyVoidHandlerDispatcher,
     DispatcherKey: global::TestApp.FinallyVoidHandler.Request|global::TestApp.FinallyVoidHandler.Response,
     IsAnyAsync: false,

@@ -36,8 +36,7 @@
             IsNullable: true,
             IsResultType: false,
             RequiresNullCheck: true,
-            NonNullLocalName: fromLoadValue,
-            IsValidationResult: false
+            NonNullLocalName: fromLoadValue
           }
         ]
       },
@@ -62,8 +61,7 @@
             IsNullable: false,
             IsResultType: false,
             RequiresNullCheck: true,
-            NonNullLocalName: fromHandle,
-            IsValidationResult: false
+            NonNullLocalName: fromHandle
           }
         ]
       }
@@ -87,6 +85,7 @@
       }
     ],
     FinallyPhases: null,
+    MatchedMiddlewareClassNames: null,
     DispatcherFullName: global::TestApp.LoadedArgHandlerDispatcher,
     DispatcherKey: global::TestApp.LoadedArgHandler.Request|global::TestApp.LoadedArgHandler.Response,
     IsAnyAsync: true,

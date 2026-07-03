@@ -307,7 +307,7 @@ public class IntegrationTests
     }
 
     [Test]
-    public void VoidLoad_ReportsMBG007_AndSkipsDispatcherGeneration()
+    public void VoidLoad_IsAccepted_AndDispatcherIsGenerated()
     {
         const string source = """
             using Caravelle;
@@ -328,8 +328,10 @@ public class IntegrationTests
 
         var result = GeneratorTestHelper.Run(source);
 
-        Assert.That(result.Diagnostics.Any(d => d.Id == "MBG007"), Is.True);
-        Assert.That(result.GeneratedSources.Any(s => s.Contains("VoidLoadHandlerDispatcher", StringComparison.Ordinal)), Is.False);
+        Assert.That(result.Diagnostics.Any(d => d.Id == "MBG007"), Is.False);
+        var dispatcher = result.GeneratedSources.SingleOrDefault(s => s.Contains("class VoidLoadHandlerDispatcher", StringComparison.Ordinal));
+        Assert.That(dispatcher, Is.Not.Null);
+        Assert.That(dispatcher!.Contains("_handler.Load(request);", StringComparison.Ordinal), Is.True);
     }
 
     [Test]
@@ -420,14 +422,14 @@ public class IntegrationTests
     }
 
     [Test]
-    public void MultipleInvalidPreHandleReturns_ReportMBG007ForEach_AndSkipDispatcherGeneration()
+    public void VoidAndTaskPreHandleReturns_AreAccepted_AndDispatcherIsGenerated()
     {
         const string source = """
             using Caravelle;
             namespace TestApp;
 
             [Handler]
-            public class InvalidPreReturnsHandler
+            public class VoidAndTaskPreHandleHandler
             {
                 public record Request(int Id);
                 public record Response(string Value);
@@ -444,14 +446,8 @@ public class IntegrationTests
 
         var result = GeneratorTestHelper.Run(source);
 
-        var unsupportedReturnDiagnostics = result.Diagnostics
-            .Where(d => d.Id == "MBG007")
-            .Select(d => d.GetMessage())
-            .ToArray();
-
-        Assert.That(unsupportedReturnDiagnostics.Any(message => message.Contains("BeforeLoad", StringComparison.Ordinal)), Is.True);
-        Assert.That(unsupportedReturnDiagnostics.Any(message => message.Contains("NormalizeBefore", StringComparison.Ordinal)), Is.True);
-        Assert.That(result.GeneratedSources.Any(s => s.Contains("InvalidPreReturnsHandlerDispatcher", StringComparison.Ordinal)), Is.False);
+        Assert.That(result.Diagnostics.Any(d => d.Id == "MBG007"), Is.False);
+        Assert.That(result.GeneratedSources.Any(s => s.Contains("VoidAndTaskPreHandleHandlerDispatcher", StringComparison.Ordinal)), Is.True);
     }
 
     [Test]
@@ -611,14 +607,14 @@ public class IntegrationTests
     }
 
     [Test]
-    public void PostMethodWithUnsupportedReturn_ReportsMBG007_AndSkipsDispatcherGeneration()
+    public void PostMethodWithVoidReturn_IsAccepted_AndDispatcherIsGenerated()
     {
         const string source = """
             using Caravelle;
             namespace TestApp;
 
             [Handler]
-            public class InvalidPostReturnHandler
+            public class VoidPostReturnHandler
             {
                 public record Request(int Id);
                 public record Response(string Value);
@@ -632,8 +628,10 @@ public class IntegrationTests
 
         var result = GeneratorTestHelper.Run(source);
 
-        Assert.That(result.Diagnostics.Any(d => d.Id == "MBG007"), Is.True);
-        Assert.That(result.GeneratedSources.Any(s => s.Contains("InvalidPostReturnHandlerDispatcher", StringComparison.Ordinal)), Is.False);
+        Assert.That(result.Diagnostics.Any(d => d.Id == "MBG007"), Is.False);
+        var dispatcher = result.GeneratedSources.SingleOrDefault(s => s.Contains("class VoidPostReturnHandlerDispatcher", StringComparison.Ordinal));
+        Assert.That(dispatcher, Is.Not.Null);
+        Assert.That(dispatcher!.Contains("_handler.AfterAudit(fromHandle);", StringComparison.Ordinal), Is.True);
     }
 
     [Test]

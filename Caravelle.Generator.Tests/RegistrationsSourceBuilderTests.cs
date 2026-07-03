@@ -1,3 +1,6 @@
+using Caravelle.Generator.Handler;
+using Caravelle.Generator.SourceBuilders;
+
 namespace Caravelle.Generator.Tests;
 
 [TestFixture]
@@ -33,7 +36,8 @@ public class RegistrationsSourceBuilderTests
                     returns: EquatableArray<ReturnElement>.Empty)
             }),
             LocalVariables: EquatableArray<LocalVariable>.Empty,
-            FinallyPhases: EquatableArray<MethodPhase>.Empty);
+            FinallyPhases: EquatableArray<MethodPhase>.Empty,
+            MatchedMiddlewareClassNames: EquatableArray<string>.Empty);
 
     // ── Tests ─────────────────────────────────────────────────────────────
 
@@ -109,5 +113,58 @@ public class RegistrationsSourceBuilderTests
 
         Assert.That(generated.Contains("services.AddScoped<global::TestApp.StaticOnlyHandler>();", StringComparison.Ordinal), Is.False);
         Assert.That(generated.Contains("global::TestApp.StaticOnlyHandlerDispatcher", StringComparison.Ordinal), Is.True);
+    }
+
+    [Test]
+    public void MiddlewareSharedByMultipleHandlers_IsRegisteredExactlyOnce()
+    {
+        MethodPhase MakeMiddlewarePhase() => new MethodPhase(
+            type: PhaseType.Before,
+            methodName: "BeforeLog",
+            isAsync: false,
+            isStatic: false,
+            parameters: EquatableArray<InputParameter>.Empty,
+            returns: EquatableArray<ReturnElement>.Empty) with
+        { OwnerTypeFullName = "global::TestApp.LoggingMiddleware" };
+
+        HandlerModel WithMiddleware(HandlerModel model) =>
+            model with { Phases = new(model.Phases.Append(MakeMiddlewarePhase())) };
+
+        var generated = RegistrationsSourceBuilder.Build(
+            new[]
+            {
+                WithMiddleware(MakeModel("OrderHandler", "global::TestApp.OrderHandler.Request", "global::TestApp.OrderHandler.Response")),
+                WithMiddleware(MakeModel("UserHandler", "global::TestApp.UserHandler.Request", "global::TestApp.UserHandler.Response")),
+            },
+            new HashSet<string>(),
+            new HashSet<string>());
+
+        var registrationCount = System.Text.RegularExpressions.Regex.Matches(
+            generated, @"services\.AddTransient<global::TestApp\.LoggingMiddleware>\(\);").Count;
+
+        Assert.That(registrationCount, Is.EqualTo(1));
+    }
+
+    [Test]
+    public void StaticMiddlewareMethod_IsNotRegistered()
+    {
+        MethodPhase MakeStaticMiddlewarePhase() => new MethodPhase(
+            type: PhaseType.Before,
+            methodName: "BeforeLog",
+            isAsync: false,
+            isStatic: true,
+            parameters: EquatableArray<InputParameter>.Empty,
+            returns: EquatableArray<ReturnElement>.Empty) with
+        { OwnerTypeFullName = "global::TestApp.StaticLoggingMiddleware" };
+
+        var model = MakeModel("OrderHandler", "global::TestApp.OrderHandler.Request", "global::TestApp.OrderHandler.Response");
+        model = model with { Phases = new(model.Phases.Append(MakeStaticMiddlewarePhase())) };
+
+        var generated = RegistrationsSourceBuilder.Build(
+            new[] { model },
+            new HashSet<string>(),
+            new HashSet<string>());
+
+        Assert.That(generated.Contains("global::TestApp.StaticLoggingMiddleware", StringComparison.Ordinal), Is.False);
     }
 }

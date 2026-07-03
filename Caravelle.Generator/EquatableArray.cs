@@ -8,7 +8,7 @@ namespace Caravelle.Generator;
 // Grabbed from https://github.com/andrewlock/NetEscapades.EnumGenerators
 
 /// <summary>
-/// An immutable, equatable array. This is equivalent to <see cref="ImmutableArray{T}"/> but with value equality support.
+/// An immutable, equatable array. This is equivalent to <see cref="System.Collections.Immutable.ImmutableArray{T}"/> but with value equality support.
 /// </summary>
 /// <typeparam name="T">The type of values in the array.</typeparam>
 public readonly struct EquatableArray<T> : IEquatable<EquatableArray<T>>, IReadOnlyCollection<T>

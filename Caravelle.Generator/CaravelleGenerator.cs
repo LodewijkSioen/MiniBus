@@ -3,21 +3,66 @@ using Microsoft.CodeAnalysis.CSharp.Syntax;
 using System.Security.Cryptography;
 using System.Text;
 using System.Linq;
+using Caravelle.Generator.Middleware;
+using Caravelle.Generator.SourceBuilders;
+using Caravelle.Generator.Handler;
 
 namespace Caravelle.Generator;
 
 [Generator]
-public class HandlerGenerator : IIncrementalGenerator
+public class CaravelleGenerator : IIncrementalGenerator
 {
     private const string HandlerAttributeFqn = "Caravelle.HandlerAttribute";
+    private const string MiddlewareAttributeFqn = "Caravelle.MiddlewareAttribute`1";
 
     public void Initialize(IncrementalGeneratorInitializationContext context)
     {
+        var allMiddleware = context.SyntaxProvider
+            .ForAttributeWithMetadataName(
+                MiddlewareAttributeFqn,
+                predicate: static (node, _) => node is ClassDeclarationSyntax,
+                transform: static (ctx, ct) => MiddlewareModelFactory.GetMiddlewareModel(ctx, ct))
+            .Collect()
+            .Select(static (results, _) => MiddlewareModelFactory.Merge(results));
+
         var results = context.SyntaxProvider
             .ForAttributeWithMetadataName(
                 HandlerAttributeFqn,
                 predicate: static (node, _) => node is ClassDeclarationSyntax,
-                transform: static (ctx, ct) => HandlerModelFactory.GetHandlerModel(ctx, ct));
+                transform: static (ctx, ct) => ctx)
+            .Combine(allMiddleware)
+            .Select(static (pair, ct) => HandlerModelFactory.GetHandlerModel(pair.Left, pair.Right.Models, ct));
+
+        // No source is emitted for middleware classes themselves yet — discovery-time
+        // diagnostics (generic/nested middleware, unrecognized filters) are reported here;
+        // matching middleware phases into handler dispatchers happens in a later phase.
+        context.RegisterSourceOutput(allMiddleware, static (spc, result) =>
+        {
+            foreach (var diagnostic in result.Diagnostics)
+                spc.ReportDiagnostic(diagnostic.ToDiagnostic());
+        });
+
+        // A middleware that never matched any handler across the whole compilation is
+        // almost certainly a mistake (typo'd filter, moved/renamed target type, etc.) —
+        // warn once per unmatched middleware (MBG014).
+        context.RegisterSourceOutput(results.Collect().Combine(allMiddleware), static (spc, pair) =>
+        {
+            var matchedNames = new System.Collections.Generic.HashSet<string>(
+                pair.Left
+                    .Where(static r => r.Model is not null)
+                    .SelectMany(static r => r.Model!.MatchedMiddlewareClassNames),
+                System.StringComparer.Ordinal);
+
+            foreach (var middleware in pair.Right.Models)
+            {
+                if (!matchedNames.Contains(middleware.FullClassName))
+                {
+                    spc.ReportDiagnostic(Diagnostics.MiddlewareMatchedNoHandlers(
+                        location: Location.None,
+                        fullMiddlewareName: middleware.FullClassName).ToDiagnostic());
+                }
+            }
+        });
 
         // One file per handler: dispatcher class + typed Caravelle extension method
         context.RegisterSourceOutput(results, static (spc, result) =>

@@ -1,9 +1,11 @@
+using Caravelle.Generator.Handler;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Security.Cryptography;
 using System.Text;
 
-namespace Caravelle.Generator;
+namespace Caravelle.Generator.SourceBuilders;
 
 public static class DispatcherSourceBuilder
 {
@@ -35,18 +37,33 @@ public static class DispatcherSourceBuilder
         if (!model.HasSingleResultType)
             ResultTypeSourceBuilder.Build(sb, model, i);
 
+        // Only non-static middleware-owned phases need a DI-resolved instance field —
+        // static middleware methods are called directly via the middleware's type name,
+        // same as static handler methods. Ordered by type name for deterministic output.
+        var middlewareFieldNames = model.Phases
+            .Concat(model.FinallyPhases)
+            .Where(static p => p.OwnerTypeFullName is not null && !p.IsStatic)
+            .Select(static p => p.OwnerTypeFullName!)
+            .Distinct(StringComparer.Ordinal)
+            .OrderBy(static t => t, StringComparer.Ordinal)
+            .ToDictionary(static t => t, GetMiddlewareFieldName, StringComparer.Ordinal);
+
         if (model.HasInstanceMethods)
             sb.AppendLine($"{i}    private readonly {model.FullClassName} _handler;");
+        foreach (var middlewareField in middlewareFieldNames)
+            sb.AppendLine($"{i}    private readonly {middlewareField.Key} {middlewareField.Value};");
         if (model.HasFromServicesParameters)
             sb.AppendLine($"{i}    private readonly global::System.IServiceProvider _serviceProvider;");
 
-        if (model.HasInstanceMethods || model.HasFromServicesParameters)
+        if (model.HasInstanceMethods || middlewareFieldNames.Count > 0 || model.HasFromServicesParameters)
         {
             sb.AppendLine();
 
             var ctorParameters = new List<string>();
             if (model.HasInstanceMethods)
                 ctorParameters.Add($"{model.FullClassName} handler");
+            foreach (var middlewareField in middlewareFieldNames)
+                ctorParameters.Add($"{middlewareField.Key} {middlewareField.Value.TrimStart('_')}");
             if (model.HasFromServicesParameters)
                 ctorParameters.Add("global::System.IServiceProvider serviceProvider");
 
@@ -54,6 +71,8 @@ public static class DispatcherSourceBuilder
             sb.AppendLine($"{i}    {{");
             if (model.HasInstanceMethods)
                 sb.AppendLine($"{i}        _handler = handler;");
+            foreach (var middlewareField in middlewareFieldNames)
+                sb.AppendLine($"{i}        {middlewareField.Value} = {middlewareField.Value.TrimStart('_')};");
             if (model.HasFromServicesParameters)
                 sb.AppendLine($"{i}        _serviceProvider = serviceProvider;");
             sb.AppendLine($"{i}    }}");
@@ -111,13 +130,13 @@ public static class DispatcherSourceBuilder
             switch (phase.Type)
             {
                 case PhaseType.Before:
-                    BuildPipelinePhase(sb, model, phase, taskWrap, taskClose, phaseIndent, hoistedTypes);
+                    BuildPipelinePhase(sb, model, phase, taskWrap, taskClose, phaseIndent, hoistedTypes, middlewareFieldNames);
                     break;
                 case PhaseType.Handle:
                     responseLocalName = BuildHandlePhase(sb, model, phase, taskWrap, taskClose, phaseIndent, hoistedTypes);
                     break;
                 case PhaseType.After:
-                    BuildPipelinePhase(sb, model, phase, taskWrap, taskClose, phaseIndent, hoistedTypes);
+                    BuildPipelinePhase(sb, model, phase, taskWrap, taskClose, phaseIndent, hoistedTypes, middlewareFieldNames);
                     break;
             }
         }
@@ -136,7 +155,7 @@ public static class DispatcherSourceBuilder
             sb.AppendLine($"{i}        {{");
             foreach (var finallyPhase in finallyPhases)
             {
-                BuildFinallyPhase(sb, model, finallyPhase, i, hoistedLocalNames);
+                BuildFinallyPhase(sb, model, finallyPhase, i, hoistedLocalNames, middlewareFieldNames);
             }
             sb.AppendLine($"{i}        }}");
         }
@@ -148,12 +167,75 @@ public static class DispatcherSourceBuilder
         return sb.ToString();
     }
 
-    private static void BuildPipelinePhase(StringBuilder sb, HandlerModel model, MethodPhase phase, string taskWrap, string taskClose, string indent, HashSet<string> hoistedTypes)
+    /// <summary>
+    /// Resolves the call target for a phase: the middleware's type name for a static
+    /// middleware method, a dedicated DI-resolved field for an instance middleware method,
+    /// the handler's own type name for a static handler method, or <c>_handler</c> for an
+    /// own-class/inherited instance method (unchanged from before middleware support).
+    /// </summary>
+    private static string GetMethodTarget(HandlerModel model, MethodPhase phase, IReadOnlyDictionary<string, string> middlewareFieldNames)
+    {
+        if (phase.OwnerTypeFullName is { } ownerType)
+            return phase.IsStatic ? ownerType : middlewareFieldNames[ownerType];
+
+        return phase.IsStatic ? model.FullClassName : "_handler";
+    }
+
+    private static string GetMiddlewareFieldName(string fullTypeName)
+    {
+        using var sha = SHA256.Create();
+        var hashBytes = sha.ComputeHash(Encoding.UTF8.GetBytes(fullTypeName));
+        var chars = new char[8];
+        for (var i = 0; i < 4; i++)
+        {
+            var b = hashBytes[i];
+            chars[i * 2] = ToHexChar((b >> 4) & 0xF);
+            chars[i * 2 + 1] = ToHexChar(b & 0xF);
+        }
+
+        return $"_{GetShortTypeName(fullTypeName)}_{new string(chars)}";
+    }
+
+    /// <summary>
+    /// Extracts a camelCase field-friendly name from a fully-qualified type name (e.g.
+    /// <c>global::MyApp.Middleware.LoggingMiddleware</c> → <c>loggingMiddleware</c>) for
+    /// use as a readable part of the generated field name.
+    /// </summary>
+    private static string GetShortTypeName(string fullTypeName)
+    {
+        var name = fullTypeName;
+
+        const string globalPrefix = "global::";
+        if (name.StartsWith(globalPrefix, StringComparison.Ordinal))
+            name = name.Substring(globalPrefix.Length);
+
+        var lastDot = name.LastIndexOf('.');
+        if (lastDot >= 0)
+            name = name.Substring(lastDot + 1);
+
+        var genericIndex = name.IndexOf('<');
+        if (genericIndex >= 0)
+            name = name.Substring(0, genericIndex);
+
+        return name.Length > 0 ? char.ToLowerInvariant(name[0]) + name.Substring(1) : name;
+    }
+
+    private static char ToHexChar(int value) =>
+        (char)(value < 10 ? '0' + value : 'a' + (value - 10));
+
+
+    private static void BuildPipelinePhase(StringBuilder sb, HandlerModel model, MethodPhase phase, string taskWrap, string taskClose, string indent, HashSet<string> hoistedTypes, IReadOnlyDictionary<string, string> middlewareFieldNames)
     {
         var awaitPrefix = phase.IsAsync ? "await " : "";
         var callArguments = string.Join(", ", BuildCallArguments(phase, model.LocalVariables));
-        var methodTarget = phase.IsStatic ? model.FullClassName : "_handler";
-        if (phase.Returns.Count > 1)
+        var methodTarget = GetMethodTarget(model, phase, middlewareFieldNames);
+        if (phase.Returns.Count == 0)
+        {
+            // void / non-generic Task before/after-handle method: nothing to assign, just
+            // invoke it for its side effect.
+            sb.AppendLine($"{indent}        {awaitPrefix}{methodTarget}.{phase.MethodName}({callArguments});");
+        }
+        else if (phase.Returns.Count > 1)
         {
             var hasHoistedReturns = phase.Returns.Any(e => hoistedTypes.Contains(e.FullType));
             if (!hasHoistedReturns)
@@ -287,11 +369,11 @@ public static class DispatcherSourceBuilder
         }
     }
 
-    private static void BuildFinallyPhase(StringBuilder sb, HandlerModel model, MethodPhase finallyPhase, string indent, IReadOnlyDictionary<string, string> hoistedLocalNames)
+    private static void BuildFinallyPhase(StringBuilder sb, HandlerModel model, MethodPhase finallyPhase, string indent, IReadOnlyDictionary<string, string> hoistedLocalNames, IReadOnlyDictionary<string, string> middlewareFieldNames)
     {
         var awaitPrefix = finallyPhase.IsAsync ? "await " : "";
         var callArguments = string.Join(", ", BuildFinallyCallArguments(finallyPhase, model.LocalVariables, hoistedLocalNames));
-        var methodTarget = finallyPhase.IsStatic ? model.FullClassName : "_handler";
+        var methodTarget = GetMethodTarget(model, finallyPhase, middlewareFieldNames);
         sb.AppendLine($"{indent}            {awaitPrefix}{methodTarget}.{finallyPhase.MethodName}({callArguments});");
     }
 
