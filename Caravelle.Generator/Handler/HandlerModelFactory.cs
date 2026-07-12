@@ -585,10 +585,11 @@ public static class HandlerModelFactory
 
     private static bool IsHandleMethodName(string methodName)
     {
-        return methodName == "Handle"
-            || methodName == "HandleAsync"
-            || methodName == "Execute"
-            || methodName == "ExecuteAsync";
+        return methodName 
+            is "Handle" 
+            or "HandleAsync" 
+            or "Execute" 
+            or "ExecuteAsync";
     }
 
     private static bool InferRequestType(
@@ -622,5 +623,4 @@ public static class HandlerModelFactory
         requestType = null;
         return false;
     }
-
 }

@@ -23,13 +23,13 @@ public static class DispatcherSourceBuilder
         var asyncKeyword = model.IsAnyAsync ? "async " : "";
         var taskWrap = model.IsAnyAsync ? "" : "global::System.Threading.Tasks.Task.FromResult(";
         var taskClose = model.IsAnyAsync ? "" : ")";
+        var implementsResultType = model.HasSingleResultType ? model.ResultTypeName : model.ClassName + "Dispatcher.Result";
 
         if (inNs) { sb.AppendLine($"namespace {model.Namespace}"); sb.AppendLine("{"); }
 
         sb.AppendLine($"{i}public sealed class {model.ClassName}Dispatcher");
         sb.AppendLine($"{i}    : global::Caravelle.IDispatcher<");
         sb.AppendLine($"{i}        {model.FullRequestType},");
-        var implementsResultType = model.HasSingleResultType ? model.ResultTypeName : model.ClassName + "Dispatcher.Result";
         sb.AppendLine($"{i}        {implementsResultType}>");
         sb.AppendLine($"{i}{{");
 

@@ -33,7 +33,9 @@ public enum PhaseType
 
 public sealed record MethodPhase
 {
-    public MethodPhase(PhaseType type, string methodName, bool isAsync,
+    public MethodPhase(PhaseType type, 
+        string methodName, 
+        bool isAsync,
         bool isStatic,
         EquatableArray<InputParameter> parameters,
         EquatableArray<ReturnElement> returns)
@@ -56,10 +58,7 @@ public sealed record MethodPhase
         var parameters = new List<InputParameter>();
         foreach (var parameter in methodSymbol.Parameters)
         {
-            var isNullable = parameter.NullableAnnotation == NullableAnnotation.Annotated;
-            var nonNullable = isNullable
-                ? parameter.Type.WithNullableAnnotation(NullableAnnotation.NotAnnotated)
-                : parameter.Type;
+            var nonNullable = Helpers.StripNullable(parameter.Type, out var isNullable);
             var fullType = nonNullable.ToDisplayString(format);
 
             var req = parameter.GetAttributes().FirstOrDefault(static a =>
@@ -98,10 +97,7 @@ public sealed record MethodPhase
             foreach (var elem in tupleType.TupleElements)
             {
                 var elemType = elem.Type;
-                var isNullable = elemType.NullableAnnotation == NullableAnnotation.Annotated;
-                var nonNullType = isNullable
-                    ? elemType.WithNullableAnnotation(NullableAnnotation.NotAnnotated)
-                    : elemType;
+                var nonNullType = Helpers.StripNullable(elemType, out var isNullable);
                 var fullType = nonNullType.ToDisplayString(format);
                 var isResultType = ImplementsResultInterface(nonNullType);
                 var requiresNullCheck = isNullable || !nonNullType.IsValueType;
@@ -116,10 +112,7 @@ public sealed record MethodPhase
         }
         else
         {
-            var isNullable = innerType.NullableAnnotation == NullableAnnotation.Annotated;
-            var nonNullable = isNullable
-                ? innerType.WithNullableAnnotation(NullableAnnotation.NotAnnotated)
-                : innerType;
+            var nonNullable = Helpers.StripNullable(innerType, out var isNullable);
             var fullType = nonNullable.ToDisplayString(format);
             var isResultType = ImplementsResultInterface(nonNullable);
             var requiresNullCheck = isNullable || !nonNullable.IsValueType;
@@ -154,11 +147,6 @@ public sealed record MethodPhase
         return (returnType, false);
     }
 
-    private static ITypeSymbol StripNullable(ITypeSymbol type) =>
-        type.NullableAnnotation == NullableAnnotation.Annotated
-            ? type.WithNullableAnnotation(NullableAnnotation.NotAnnotated)
-            : type;
-
     /// <summary>
     /// Returns the unwrapped (Task-stripped, nullable-stripped, tuple-deconstructed) return
     /// type symbols of <paramref name="methodSymbol"/> — the same set of types that would
@@ -179,11 +167,11 @@ public sealed record MethodPhase
         if (innerType is INamedTypeSymbol { IsTupleType: true } tupleType)
         {
             foreach (var elem in tupleType.TupleElements)
-                yield return StripNullable(elem.Type);
+                yield return Helpers.StripNullable(elem.Type, out _);
         }
         else
         {
-            yield return StripNullable(innerType);
+            yield return Helpers.StripNullable(innerType, out _);
         }
     }
 
@@ -193,7 +181,7 @@ public sealed record MethodPhase
     /// closures for middleware filter matching.
     /// </summary>
     internal static IEnumerable<ITypeSymbol> GetParameterTypeSymbols(IMethodSymbol methodSymbol) =>
-        methodSymbol.Parameters.Select(static p => StripNullable(p.Type));
+        methodSymbol.Parameters.Select(static p => Helpers.StripNullable(p.Type, out _));
 
     /// <summary>
     /// Computes the set of fully-qualified type names that <paramref name="type"/> is

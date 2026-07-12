@@ -27,7 +27,7 @@ public class CaravelleGenerator : IIncrementalGenerator
             .ForAttributeWithMetadataName(
                 HandlerAttributeFqn,
                 predicate: static (node, _) => node is ClassDeclarationSyntax,
-                transform: static (ctx, ct) => ctx)
+                transform: static (ctx, _) => ctx)
             .Combine(allMiddleware)
             .Select(static (pair, ct) => HandlerModelFactory.GetHandlerModel(pair.Left, pair.Right.Models, ct));
 

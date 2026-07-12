@@ -135,6 +135,13 @@ internal static class Helpers
         return false;
     }
 
+    internal static ITypeSymbol StripNullable(ITypeSymbol type, out bool isNullable)
+    {
+        isNullable = type.NullableAnnotation == NullableAnnotation.Annotated;
+        return isNullable ? type.WithNullableAnnotation(NullableAnnotation.NotAnnotated)
+            : type;
+    }
+
     internal static string GetHashForTypeName(string typeName)
     {
         using var sha = SHA256.Create();
