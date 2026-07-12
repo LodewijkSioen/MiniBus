@@ -7,7 +7,7 @@ namespace Caravelle;
 /// independent applicability rules (a handler matching any one of them is enough) —
 /// use <see cref="AllHandlers"/> to apply to every handler in the compilation.
 /// </summary>
-[AttributeUsage(AttributeTargets.Class)]
+[AttributeUsage(AttributeTargets.Class, AllowMultiple = true)]
 public sealed class MiddlewareAttribute<TFilter> : Attribute
     where TFilter : IMiddlewareFilter;
 
