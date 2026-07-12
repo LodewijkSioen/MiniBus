@@ -218,6 +218,43 @@ public class HasNullableLoadHandler
     public Response Handle(Entity entity) => new Response(entity.Id);
 }
 
+// ── Multiple [Middleware<TFilter>] attributes on the same class: independent
+// applicability rules with OR semantics (matching any one is enough) ────────
+
+public interface IFirstOrMarker;
+public interface ISecondOrMarker;
+
+[Middleware<ForInterface<IFirstOrMarker>>]
+[Middleware<ForInterface<ISecondOrMarker>>]
+public class MultiFilterMiddleware
+{
+    public void BeforeMultiFilterCheck(IMiddlewareOrderProbe probe) => probe.Record("MultiFilterCheck");
+}
+
+[Handler]
+public class MatchesFirstOrFilterHandler : IFirstOrMarker
+{
+    public record Request(int Id);
+    public record Response(int Id);
+    public Response Handle(Request request) => new Response(request.Id);
+}
+
+[Handler]
+public class MatchesSecondOrFilterHandler : ISecondOrMarker
+{
+    public record Request(int Id);
+    public record Response(int Id);
+    public Response Handle(Request request) => new Response(request.Id);
+}
+
+[Handler]
+public class MatchesNeitherOrFilterHandler
+{
+    public record Request(int Id);
+    public record Response(int Id);
+    public Response Handle(Request request) => new Response(request.Id);
+}
+
 // ── DI lifetime: a middleware-resolved scoped service must be the same instance
 // visible elsewhere in the same scope (proves AddTransient<Middleware> still
 // resolves its own dependencies against the ambient scope) ──────────────────
@@ -367,6 +404,20 @@ public class MiddlewareAttributeIntegrationTests
         await bus.Handle(new NotSpecificallyTargetedHandler.Request(1));
 
         Assert.That(probe.Order.Count(step => step == "SpecificCheck"), Is.EqualTo(1));
+    }
+
+    [Test]
+    public async Task MultipleMiddlewareAttributes_OnSameClass_ApplyWithOrSemantics()
+    {
+        using var scope = AppUnderTest.Services.CreateScope();
+        var bus = scope.ServiceProvider.GetRequiredService<Bus>();
+        var probe = scope.ServiceProvider.GetRequiredService<IMiddlewareOrderProbe>();
+
+        await bus.Handle(new MatchesFirstOrFilterHandler.Request(1));
+        await bus.Handle(new MatchesSecondOrFilterHandler.Request(1));
+        await bus.Handle(new MatchesNeitherOrFilterHandler.Request(1));
+
+        Assert.That(probe.Order.Count(step => step == "MultiFilterCheck"), Is.EqualTo(2));
     }
 
     [Test]
