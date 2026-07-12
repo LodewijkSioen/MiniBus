@@ -43,8 +43,7 @@
             IsNullable: false,
             IsResultType: true,
             RequiresNullCheck: true,
-            NonNullLocalName: fromValidate,
-            IsValidationResult: true
+            NonNullLocalName: fromValidate
           }
         ]
       },
@@ -76,8 +75,7 @@
             IsNullable: false,
             IsResultType: false,
             RequiresNullCheck: true,
-            NonNullLocalName: fromHandle,
-            IsValidationResult: false
+            NonNullLocalName: fromHandle
           }
         ]
       }
@@ -99,6 +97,8 @@
         CheckNullability: false
       }
     ],
+    FinallyPhases: null,
+    MatchedMiddlewareClassNames: null,
     DispatcherFullName: global::TestApp.ConventionDiHandlerDispatcher,
     DispatcherKey: global::TestApp.ConventionDiHandler.Request|global::TestApp.ConventionDiHandler.Response,
     IsAnyAsync: false,

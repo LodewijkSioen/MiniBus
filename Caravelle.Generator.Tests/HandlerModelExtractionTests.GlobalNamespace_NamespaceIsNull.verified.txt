@@ -32,8 +32,7 @@
             IsNullable: false,
             IsResultType: false,
             RequiresNullCheck: true,
-            NonNullLocalName: fromHandle,
-            IsValidationResult: false
+            NonNullLocalName: fromHandle
           }
         ]
       }
@@ -50,6 +49,8 @@
         CheckNullability: false
       }
     ],
+    FinallyPhases: null,
+    MatchedMiddlewareClassNames: null,
     DispatcherFullName: global::GlobalHandlerDispatcher,
     DispatcherKey: global::GlobalHandler.Request|global::GlobalHandler.Response,
     IsAnyAsync: true,

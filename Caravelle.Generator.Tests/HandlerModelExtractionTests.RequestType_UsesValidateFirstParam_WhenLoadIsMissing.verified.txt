@@ -36,8 +36,7 @@
             IsNullable: false,
             IsResultType: true,
             RequiresNullCheck: true,
-            NonNullLocalName: fromValidate,
-            IsValidationResult: true
+            NonNullLocalName: fromValidate
           }
         ]
       },
@@ -69,8 +68,7 @@
             IsNullable: false,
             IsResultType: false,
             RequiresNullCheck: true,
-            NonNullLocalName: fromHandle,
-            IsValidationResult: false
+            NonNullLocalName: fromHandle
           }
         ]
       }
@@ -92,6 +90,8 @@
         CheckNullability: false
       }
     ],
+    FinallyPhases: null,
+    MatchedMiddlewareClassNames: null,
     DispatcherFullName: global::TestApp.ValidateRequestTypeHandlerDispatcher,
     DispatcherKey: global::TestApp.ValidateRequestTypeHandler.Command|global::TestApp.ValidateRequestTypeHandler.Response,
     IsAnyAsync: true,

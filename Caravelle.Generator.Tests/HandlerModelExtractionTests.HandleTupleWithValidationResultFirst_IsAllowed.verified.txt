@@ -33,8 +33,7 @@
             IsNullable: false,
             IsResultType: true,
             RequiresNullCheck: true,
-            NonNullLocalName: validationHandle,
-            IsValidationResult: true
+            NonNullLocalName: validationHandle
           },
           {
             LocalName: responseHandle,
@@ -42,8 +41,7 @@
             IsNullable: false,
             IsResultType: false,
             RequiresNullCheck: true,
-            NonNullLocalName: responseHandle,
-            IsValidationResult: false
+            NonNullLocalName: responseHandle
           }
         ]
       }
@@ -65,6 +63,8 @@
         CheckNullability: false
       }
     ],
+    FinallyPhases: null,
+    MatchedMiddlewareClassNames: null,
     DispatcherFullName: global::TestApp.InvalidHandleTupleHandlerDispatcher,
     DispatcherKey: global::TestApp.InvalidHandleTupleHandler.Request|global::Caravelle.ValidationResult,
     IsAnyAsync: false,

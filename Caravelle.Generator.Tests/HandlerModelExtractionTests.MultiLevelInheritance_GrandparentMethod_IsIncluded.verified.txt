@@ -1,0 +1,101 @@
+﻿{
+  Model: {
+    Namespace: TestApp,
+    ClassName: GrandparentHandler,
+    FullClassName: global::TestApp.GrandparentHandler,
+    FullRequestType: global::TestApp.Request,
+    FullResponseType: global::TestApp.Response,
+    ResultValueTypes: [
+      {
+        FullType: global::TestApp.Response,
+        RequiresNullCheck: true
+      }
+    ],
+    Phases: [
+      {
+        MethodName: BeforeTrace,
+        IsAsync: false,
+        IsStatic: false,
+        Parameters: [
+          {
+            LocalName: request,
+            FullType: global::TestApp.Request,
+            IsNullable: false,
+            NotNullMessage: request cannot be null,
+            IsFromServices: false
+          }
+        ],
+        Returns: [
+          {
+            LocalName: fromBeforeTrace,
+            FullType: global::TestApp.Traced,
+            IsNullable: false,
+            IsResultType: false,
+            RequiresNullCheck: true,
+            NonNullLocalName: fromBeforeTrace
+          }
+        ]
+      },
+      {
+        Type: Handle,
+        MethodName: Handle,
+        IsAsync: false,
+        IsStatic: false,
+        Parameters: [
+          {
+            LocalName: request,
+            FullType: global::TestApp.Request,
+            IsNullable: false,
+            NotNullMessage: request cannot be null,
+            IsFromServices: false
+          },
+          {
+            LocalName: traced,
+            FullType: global::TestApp.Traced,
+            IsNullable: false,
+            NotNullMessage: traced cannot be null,
+            IsFromServices: false
+          }
+        ],
+        Returns: [
+          {
+            LocalName: fromHandle,
+            FullType: global::TestApp.Response,
+            IsNullable: false,
+            IsResultType: false,
+            RequiresNullCheck: true,
+            NonNullLocalName: fromHandle
+          }
+        ]
+      }
+    ],
+    LocalVariables: [
+      {
+        LocalName: fromBeforeTrace,
+        FullType: global::TestApp.Traced,
+        CheckNullability: false,
+        IfNullErrorMessage: traced cannot be null
+      },
+      {
+        LocalName: fromHandle,
+        FullType: global::TestApp.Response,
+        CheckNullability: false
+      },
+      {
+        LocalName: request,
+        FullType: global::TestApp.Request,
+        CheckNullability: false
+      }
+    ],
+    FinallyPhases: null,
+    MatchedMiddlewareClassNames: null,
+    DispatcherFullName: global::TestApp.GrandparentHandlerDispatcher,
+    DispatcherKey: global::TestApp.Request|global::TestApp.Response,
+    IsAnyAsync: false,
+    HasInstanceMethods: true,
+    HasFromServicesParameters: false,
+    HasSingleResultType: true,
+    ResultTypeName: global::TestApp.Response
+  },
+  Diagnostics: null
+}

@@ -1,0 +1,97 @@
+﻿{
+  Model: {
+    Namespace: TestApp,
+    ClassName: OwnFinallyHandler,
+    FullClassName: global::TestApp.OwnFinallyHandler,
+    FullRequestType: global::TestApp.Request,
+    FullResponseType: global::TestApp.Response,
+    ResultValueTypes: [
+      {
+        FullType: global::TestApp.Response,
+        RequiresNullCheck: true
+      }
+    ],
+    Phases: [
+      {
+        Type: Handle,
+        MethodName: Handle,
+        IsAsync: false,
+        IsStatic: false,
+        Parameters: [
+          {
+            LocalName: request,
+            FullType: global::TestApp.Request,
+            IsNullable: false,
+            NotNullMessage: request cannot be null,
+            IsFromServices: false
+          }
+        ],
+        Returns: [
+          {
+            LocalName: fromHandle,
+            FullType: global::TestApp.Response,
+            IsNullable: false,
+            IsResultType: false,
+            RequiresNullCheck: true,
+            NonNullLocalName: fromHandle
+          }
+        ]
+      }
+    ],
+    LocalVariables: [
+      {
+        LocalName: fromHandle,
+        FullType: global::TestApp.Response,
+        CheckNullability: false
+      },
+      {
+        LocalName: request,
+        FullType: global::TestApp.Request,
+        CheckNullability: false
+      }
+    ],
+    FinallyPhases: [
+      {
+        Type: Finally,
+        MethodName: FinallyAsync,
+        IsAsync: true,
+        IsStatic: false,
+        Parameters: [
+          {
+            LocalName: request,
+            FullType: global::TestApp.Request,
+            IsNullable: false,
+            NotNullMessage: request cannot be null,
+            IsFromServices: false
+          }
+        ],
+        Returns: null
+      },
+      {
+        Type: Finally,
+        MethodName: Finally,
+        IsAsync: false,
+        IsStatic: false,
+        Parameters: [
+          {
+            LocalName: request,
+            FullType: global::TestApp.Request,
+            IsNullable: false,
+            NotNullMessage: request cannot be null,
+            IsFromServices: false
+          }
+        ],
+        Returns: null
+      }
+    ],
+    MatchedMiddlewareClassNames: null,
+    DispatcherFullName: global::TestApp.OwnFinallyHandlerDispatcher,
+    DispatcherKey: global::TestApp.Request|global::TestApp.Response,
+    IsAnyAsync: true,
+    HasInstanceMethods: true,
+    HasFromServicesParameters: false,
+    HasSingleResultType: true,
+    ResultTypeName: global::TestApp.Response
+  },
+  Diagnostics: null
+}

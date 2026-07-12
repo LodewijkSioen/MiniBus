@@ -36,8 +36,7 @@
             IsNullable: true,
             IsResultType: false,
             RequiresNullCheck: true,
-            NonNullLocalName: entityLoadValue,
-            IsValidationResult: false
+            NonNullLocalName: entityLoadValue
           },
           {
             LocalName: configLoad,
@@ -45,8 +44,7 @@
             IsNullable: true,
             IsResultType: false,
             RequiresNullCheck: true,
-            NonNullLocalName: configLoadValue,
-            IsValidationResult: false
+            NonNullLocalName: configLoadValue
           }
         ]
       },
@@ -78,8 +76,7 @@
             IsNullable: false,
             IsResultType: false,
             RequiresNullCheck: true,
-            NonNullLocalName: fromHandle,
-            IsValidationResult: false
+            NonNullLocalName: fromHandle
           }
         ]
       }
@@ -108,6 +105,8 @@
         CheckNullability: false
       }
     ],
+    FinallyPhases: null,
+    MatchedMiddlewareClassNames: null,
     DispatcherFullName: global::TestApp.TupleHandlerDispatcher,
     DispatcherKey: global::TestApp.TupleHandler.Request|global::TestApp.TupleHandler.Response,
     IsAnyAsync: true,

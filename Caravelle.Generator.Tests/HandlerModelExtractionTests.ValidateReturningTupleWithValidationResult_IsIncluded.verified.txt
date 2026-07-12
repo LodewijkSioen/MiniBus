@@ -36,8 +36,7 @@
             IsNullable: false,
             IsResultType: true,
             RequiresNullCheck: true,
-            NonNullLocalName: validationValidate,
-            IsValidationResult: true
+            NonNullLocalName: validationValidate
           },
           {
             LocalName: payloadValidate,
@@ -45,8 +44,7 @@
             IsNullable: false,
             IsResultType: false,
             RequiresNullCheck: true,
-            NonNullLocalName: payloadValidate,
-            IsValidationResult: false
+            NonNullLocalName: payloadValidate
           }
         ]
       },
@@ -71,8 +69,7 @@
             IsNullable: false,
             IsResultType: false,
             RequiresNullCheck: true,
-            NonNullLocalName: fromHandle,
-            IsValidationResult: false
+            NonNullLocalName: fromHandle
           }
         ]
       }
@@ -100,6 +97,8 @@
         CheckNullability: false
       }
     ],
+    FinallyPhases: null,
+    MatchedMiddlewareClassNames: null,
     DispatcherFullName: global::TestApp.ValidateTupleHandlerDispatcher,
     DispatcherKey: global::TestApp.ValidateTupleHandler.Request|global::TestApp.ValidateTupleHandler.Response,
     IsAnyAsync: true,

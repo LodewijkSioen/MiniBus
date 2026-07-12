@@ -86,6 +86,52 @@ their dependencies:
 - The dispatcher returns success only after all post-handle methods complete
 
 Each pre-handle and post-handle method is optional and may be sync or async.
+A pre-handle or post-handle method may also return `void` or a non-generic
+`Task` when it has no value to contribute to the pipeline (for example a
+logging or auditing step) — only the `Handle` entry method itself is required
+to produce a response value.
+
+### Reusable pipeline methods (middleware via inheritance)
+
+Pre-handle, post-handle, and `Finally` methods don't have to live directly on
+the `[Handler]` class. They can be declared on a shared base class instead, so
+common cross-cutting logic (logging, auditing, validation, ...) can be written
+once and reused across multiple handlers:
+
+```csharp
+public abstract class AuditMiddlewareBase
+{
+    public LoggedRequest BeforeAudit(Request request) => ...;
+}
+
+[Handler]
+public class GetItemHandler : AuditMiddlewareBase
+{
+    public Task<Response> Handle(Request request, LoggedRequest loggedRequest) => ...;
+}
+```
+
+- The generator walks the full base-type chain (up to but excluding
+  `object`), so middleware can also live several levels up an inheritance
+  hierarchy.
+- `Handle` itself is never inherited — it must be declared directly on the
+  `[Handler]` class.
+- If a method is overridden (or hidden with `new`) further down the chain,
+  only the most-derived declaration is used.
+- Execution follows an "onion" order: inherited pre-handle methods run
+  *before* the handler's own pre-handle methods, while inherited post-handle
+  and `Finally` methods run *after* the handler's own ones (mirroring
+  try/finally stack-unwind order). Multiple `Finally` methods across the
+  chain are all executed, in that same own-first, ancestor-last order.
+- Inherited pre-handle/post-handle/`Finally` methods must be `public` or
+  `internal` — a `private` or `protected` inherited method is not reachable
+  from the generated dispatcher and reports MBG009.
+- The request type can only be inferred from the `[Handler]` class's own
+  methods (`Handle`, plus any of its own pre-handle/post-handle methods).
+  Inherited methods still fully participate in the pipeline, but an inherited
+  method's parameter is never used to determine the request type — the
+  concrete handler must reference the request type directly somewhere in its
+  own declared methods.
 
 Special cases:
 - If the return value is nullable and the dependent method defines that type
@@ -99,6 +145,64 @@ Special cases:
 - If `Handle` returns a tuple, the first tuple element is used as the response
   value and the remaining elements can still participate in validation checks.
 - Post-handle methods do not replace the response payload. The successful response value still comes from `Handle`.
+
+### Reusable middleware via `[Middleware<TFilter>]`
+
+Besides inheritance, cross-cutting pipeline logic can also be written once as a
+standalone class and applied to any set of handlers, selected declaratively by
+type rather than by base class:
+
+```csharp
+public interface IAdminHandler;
+
+[Middleware<ForInterface<IAdminHandler>>]
+public class AuditMiddleware
+{
+    public Task BeforeAudit(IAuditLog log) => log.RecordAsync();
+}
+
+[Handler]
+public class DeleteUserHandler : IAdminHandler
+{
+    public Task<Response> Handle(Request request) => ...;
+}
+```
+
+- A middleware class is any class decorated with one or more
+  `[Middleware<TFilter>]` attributes; its pre-handle, post-handle, and
+  `Finally` methods are discovered using the exact same naming conventions as
+  a handler's own pipeline methods.
+- `TFilter` decides which handlers the middleware applies to. Built-in
+  filters:
+
+  | Filter | Matches handlers... |
+  |---|---|
+  | `AllHandlers` | every handler in the compilation |
+  | `ForInterface<T>` | whose class implements `T` |
+  | `ForReturnType<T>` | whose result can be `T` (or assignable to it): the success response or any validation/not-found payload |
+  | `ForRequestType<T>` | whose inferred request type is `T` (or assignable to it) |
+  | `ForVariable<T>` | with a pipeline local variable of type `T` (or assignable to it) |
+  | `ForNamespaceOf<T>` | declared in the same namespace as `T` |
+  | `ForAssemblyOf<T>` | declared in the same assembly as `T` |
+  | `ForAttribute<TAttribute>` | decorated with `TAttribute` |
+  | `ForHandler<THandler>` | only the specific handler `THandler` |
+  | `HasValidation` | whose pipeline can produce an `IValidationResult` |
+  | `HasNotFound` | whose pipeline can short-circuit with a `NotFoundResult` |
+
+- Multiple `[Middleware<TFilter>]` attributes on the same class are
+  independent applicability rules — a handler matching *any one* of them is
+  enough (OR semantics).
+- Middleware is the outermost onion layer: its pre-handle methods run
+  *before* both inherited and own-class pre-handle methods, while its
+  post-handle and `Finally` methods run *after* them — the reverse of the
+  inheritance onion order described above, since middleware wraps everything
+  else.
+- A pre-handle/post-handle middleware method may return `void`, a
+  non-generic `Task`, or a value, exactly like a handler's own pipeline
+  methods; `Finally` stays restricted to `void`/`Task`.
+- A middleware that matches no handler in the compilation is very likely a
+  mistake (a typo'd filter, a moved/renamed target type, ...) and reports a
+  warning (MBG014).
 
 ## Result model
 
@@ -144,10 +248,21 @@ The following handler patterns are not supported by source generation:
   Example: all method parameters are already satisfied by earlier pipeline outputs (MBG005).
 - Pipelines that produce duplicate local values of the same type.  
   Example: tuple outputs with two elements of the same type (MBG006).
-- Unsupported pre-handle, post-handle, or handle entry method return types.
-  Example: `void BeforeLoad(...)`, `void AfterAudit(...)`, or non-generic `Task ExecuteAsync(...)` (MBG007).
+- Unsupported handle entry method return types.
+  Example: non-generic `Task ExecuteAsync(...)` or `void Handle(...)` (MBG007). Pre-handle
+  and post-handle methods don't have this restriction — they may return `void` or a
+  non-generic `Task` as well as a value.
 - Cyclic dependencies between pipeline methods.  
   Example: `Load` depends on a type from `Validate` while `Validate` also depends on a type from `Load` (MBG008).
+- Inherited pre-handle, post-handle, or `Finally` methods that aren't reachable from the
+  generated dispatcher.
+  Example: a `private` or `protected` method on a base class matching a pipeline naming
+  convention (MBG009).
+- Generic or nested `[Middleware<TFilter>]` classes.
+  Generic middleware reports MBG011 and nested middleware reports MBG012.
+- Unrecognized middleware filter types.
+  A custom type implementing `IMiddlewareFilter` that isn't one of the filters listed above
+  is ignored (never matches any handler) and reports a warning (MBG013).
 
 Validation phases may return different `IValidationResult` implementations;
 each distinct concrete return type becomes an additional union possibility in

@@ -32,8 +32,7 @@
             IsNullable: false,
             IsResultType: false,
             RequiresNullCheck: true,
-            NonNullLocalName: fromValidate,
-            IsValidationResult: false
+            NonNullLocalName: fromValidate
           }
         ]
       },
@@ -58,8 +57,7 @@
             IsNullable: false,
             IsResultType: false,
             RequiresNullCheck: true,
-            NonNullLocalName: fromHandle,
-            IsValidationResult: false
+            NonNullLocalName: fromHandle
           }
         ]
       }
@@ -82,6 +80,8 @@
         CheckNullability: false
       }
     ],
+    FinallyPhases: null,
+    MatchedMiddlewareClassNames: null,
     DispatcherFullName: global::TestApp.NonValidationValidateHandlerDispatcher,
     DispatcherKey: global::TestApp.NonValidationValidateHandler.Request|global::TestApp.NonValidationValidateHandler.Response,
     IsAnyAsync: true,

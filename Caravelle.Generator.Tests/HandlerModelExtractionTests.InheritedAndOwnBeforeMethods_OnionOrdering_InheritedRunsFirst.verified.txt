@@ -1,0 +1,131 @@
+﻿{
+  Model: {
+    Namespace: TestApp,
+    ClassName: OnionBeforeHandler,
+    FullClassName: global::TestApp.OnionBeforeHandler,
+    FullRequestType: global::TestApp.Request,
+    FullResponseType: global::TestApp.Response,
+    ResultValueTypes: [
+      {
+        FullType: global::TestApp.Response,
+        RequiresNullCheck: true
+      }
+    ],
+    Phases: [
+      {
+        MethodName: BeforeLog,
+        IsAsync: false,
+        IsStatic: false,
+        Parameters: [
+          {
+            LocalName: request,
+            FullType: global::TestApp.Request,
+            IsNullable: false,
+            NotNullMessage: request cannot be null,
+            IsFromServices: false
+          }
+        ],
+        Returns: [
+          {
+            LocalName: fromBeforeLog,
+            FullType: global::TestApp.Logged,
+            IsNullable: false,
+            IsResultType: false,
+            RequiresNullCheck: true,
+            NonNullLocalName: fromBeforeLog
+          }
+        ]
+      },
+      {
+        MethodName: BeforeCheck,
+        IsAsync: false,
+        IsStatic: false,
+        Parameters: [
+          {
+            LocalName: request,
+            FullType: global::TestApp.Request,
+            IsNullable: false,
+            NotNullMessage: request cannot be null,
+            IsFromServices: false
+          }
+        ],
+        Returns: [
+          {
+            LocalName: fromBeforeCheck,
+            FullType: global::TestApp.Checked,
+            IsNullable: false,
+            IsResultType: false,
+            RequiresNullCheck: true,
+            NonNullLocalName: fromBeforeCheck
+          }
+        ]
+      },
+      {
+        Type: Handle,
+        MethodName: Handle,
+        IsAsync: false,
+        IsStatic: false,
+        Parameters: [
+          {
+            LocalName: logged,
+            FullType: global::TestApp.Logged,
+            IsNullable: false,
+            NotNullMessage: logged cannot be null,
+            IsFromServices: false
+          },
+          {
+            LocalName: checkedValue,
+            FullType: global::TestApp.Checked,
+            IsNullable: false,
+            NotNullMessage: checkedValue cannot be null,
+            IsFromServices: false
+          }
+        ],
+        Returns: [
+          {
+            LocalName: fromHandle,
+            FullType: global::TestApp.Response,
+            IsNullable: false,
+            IsResultType: false,
+            RequiresNullCheck: true,
+            NonNullLocalName: fromHandle
+          }
+        ]
+      }
+    ],
+    LocalVariables: [
+      {
+        LocalName: fromBeforeLog,
+        FullType: global::TestApp.Logged,
+        CheckNullability: false,
+        IfNullErrorMessage: logged cannot be null
+      },
+      {
+        LocalName: fromBeforeCheck,
+        FullType: global::TestApp.Checked,
+        CheckNullability: false,
+        IfNullErrorMessage: checkedValue cannot be null
+      },
+      {
+        LocalName: fromHandle,
+        FullType: global::TestApp.Response,
+        CheckNullability: false
+      },
+      {
+        LocalName: request,
+        FullType: global::TestApp.Request,
+        CheckNullability: false
+      }
+    ],
+    FinallyPhases: null,
+    MatchedMiddlewareClassNames: null,
+    DispatcherFullName: global::TestApp.OnionBeforeHandlerDispatcher,
+    DispatcherKey: global::TestApp.Request|global::TestApp.Response,
+    IsAnyAsync: false,
+    HasInstanceMethods: true,
+    HasFromServicesParameters: false,
+    HasSingleResultType: true,
+    ResultTypeName: global::TestApp.Response
+  },
+  Diagnostics: null
+}

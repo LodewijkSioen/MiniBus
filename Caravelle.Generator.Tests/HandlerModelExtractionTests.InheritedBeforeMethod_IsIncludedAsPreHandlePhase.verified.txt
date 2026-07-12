@@ -1,0 +1,101 @@
+﻿{
+  Model: {
+    Namespace: TestApp,
+    ClassName: InheritedBeforeHandler,
+    FullClassName: global::TestApp.InheritedBeforeHandler,
+    FullRequestType: global::TestApp.Request,
+    FullResponseType: global::TestApp.Response,
+    ResultValueTypes: [
+      {
+        FullType: global::TestApp.Response,
+        RequiresNullCheck: true
+      }
+    ],
+    Phases: [
+      {
+        MethodName: BeforeAudit,
+        IsAsync: false,
+        IsStatic: false,
+        Parameters: [
+          {
+            LocalName: request,
+            FullType: global::TestApp.Request,
+            IsNullable: false,
+            NotNullMessage: request cannot be null,
+            IsFromServices: false
+          }
+        ],
+        Returns: [
+          {
+            LocalName: fromBeforeAudit,
+            FullType: global::TestApp.Audited,
+            IsNullable: false,
+            IsResultType: false,
+            RequiresNullCheck: true,
+            NonNullLocalName: fromBeforeAudit
+          }
+        ]
+      },
+      {
+        Type: Handle,
+        MethodName: Handle,
+        IsAsync: false,
+        IsStatic: false,
+        Parameters: [
+          {
+            LocalName: request,
+            FullType: global::TestApp.Request,
+            IsNullable: false,
+            NotNullMessage: request cannot be null,
+            IsFromServices: false
+          },
+          {
+            LocalName: audited,
+            FullType: global::TestApp.Audited,
+            IsNullable: false,
+            NotNullMessage: audited cannot be null,
+            IsFromServices: false
+          }
+        ],
+        Returns: [
+          {
+            LocalName: fromHandle,
+            FullType: global::TestApp.Response,
+            IsNullable: false,
+            IsResultType: false,
+            RequiresNullCheck: true,
+            NonNullLocalName: fromHandle
+          }
+        ]
+      }
+    ],
+    LocalVariables: [
+      {
+        LocalName: fromBeforeAudit,
+        FullType: global::TestApp.Audited,
+        CheckNullability: false,
+        IfNullErrorMessage: audited cannot be null
+      },
+      {
+        LocalName: fromHandle,
+        FullType: global::TestApp.Response,
+        CheckNullability: false
+      },
+      {
+        LocalName: request,
+        FullType: global::TestApp.Request,
+        CheckNullability: false
+      }
+    ],
+    FinallyPhases: null,
+    MatchedMiddlewareClassNames: null,
+    DispatcherFullName: global::TestApp.InheritedBeforeHandlerDispatcher,
+    DispatcherKey: global::TestApp.Request|global::TestApp.Response,
+    IsAnyAsync: false,
+    HasInstanceMethods: true,
+    HasFromServicesParameters: false,
+    HasSingleResultType: true,
+    ResultTypeName: global::TestApp.Response
+  },
+  Diagnostics: null
+}

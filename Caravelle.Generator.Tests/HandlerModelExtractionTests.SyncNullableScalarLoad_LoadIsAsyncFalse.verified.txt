@@ -36,8 +36,7 @@
             IsNullable: true,
             IsResultType: false,
             RequiresNullCheck: true,
-            NonNullLocalName: fromLoadValue,
-            IsValidationResult: false
+            NonNullLocalName: fromLoadValue
           }
         ]
       },
@@ -62,8 +61,7 @@
             IsNullable: false,
             IsResultType: false,
             RequiresNullCheck: true,
-            NonNullLocalName: fromHandle,
-            IsValidationResult: false
+            NonNullLocalName: fromHandle
           }
         ]
       }
@@ -86,6 +84,8 @@
         CheckNullability: false
       }
     ],
+    FinallyPhases: null,
+    MatchedMiddlewareClassNames: null,
     DispatcherFullName: global::TestApp.SyncLoadHandlerDispatcher,
     DispatcherKey: global::TestApp.SyncLoadHandler.Request|global::TestApp.SyncLoadHandler.Response,
     IsAnyAsync: true,

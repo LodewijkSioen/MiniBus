@@ -37,8 +37,7 @@
             IsNullable: false,
             IsResultType: false,
             RequiresNullCheck: true,
-            NonNullLocalName: fromHandle,
-            IsValidationResult: false
+            NonNullLocalName: fromHandle
           }
         ]
       },
@@ -63,8 +62,7 @@
             IsNullable: false,
             IsResultType: false,
             RequiresNullCheck: true,
-            NonNullLocalName: fromAfterAudit,
-            IsValidationResult: false
+            NonNullLocalName: fromAfterAudit
           }
         ]
       },
@@ -89,8 +87,7 @@
             IsNullable: false,
             IsResultType: true,
             RequiresNullCheck: true,
-            NonNullLocalName: fromPostValidate,
-            IsValidationResult: true
+            NonNullLocalName: fromPostValidate
           }
         ]
       }
@@ -119,6 +116,8 @@
         CheckNullability: false
       }
     ],
+    FinallyPhases: null,
+    MatchedMiddlewareClassNames: null,
     DispatcherFullName: global::TestApp.PostConventionHandlerDispatcher,
     DispatcherKey: global::TestApp.PostConventionHandler.Request|global::TestApp.PostConventionHandler.Response,
     IsAnyAsync: false,

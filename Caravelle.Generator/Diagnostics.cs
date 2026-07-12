@@ -109,12 +109,60 @@ internal static class Diagnostics
         defaultSeverity: DiagnosticSeverity.Error,
         isEnabledByDefault: true);
 
+    private static readonly DiagnosticDescriptor InheritedMethodNotAccessibleDescriptor = new(
+        id: "MBG009",
+        title: "Inherited pipeline method is not accessible",
+        messageFormat: "Handler '{0}' inherits pipeline method '{1}' from '{2}', but it is not accessible from the generated dispatcher. Inherited pipeline methods must be public or internal.",
+        category: "Caravelle.Generator",
+        defaultSeverity: DiagnosticSeverity.Error,
+        isEnabledByDefault: true);
+
     private static readonly DiagnosticDescriptor FinallyParameterMustBeNullableDescriptor = new(
         id: "MBG010",
         title: "Finally parameter must be nullable",
         messageFormat: "Handler '{0}' has Finally method with non-nullable parameter '{1}' of type '{2}' that matches a pipeline return type. Parameters matching pipeline returns must be nullable.",
         category: "Caravelle.Generator",
         defaultSeverity: DiagnosticSeverity.Error,
+        isEnabledByDefault: true);
+
+    private static readonly DiagnosticDescriptor GenericMiddlewareNotSupportedDescriptor = new(
+        id: "MBG011",
+        title: "Generic middleware is not supported",
+        messageFormat: "Middleware '{0}' is generic. Generic [Middleware] classes are not supported by source generation.",
+        category: "Caravelle.Generator",
+        defaultSeverity: DiagnosticSeverity.Warning,
+        isEnabledByDefault: true);
+
+    private static readonly DiagnosticDescriptor NestedMiddlewareNotSupportedDescriptor = new(
+        id: "MBG012",
+        title: "Nested middleware is not supported",
+        messageFormat: "Middleware '{0}' is nested. Nested [Middleware] classes are not supported by source generation.",
+        category: "Caravelle.Generator",
+        defaultSeverity: DiagnosticSeverity.Warning,
+        isEnabledByDefault: true);
+
+    private static readonly DiagnosticDescriptor UnrecognizedMiddlewareFilterDescriptor = new(
+        id: "MBG013",
+        title: "Unrecognized middleware filter",
+        messageFormat: "Middleware '{0}' uses unrecognized filter type '{1}'. Only the filter types shipped by Caravelle are supported; this filter is ignored and will never match a handler.",
+        category: "Caravelle.Generator",
+        defaultSeverity: DiagnosticSeverity.Warning,
+        isEnabledByDefault: true);
+
+    private static readonly DiagnosticDescriptor MiddlewareMatchedNoHandlersDescriptor = new(
+        id: "MBG014",
+        title: "Middleware matched no handlers",
+        messageFormat: "Middleware '{0}' does not match any [Handler] class in the compilation. Its pipeline methods will never run.",
+        category: "Caravelle.Generator",
+        defaultSeverity: DiagnosticSeverity.Warning,
+        isEnabledByDefault: true);
+
+    private static readonly DiagnosticDescriptor MiddlewareResolutionDidNotConvergeDescriptor = new(
+        id: "MBG015",
+        title: "Middleware resolution did not converge",
+        messageFormat: "Handler '{0}' middleware matching did not converge within the expected number of passes. The generated pipeline may be missing applicable middleware; please report this as a bug.",
+        category: "Caravelle.Generator",
+        defaultSeverity: DiagnosticSeverity.Warning,
         isEnabledByDefault: true);
 
     public static DiagnosticInfo DuplicateRequestType(
@@ -188,6 +236,16 @@ internal static class Diagnostics
             location: location,
             messageArgs: [handlerName, methodNames]);
 
+    public static DiagnosticInfo InheritedMethodNotAccessible(
+        Location location,
+        string handlerName,
+        string methodName,
+        string declaringTypeName) =>
+        new (
+            descriptor: InheritedMethodNotAccessibleDescriptor,
+            location: location,
+            messageArgs: [handlerName, methodName, declaringTypeName]);
+
     public static DiagnosticInfo FinallyParameterMustBeNullable(
         Location location,
         string handlerName,
@@ -197,4 +255,45 @@ internal static class Diagnostics
             descriptor: FinallyParameterMustBeNullableDescriptor,
             location: location,
             messageArgs: [handlerName, parameterName, parameterType]);
+
+    public static DiagnosticInfo GenericMiddlewareNotSupported(
+        Location location,
+        string fullMiddlewareName) =>
+        new (
+            descriptor: GenericMiddlewareNotSupportedDescriptor,
+            location: location,
+            messageArgs: [fullMiddlewareName]);
+
+    public static DiagnosticInfo NestedMiddlewareNotSupported(
+        Location location,
+        string fullMiddlewareName) =>
+        new (
+            descriptor: NestedMiddlewareNotSupportedDescriptor,
+            location: location,
+            messageArgs: [fullMiddlewareName]);
+
+    public static DiagnosticInfo UnrecognizedMiddlewareFilter(
+        Location location,
+        string fullMiddlewareName,
+        string filterTypeName) =>
+        new (
+            descriptor: UnrecognizedMiddlewareFilterDescriptor,
+            location: location,
+            messageArgs: [fullMiddlewareName, filterTypeName]);
+
+    public static DiagnosticInfo MiddlewareMatchedNoHandlers(
+        Location location,
+        string fullMiddlewareName) =>
+        new (
+            descriptor: MiddlewareMatchedNoHandlersDescriptor,
+            location: location,
+            messageArgs: [fullMiddlewareName]);
+
+    public static DiagnosticInfo MiddlewareResolutionDidNotConverge(
+        Location location,
+        string fullHandlerName) =>
+        new (
+            descriptor: MiddlewareResolutionDidNotConvergeDescriptor,
+            location: location,
+            messageArgs: [fullHandlerName]);
 }
